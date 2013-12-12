@@ -46,8 +46,10 @@ Thumbs.db
 .m2
 
 # Build output directies
-target/
-build/
+/target
+*/target
+/build
+*/build
 
 # IntelliJ specific files/directories
 out
@@ -69,6 +71,3 @@ pom.xml
 
 # NetBeans specific files/directories
 .nbattrs
-
-# Scala build
-*.cache
