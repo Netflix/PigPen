@@ -85,7 +85,7 @@ Wait, where's that UDF? Let's jump to python now:
         tokens = p.split(lc)
         return filter(lambda t: t != '', tokens)
 
-Probably not the best python - it's not my native tounge. But that's kinda the point.
+Probably not the best python - it's not my native tongue. But that's kinda the point.
 
 Notice that our UDF is defining the names & types of the return values. If we don't do that, Pig thinks that our function returns a bytearray. Bytearrays are generally useless if you want to interact with the field.
 
@@ -123,13 +123,13 @@ In the next step, we use this field and count the tokens. Note that we have to u
         group,
         COUNT(all_tokens.token);
 
-The problem with the naming comes when we want to mock out the data in `grouped_tokens`. There's no way I can find to match the names that are present whem we are running the actual script.
+The problem with the naming comes when we want to mock out the data in `grouped_tokens`. There's no way I can find to match the names that are present when we are running the actual script.
 
 And then we store the result:
 
     STORE token_counts INTO 'output.tsv';
 
-The takeaway from all of this is that names in Pig scripts tend to stretch across the script, making it very difficult to inject mock data without modifying the script. In addition to that, Pig forces you to name every command, which can be very tedious. To contrast, in PigPen you only have to define names where you want them. If you have a bunch of steps to compute data, you can easily thread them together using clojure threading macros ([->>](http://clojuredocs.org/clojure_core/clojure.core/-%3E%3E)). The names within the data are entirely in your control, making them trivial to mock out without any changes to the script.
+The takeaway from all of this is that names in Pig scripts tend to stretch across the script, making it very difficult to inject mock data without modifying the script. In addition to that, Pig forces you to name every command, which can be very tedious. To contrast, in PigPen you only have to define names where you want them. If you have a bunch of steps to compute data, you can easily thread them together using Clojure threading macros ([->>](http://clojuredocs.org/clojure_core/clojure.core/-%3E%3E)). The names within the data are entirely in your control, making them trivial to mock out without any changes to the script.
 
 ### Nil handling
 
@@ -151,11 +151,11 @@ The Pig parser has trouble with type definitions on multiple lines.
 
 Pig types are confusing. For example, every item in a bag must also be wrapped in a tuple.
 
-None of these are problems for PigPen because it relies on the clojure type system, where data is just data. A string is always a string, and you can count objects of any type.
+None of these are problems for PigPen because it relies on the Clojure type system, where data is just data. A string is always a string, and you can count objects of any type.
 
 ### Data format
 
-The Pig data format is not idempotent becasue it doesn't escape string literals. This means that there's ambiguity when you read the following line. There's no way to tell which comma belongs where, what was a number/boolean, or what was a number/boolean stored as a string.
+The Pig data format is not idempotent because it doesn't escape string literals. This means that there's ambiguity when you read the following line. There's no way to tell which comma belongs where, what was a number/boolean, or what was a number/boolean stored as a string.
 
     [foo,1#123,baz,3#hello, world,bar,2#true,biz,4#true]
 
@@ -165,7 +165,7 @@ Here's the same data in EDN (commas added between elements for clarity):
 
     {"foo,1" 123, "baz,3" "hello, world", "bar,2" "true", "biz,4" true}
 
-Because of this, when working with clojure data there is no need to specify a schema for anything.
+Because of this, when working with Clojure data there is no need to specify a schema for anything.
 
 ### Name what you want to
 

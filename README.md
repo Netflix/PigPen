@@ -13,9 +13,9 @@ PigPen is __not__ a Clojure wrapper for writing Pig scripts - the resulting scri
 
 # Really, yet another map-reduce language?
 
-### If you know clojure, you already know pigpen
+### If you know Clojure, you already know pigpen
 
-The primary goal of PigPen is to take language out of the equation. PigPen operators are designed to be as close as possible to the clojure equivalents. And there are no sidecar files for UDFs - they're right inline where they should be.
+The primary goal of PigPen is to take language out of the equation. PigPen operators are designed to be as close as possible to the Clojure equivalents. And there are no sidecar files for UDFs - they're right inline where they should be.
 
 Here's the proverbial word count:
 
@@ -64,7 +64,7 @@ The [`pig/dump`](doc/pigpen.core.html#var-dump) operator is what runs the query 
 
 # Closures (yes, the kind with an S)
 
-Parameterizing your query is trivial. Any in scope function parameters or let bindings are available to use in functions.
+Parameterizing your query is trivial. Any in-scope function parameters or let bindings are available to use in functions.
 
     (defn reusable-fn [lower-bound data]
       (let [upper-bound (+ lower-bound 10)]
@@ -218,9 +218,9 @@ Pig was chosen because we didn't want to have to redo all of the optimization wo
 
 Long term, if performance issues crop up, it will be relatively easy to migrate to running pigpen directly on Hadoop without changing the abstraction. So far, performance doesn't seem to be an issue.
 
-It would be possible to do a simialr thing on top of Hive, but I'm not a fan of schematizing my data and it doesn't fit well with the clojure ideology. Also, Hive is more similar to SQL, making translation from a functional language more difficult. Pig is by nature more functional and supports a lot of concepts like map, filter, and reduce right out of the box.
+It would be possible to do a similar thing on top of Hive, but I'm not a fan of schematizing my data and it doesn't fit well with the Clojure ideology. Also, Hive is more similar to SQL, making translation from a functional language more difficult. Pig is by nature more functional and supports a lot of concepts like map, filter, and reduce right out of the box.
 
 Scalding looks nice, but our team is a Clojure shop. It could be said that this is the Clojure equivalent of scalding.
 
-Cascalog is usually the go-to language for map-reduce in clojure, but from past experiences I'm not a fan of using datalog for everyday tasks. There's a lot of new syntax and concepts to learn, adjusting names to use an implcit join is not always ideal (or practical), misplaced ordering of operations can often cause big performance problems, datalog will flatten everything which can be wasteful, and composition can be a mind bender.
+Cascalog is usually the go-to language for map-reduce in clojure, but from past experiences I'm not a fan of using datalog for everyday tasks. There's a lot of new syntax and concepts to learn, adjusting names to use an implicit join is not always ideal (or practical), misplaced ordering of operations can often cause big performance problems, datalog will flatten everything which can be wasteful, and composition can be a mind bender.
 

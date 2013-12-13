@@ -24,7 +24,7 @@ Our output would be this:
     ([1 2 3]
      [4 5 6])
 
-There are also loaders that will read clojure and other formats. Check out the docs for more examples.
+There are also loaders that will read Clojure and other formats. Check out the docs for more examples.
 
 Storing data is like a line-by-line writer that's similar to clojure.core/spit:
 
