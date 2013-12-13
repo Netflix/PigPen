@@ -40,8 +40,8 @@
 (deftest test-word-count
   (let [data (pig/return [["The fox jumped over the dog."]
                           ["The cow jumped over the moon."]])]
-    (is (= (pig/dump (word-count data))
-           [["moon" 1] ["jumped" 2] ["dog" 1] ["over" 2] ["cow" 1] ["fox" 1] ["the" 4]]))))
+    (is (= (set (pig/dump (word-count data)))
+           #{["moon" 1] ["jumped" 2] ["dog" 1] ["over" 2] ["cow" 1] ["fox" 1] ["the" 4]}))))
 
 (defn reusable-fn [lower-bound data]
   (let [upper-bound (+ lower-bound 10)]
@@ -55,12 +55,12 @@
            [10]))))
 
 (deftest test-write-script
-  (pig/write-script "example/word-count.pig" (word-count-query "input.tsv" "output.tsv")))
+  (pig/write-script "build/readme-test/word-count.pig" (word-count-query "input.tsv" "output.tsv")))
 
 (defn my-data-1 []
-  (pig/load-tsv "example/input.tsv"))
+  (pig/load-tsv "build/readme-test/input.tsv"))
 
-(spit "example/input.tsv" "1\t2\tfoo\n4\t5\tbar")
+(spit "build/readme-test/input.tsv" "1\t2\tfoo\n4\t5\tbar")
 
 (deftest test-mydata-1
   (is (= (pig/dump (my-data-1))
@@ -68,7 +68,7 @@
 
 (defn my-data-2 []
   (->>
-    (pig/load-tsv "example/input.tsv")
+    (pig/load-tsv "build/readme-test/input.tsv")
     (pig/map (fn [[a b c]]
                {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
                 :name c}))))
@@ -79,7 +79,7 @@
 
 (defn my-data-3 []
   (->>
-    (pig/load-tsv "example/input.tsv")
+    (pig/load-tsv "build/readme-test/input.tsv")
     (pig/map (fn [[a b c]]
                {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
                 :name c}))
@@ -113,7 +113,7 @@
            [{:sum 3, :name "foo"}]))))
 
 (deftest test-write-script2
-  (pig/write-script "example/my-script.pig" (my-query "example/input.tsv" "example/output.clj")))
+  (pig/write-script "build/readme-test/my-script.pig" (my-query "build/readme-test/input.tsv" "build/readme-test/output.clj")))
 
 (deftest test-join
   (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
@@ -141,17 +141,17 @@
            [[1 [2 3] ["foo"]]
             [2 [4]   ["bar" "baz"]]]))))
 
-(spit "example/numbers0.tsv" "1\t1\n2\t5")
-(spit "example/numbers1.tsv" "1\t2\n2\t6")
-(spit "example/numbers2.tsv" "1\t3\n2\t7")
-(spit "example/numbers3.tsv" "1\t4\n2\t8")
+(spit "build/readme-test/numbers0.tsv" "1\t1\n2\t5")
+(spit "build/readme-test/numbers1.tsv" "1\t2\n2\t6")
+(spit "build/readme-test/numbers2.tsv" "1\t3\n2\t7")
+(spit "build/readme-test/numbers3.tsv" "1\t4\n2\t8")
 
 (deftest test-names
 
-  (let [a (pig/load-pig "example/numbers0.tsv" [i w])
-        b (pig/load-pig "example/numbers1.tsv" [i x])
-        c (pig/load-pig "example/numbers2.tsv" [i y])
-        d (pig/load-pig "example/numbers3.tsv" [i z])
+  (let [a (pig/load-pig "build/readme-test/numbers0.tsv" [i w])
+        b (pig/load-pig "build/readme-test/numbers1.tsv" [i x])
+        c (pig/load-pig "build/readme-test/numbers2.tsv" [i y])
+        d (pig/load-pig "build/readme-test/numbers3.tsv" [i z])
 
         j0 (pig/join (a on :i)
                      (b on :i)
