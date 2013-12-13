@@ -13,7 +13,7 @@ PigPen is __not__ a Clojure wrapper for writing Pig scripts - the resulting scri
 
 # Really, yet another map-reduce language?
 
-### If you know Clojure, you already know pigpen
+### If you know Clojure, you already know PigPen
 
 The primary goal of PigPen is to take language out of the equation. PigPen operators are designed to be as close as possible to the Clojure equivalents. And there are no sidecar files for UDFs - they're right inline where they should be.
 
