@@ -1,10 +1,10 @@
-# PigPen
+![](logo.png)
 
 PigPen is a map-reduce abstraction for Clojure. It is written on top of [Apache Pig](http://pig.apache.org/), but you don't need to know much about Pig to use it.
 
 Goals of PigPen:
 
-  * A map-redice query abstraction that's as similar as possible to clojure.core. The idea is to feel like you're working with local Clojure data when running a map-reduce job.
+  * A map-reduce query abstraction that's as similar as possible to clojure.core. The idea is to feel like you're working with local Clojure data when running a map-reduce job.
   * Allow for iterative development of scripts using standard unit testing
   * Map-reduce using a dynamic language (no types, but it actually works)
 
