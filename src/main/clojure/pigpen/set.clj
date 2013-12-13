@@ -18,7 +18,8 @@
 
 (ns pigpen.set
   (:refer-clojure :exclude [distinct concat])
-  (:require [pigpen.raw :as raw]
+  (:require [clojure.set]
+            [pigpen.raw :as raw]
             [pigpen.code :as code]))
 
 (defn ^:private split-opts-relations
