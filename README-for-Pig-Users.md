@@ -6,7 +6,7 @@ If you are not familiar at all with [Clojure](http://clojure.org/), I strongly r
 
 Here are what some common Pig commands look like in PigPen
 
-FOREACH / GENERATE -> [`pig/map`](doc/pigpen.core.html#var-map)
+FOREACH / GENERATE -> [`pig/map`](http://netflix.github.io/PigPen/pigpen.core.html#var-map)
 
     bar = FOREACH foo GENERATE
         a,
@@ -17,26 +17,26 @@ FOREACH / GENERATE -> [`pig/map`](doc/pigpen.core.html#var-map)
                 :d (+ b c)})
               foo)
 
-FOREACH / GENERATE / FLATTEN -> [`pig/mapcat`](doc/pigpen.core.html#var-mapcat)
+FOREACH / GENERATE / FLATTEN -> [`pig/mapcat`](http://netflix.github.io/PigPen/pigpen.core.html#var-mapcat)
 
     bar = FOREACH foo GENERATE
         FLATTEN(a);
 
     (pig/mapcat :a foo)
 
-FILTER -> [`pig/filter`](doc/pigpen.core.html#var-filter)
+FILTER -> [`pig/filter`](http://netflix.github.io/PigPen/pigpen.core.html#var-filter)
 
     bar = FILTER foo by a == 1;
 
     (pig/filter (fn [{:keys [a]}] (= a 1)) foo)
 
-LIMIT -> [`pig/take`](doc/pigpen.core.html#var-take)
+LIMIT -> [`pig/take`](http://netflix.github.io/PigPen/pigpen.core.html#var-take)
 
     bar = LIMIT foo 1;
 
     (pig/take 1 foo)
 
-JOIN -> [`pig/join`](doc/pigpen.core.html#var-join)
+JOIN -> [`pig/join`](http://netflix.github.io/PigPen/pigpen.core.html#var-join)
 
     baz = JOIN foo BY a, bar BY b;
 
@@ -46,7 +46,7 @@ JOIN -> [`pig/join`](doc/pigpen.core.html#var-join)
 
 _Note that PigPen's join has an implicit function at the end to combine the rows_
 
-GROUP BY -> [`pig/group-by`](doc/pigpen.core.html#var-group-by)
+GROUP BY -> [`pig/group-by`](http://netflix.github.io/PigPen/pigpen.core.html#var-group-by)
 
     bar = GROUP foo BY a;
 

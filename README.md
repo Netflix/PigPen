@@ -60,7 +60,7 @@ Mocking is super easy - run the first part of the query to produce some sample r
         (is (= (pig/dump (word-count data))
                [["moon" 1] ["jumped" 2] ["dog" 1] ["over" 2] ["cow" 1] ["fox" 1] ["the" 4]]))))
 
-The [`pig/dump`](doc/pigpen.core.html#var-dump) operator is what runs the query locally.
+The [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) operator is what runs the query locally.
 
 # Closures (yes, the kind with an S)
 
@@ -80,7 +80,7 @@ Just tell PigPen where to write the query as a Pig script:
 
 And then you have a Pig script you can submit to your cluster.
 
-As you saw before, we can also use [`pig/dump`](doc/pigpen.core.html#var-dump) to run the query locally and return Clojure data:
+As you saw before, we can also use [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) to run the query locally and return Clojure data:
 
     (pig/dump (word-count data))
 
@@ -95,7 +95,7 @@ If you know both Clojure and Pig, you'll probably find all of tutorials interest
 
 # PigPen Tutorial
 
-First, lets load some data. Text files (tsv, csv) can be read using [`pig/load-tsv`](doc/pigpen.core.html#var-load-tsv). If you have Clojure data, take a look at [`pig/load-clj`](doc/pigpen.core.html#var-load-clj).
+First, lets load some data. Text files (tsv, csv) can be read using [`pig/load-tsv`](http://netflix.github.io/PigPen/pigpen.core.html#var-load-tsv). If you have Clojure data, take a look at [`pig/load-clj`](http://netflix.github.io/PigPen/pigpen.core.html#var-load-clj).
 
 The following code defines a function that returns a query. This query loads data from the file input.tsv.
 
@@ -167,7 +167,7 @@ Now we can define a unit test for our query:
         (is (= (pig/dump (my-func data))
                [{:sum 3, :name "foo"}]))))
 
-The function [`pig/dump`](doc/pigpen.core.html#var-dump) takes any PigPen query, executes it locally, and returns the data. Note that [`pig/store`](doc/pigpen.core.html#var-store-tsv) commands return `[]`.
+The function [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) takes any PigPen query, executes it locally, and returns the data. Note that [`pig/store`](http://netflix.github.io/PigPen/pigpen.core.html#var-store-tsv) commands return `[]`.
 
 If we want to generate a script, that's easy too:
 
