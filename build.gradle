@@ -1,6 +1,6 @@
 // Establish version and status
 ext.githubProjectName = rootProject.name // Change if github project name is not the same as the root project's name
-group = "com.netflix.${githubProjectName}"
+group = "com.netflix.pigpen"
 
 buildscript {
     repositories {
@@ -14,12 +14,10 @@ buildscript {
     apply from: file('gradle/buildscript.gradle'), to: buildscript 
 }
 
-allprojects {
-    repositories { 
-        mavenLocal()
-        mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
-        maven { url 'http://clojars.org/repo' }
-    }
+repositories { 
+    mavenLocal()
+    mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
+    maven { url 'http://clojars.org/repo' }
 }
 
 apply from: file('gradle/convention.gradle')
@@ -29,6 +27,8 @@ apply from: file('gradle/license.gradle')
 apply from: file('gradle/release.gradle')
 
 apply plugin: 'clojure'
+
+compileClojure.dependsOn compileJava
 
 dependencies {
 	// these are transitive dependencies that don't get picked up normally
