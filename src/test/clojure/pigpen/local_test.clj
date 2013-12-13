@@ -33,6 +33,8 @@
            [rx.observables BlockingObservable]
            [org.apache.pig.data DataByteArray DataBag]))
 
+(.mkdirs (java.io.File. "build/local-test"))
+
 (deftest test-eval-code
   
   (let [code (raw/code$ DataByteArray '[x y]
@@ -95,45 +97,45 @@
 (deftest test-debug
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [command (->>
-                    (io/load-clj "target/test-debug-in")
+                    (io/load-clj "build/local-test/test-debug-in")
                     (pig-filter/filter (comp odd? :a))
                     (pig-map/map :b)
-                    (io/store-clj "target/test-debug-out"))]
-      (spit "target/test-debug-in" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
-      #_(exec/write-script "target/temp.pig" {:debug "target/"} command)
-      (is (empty? (exec/dump-debug "target/test-debug-" command)))
+                    (io/store-clj "build/local-test/test-debug-out"))]
+      (spit "build/local-test/test-debug-in" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
+      #_(exec/write-script "build/local-test/temp.pig" {:debug "build/local-test/"} command)
+      (is (empty? (exec/dump-debug "build/local-test/test-debug-" command)))
       (is (= "class java.lang.String\t{:a 1, :b \"foo\"}\nclass java.lang.String\t{:a 2, :b \"bar\"}\n"
-            (slurp "target/test-debug-load1")))
+            (slurp "build/local-test/test-debug-load1")))
       (is (= "class clojure.lang.PersistentArrayMap\t{:a 1, :b \"foo\"}\nclass clojure.lang.PersistentArrayMap\t{:a 2, :b \"bar\"}\n"
-            (slurp "target/test-debug-bind2")))
+            (slurp "build/local-test/test-debug-bind2")))
       (is (= "class clojure.lang.PersistentArrayMap\t{:a 1, :b \"foo\"}\n"
-            (slurp "target/test-debug-bind3")))
+            (slurp "build/local-test/test-debug-bind3")))
       (is (= "class java.lang.String\tfoo\n"
-            (slurp "target/test-debug-bind4")))
+            (slurp "build/local-test/test-debug-bind4")))
       (is (= "class java.lang.String\t\"foo\"\n"
-            (slurp "target/test-debug-bind9"))))))
+            (slurp "build/local-test/test-debug-bind9"))))))
 
 ;; ********** IO **********
 
 (deftest test-load
-  (let [command (raw/load$ "target/test-load" '[a b c] raw/default-storage {:cast "chararray"})]
-    (spit "target/test-load" "a\tb\tc\n1\t2\t3\n")
+  (let [command (raw/load$ "build/local-test/test-load" '[a b c] raw/default-storage {:cast "chararray"})]
+    (spit "build/local-test/test-load" "a\tb\tc\n1\t2\t3\n")
     (test-diff
       (exec/debug-script-raw command)
       '[{a "a", b "b", c "c"}
         {a "1", b "2", c "3"}])))
 
 (deftest test-load-pig
-  (let [command (io/load-pig "target/test-load-pig" [a b])]
-    (spit "target/test-load-pig" "1\tfoo\n2\tbar\n")
+  (let [command (io/load-pig "build/local-test/test-load-pig" [a b])]
+    (spit "build/local-test/test-load-pig" "1\tfoo\n2\tbar\n")
     (test-diff
       (set (exec/debug-script command))
       '#{(freeze {:a 2, :b "bar"})
          (freeze {:a 1, :b "foo"})})))  
 
 (deftest test-load-clj
-  (let [command (io/load-clj "target/test-load-clj")]
-    (spit "target/test-load-clj" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
+  (let [command (io/load-clj "build/local-test/test-load-clj")]
+    (spit "build/local-test/test-load-clj" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
     (test-diff
       (set (exec/debug-script command))
       '#{(freeze {:a 2, :b "bar"})
@@ -142,32 +144,32 @@
 (deftest test-load-tsv
   
   (testing "Normal tsv with default delimiter"
-    (let [command (io/load-tsv "target/test-load-tsv")]
-      (spit "target/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
+    (let [command (io/load-tsv "build/local-test/test-load-tsv")]
+      (spit "build/local-test/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
       (test-diff
         (set (exec/debug-script command))
         '#{(freeze ["a" "b" "c"])
            (freeze ["1" "2" "3"])})))
   
   (testing "Normal tsv with non-tab delimiter"
-    (let [command (io/load-tsv "target/test-load-tsv" #",")]
-      (spit "target/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
+    (let [command (io/load-tsv "build/local-test/test-load-tsv" #",")]
+      (spit "build/local-test/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
       (test-diff
         (set (exec/debug-script command))
         '#{(freeze ["a\tb\tc"])
            (freeze ["1\t2\t3"])})))
   
   (testing "Non-tsv with non-tab delimiter"
-    (let [command (io/load-tsv "target/test-load-tsv" #",")]
-      (spit "target/test-load-tsv" "a,b,c\n1,2,3\n")
+    (let [command (io/load-tsv "build/local-test/test-load-tsv" #",")]
+      (spit "build/local-test/test-load-tsv" "a,b,c\n1,2,3\n")
       (test-diff
         (set (exec/debug-script command))
         '#{(freeze ["a" "b" "c"])
            (freeze ["1" "2" "3"])}))))
 
 (deftest test-load-lazy
-  (let [command (io/load-tsv "target/test-load-lazy")]
-    (spit "target/test-load-lazy" "a\tb\tc\n1\t2\t3\n")
+  (let [command (io/load-tsv "build/local-test/test-load-lazy")]
+    (spit "build/local-test/test-load-lazy" "a\tb\tc\n1\t2\t3\n")
     (test-diff
       (set (exec/debug-script command))
       '#{(freeze ("a" "b" "c"))
@@ -176,34 +178,34 @@
 (deftest test-store
   (let [data (io/return-raw '[{a "a", b "b", c "c"}
                               {a "1", b "2", c "3"}])
-        command (raw/store$ data "target/test-store" raw/default-storage {})]
+        command (raw/store$ data "build/local-test/test-store" raw/default-storage {})]
     (is (empty? (exec/debug-script command)))
     (is (= "a\tb\tc\n1\t2\t3\n"
-           (slurp "target/test-store")))))
+           (slurp "build/local-test/test-store")))))
 
 (deftest test-store-pig
   (let [data (io/return [{:a 1, :b "foo"}
                            {:a 2, :b "bar"}])
-        command (io/store-pig "target/test-store-pig" data)]
+        command (io/store-pig "build/local-test/test-store-pig" data)]
     (is (empty? (exec/debug-script command)))
     (is (= "[a#1,b#foo]\n[a#2,b#bar]\n"
-           (slurp "target/test-store-pig")))))
+           (slurp "build/local-test/test-store-pig")))))
 
 (deftest test-store-tsv
   (let [data (io/return [[1 "foo" :a]
                            [2 "bar" :b]])
-        command (io/store-tsv "target/test-store-tsv" data)]
+        command (io/store-tsv "build/local-test/test-store-tsv" data)]
     (is (empty? (exec/debug-script command)))
     (is (= "1\tfoo\t:a\n2\tbar\t:b\n"
-           (slurp "target/test-store-tsv")))))
+           (slurp "build/local-test/test-store-tsv")))))
 
 (deftest test-store-clj
   (let [data (io/return [{:a 1, :b "foo"}
                            {:a 2, :b "bar"}])
-        command (io/store-clj "target/test-store-clj" data)]
+        command (io/store-clj "build/local-test/test-store-clj" data)]
     (is (empty? (exec/debug-script command)))
     (is (= "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}\n"
-           (slurp "target/test-store-clj")))))
+           (slurp "build/local-test/test-store-clj")))))
 
 (deftest test-return
   

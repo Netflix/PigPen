@@ -19,7 +19,7 @@
 (ns pigpen.README-test
   (:use clojure.test))
 
-(.mkdirs (java.io.File. "example"))
+(.mkdirs (java.io.File. "build/readme-test"))
 (require '[pigpen.core :as pig])
 
 (defn word-count [lines]
