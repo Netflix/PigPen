@@ -1,5 +1,27 @@
 # PigPen for Clojure Users
 
+## Artifacts
+
+`pigpen` is available from Maven:
+
+With Leiningen:
+
+``` clj
+
+    [com.netflix.pigpen/pigpen "0.1.0"]
+```
+
+With Maven:
+
+``` xml
+
+    <dependency>
+      <groupId>com.netflix.pigpen</groupId>
+      <artifactId>pigpen</artifactId>
+      <version>0.1.0</version>
+    </dependency>
+```
+
 ## Operators
 
 Most of the usual operators you use on seqs ([`map`](http://netflix.github.io/PigPen/pigpen.core.html#var-map), [`mapcat`](http://netflix.github.io/PigPen/pigpen.core.html#var-mapcat), [`filter`](http://netflix.github.io/PigPen/pigpen.core.html#var-filter), [`reduce`](http://netflix.github.io/PigPen/pigpen.core.html#var-reduce), [`group-by`](http://netflix.github.io/PigPen/pigpen.core.html#var-group-by), [`into`](http://netflix.github.io/PigPen/pigpen.core.html#var-into), [`take`](http://netflix.github.io/PigPen/pigpen.core.html#var-take)) have PigPen equivalents. Check out the [full docs](http://netflix.github.io/PigPen/pigpen.core.html) for the whole list of what is supported.
@@ -12,7 +34,10 @@ Here's what's different and/or new in PigPen:
 
 The load operators in PigPen are kind of like a reader plus line-seq that returns a lazy sequence that's disposed of when you finish reading. Conceptually, you can just think of it as something that returns a lazy seq you don't have to worry about closing.
 
+``` clj
+
     (pig/load-tsv "input.tsv")
+```
 
 In this example, we're reading Pig data structures from the file input.tsv. If our input looked like this:
 
@@ -21,8 +46,11 @@ In this example, we're reading Pig data structures from the file input.tsv. If o
 
 Our output would be this:
 
+``` clj
+
     ([1 2 3]
      [4 5 6])
+```
 
 There are also loaders that will read Clojure and other formats. Check out the docs for more examples.
 
@@ -40,9 +68,12 @@ Check out the docs for more examples.
 
 List comprehensions (`clojure.core/for`) aren't supported because they don't translate very well into map-reduce. Instead, we opted to go with [`pig/join`](http://netflix.github.io/PigPen/pigpen.core.html#var-join):
 
+``` clj
+
     (pig/join (foo on :a)
               (bar on (fn [bar] (-> bar second str)))
               (fn [foo bar] (vector foo bar)))
+```
 
   * `foo` and `bar` are the relations we're joining
   * `:a` is the key selector for `foo`
@@ -70,7 +101,10 @@ When you want to restrict the amount of data used in a map-reduce job, it's ofte
 
 A better approach is to [sample](http://netflix.github.io/PigPen/pigpen.core.html#var-sample) the data by taking a random percentage of it.
 
+``` clj
+
     (pig/sample 0.01 my-relation)
+```
 
 This command will take 1% of the data at random.
 

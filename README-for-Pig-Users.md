@@ -1,6 +1,10 @@
 # PigPen for Pig Users
 
-If you are not familiar at all with [Clojure](http://clojure.org/), I strongly recommend that you find a [tutorial](http://learn-clojure.com/) and understand the [basics](http://clojure.org/cheatsheet). Otherwise a lot of the following will not make any sense.
+## Getting started
+
+Getting started with Clojure and PigPen is really easy. Just follow the steps in the [tutorial](https://github.com/Netflix/PigPen#pigpen-tutorial) to get up and running.
+
+_Note: If you are not familiar at all with [Clojure](http://clojure.org/), I strongly recommend that you try a tutorial [here](http://tryclj.com/), [here](http://java.ociweb.com/mark/clojure/article.html), or [here](http://learn-clojure.com/) to understand some of the [basics](http://clojure.org/cheatsheet)._
 
 ## Translations
 
@@ -8,49 +12,79 @@ Here are what some common Pig commands look like in PigPen
 
 FOREACH / GENERATE -> [`pig/map`](http://netflix.github.io/PigPen/pigpen.core.html#var-map)
 
+``` pig
+
     bar = FOREACH foo GENERATE
         a,
         b + c AS d;
+```
+``` clj
 
     (pig/map (fn [{:keys [a b c]}]
                {:a a
                 :d (+ b c)})
               foo)
+```
 
 FOREACH / GENERATE / FLATTEN -> [`pig/mapcat`](http://netflix.github.io/PigPen/pigpen.core.html#var-mapcat)
 
+``` pig
+
     bar = FOREACH foo GENERATE
         FLATTEN(a);
+```
+``` clj
 
     (pig/mapcat :a foo)
+```
 
 FILTER -> [`pig/filter`](http://netflix.github.io/PigPen/pigpen.core.html#var-filter)
 
+``` pig
+
     bar = FILTER foo by a == 1;
+```
+``` clj
 
     (pig/filter (fn [{:keys [a]}] (= a 1)) foo)
+```
 
 LIMIT -> [`pig/take`](http://netflix.github.io/PigPen/pigpen.core.html#var-take)
 
+``` pig
+
     bar = LIMIT foo 1;
+```
+``` clj
 
     (pig/take 1 foo)
+```
 
 JOIN -> [`pig/join`](http://netflix.github.io/PigPen/pigpen.core.html#var-join)
 
+``` pig
+
     baz = JOIN foo BY a, bar BY b;
+```
+``` clj
 
     (pig/join (foo on :a)
               (bar on :b)
               (fn [f b] ...))
+```
 
 _Note that PigPen's join has an implicit function at the end to combine the rows_
 
 GROUP BY -> [`pig/group-by`](http://netflix.github.io/PigPen/pigpen.core.html#var-group-by)
 
+``` pig
+
     bar = GROUP foo BY a;
+```
+``` clj
 
     (pig/group-by :a foo)
+```
 
 ## Pig issues that motivated PigPen
 
@@ -58,22 +92,36 @@ Let's start by looking at word count line by line in Pig
 
 Right off the bat we have code in another file we're referencing. We'll show the contents of that file later...
 
+``` pig
+
     REGISTER 'word_count_udf.py' USING jython AS word_count_udf;
+```
 
 Pig says types are optional, but if I used the following, my strings would load as byte arrays, and byte arrays are less than useful representations of strings in python.
 
+``` pig
+
     lines = LOAD 'input.tsv';
+```
 
 So we add type info:
 
+``` pig
+
     lines = LOAD 'input.tsv' AS (line:chararray);
+```
 
 Now we tokenize:
 
+``` pig
+
     tokenized_lines = FOREACH lines GENERATE
         word_count_udf.tokenize(line);
+```
 
 Wait, where's that UDF? Let's jump to python now:
+
+``` pig
 
     import re
     import string
@@ -84,6 +132,7 @@ Wait, where's that UDF? Let's jump to python now:
         p = re.compile(r'\W+')
         tokens = p.split(lc)
         return filter(lambda t: t != '', tokens)
+```
 
 Probably not the best python - it's not my native tongue. But that's kinda the point.
 
@@ -93,19 +142,28 @@ If Pig thinks that our function returns a bytearray, we then have to cast it bac
 
 We could also move the type info back to the script this way:
 
+``` pig
+
     tokenized_lines = FOREACH lines GENERATE
         word_count_udf.tokenize(line) as tokens:{(token:chararray)};
+```
 
 But this is fragile. What this does is tell Pig 'I have exactly this type. If I don't return exactly this type, fail the script.'. This will fail at runtime if it's not exact. Not the end of the world here, but imagine you specify a long here and your UDF returns an int. That will fail at runtime.
 
 So we stick with leaving the type info in another file. Now we need to flatten the token list:
 
+``` pig
+
     all_tokens = FOREACH tokenized_lines GENERATE
         FLATTEN(tokens);
+```
 
 Remember our schema back in the UDF? This comes into play here
 
+``` pig
+
     tokens:{(token:chararray)}
+```
 
 When we flatten a bag, each element of the bag becomes its own row. But what's the name for that field? It's the one we defined back in the UDF. Had we not defined a name back there, it would still work, but we'd have to refer to the field using positional notation: $0
 
@@ -113,21 +171,30 @@ Another nuance of Pig is that if our UDF returned a tuple, instead of flattening
 
 The next step is to group the tokens:
 
+``` pig
+
     grouped_tokens = GROUP all_tokens BY token;
+```
 
 Seems simple enough, but the weird thing here is the name of the group key is 'group'. It's a special name that's injected when you group relations.
 
 In the next step, we use this field and count the tokens. Note that we have to use the name of the relation from two steps ago.
 
+``` pig
+
     token_counts = FOREACH grouped_tokens GENERATE
         group,
         COUNT(all_tokens.token);
+```
 
 The problem with the naming comes when we want to mock out the data in `grouped_tokens`. There's no way I can find to match the names that are present when we are running the actual script.
 
 And then we store the result:
 
+``` pig
+
     STORE token_counts INTO 'output.tsv';
+```
 
 The takeaway from all of this is that names in Pig scripts tend to stretch across the script, making it very difficult to inject mock data without modifying the script. In addition to that, Pig forces you to name every command, which can be very tedious. To contrast, in PigPen you only have to define names where you want them. If you have a bunch of steps to compute data, you can easily thread them together using Clojure threading macros ([->>](http://clojuredocs.org/clojure_core/clojure.core/-%3E%3E)). The names within the data are entirely in your control, making them trivial to mock out without any changes to the script.
 
@@ -157,19 +224,27 @@ None of these are problems for PigPen because it relies on the Clojure type syst
 
 The Pig data format is not idempotent because it doesn't escape string literals. This means that there's ambiguity when you read the following line. There's no way to tell which comma belongs where, what was a number/boolean, or what was a number/boolean stored as a string.
 
+``` pig
+
     [foo,1#123,baz,3#hello, world,bar,2#true,biz,4#true]
+```
 
 Clojure [EDN](https://github.com/edn-format/edn) doesn't have this limitation. You can write it out sans schema and read it back in to get exactly the same data. Unless explicitly specified, PigPen works exclusively with EDN.
 
 Here's the same data in EDN (commas added between elements for clarity):
 
+``` clj
+
     {"foo,1" 123, "baz,3" "hello, world", "bar,2" "true", "biz,4" true}
+```
 
 Because of this, when working with Clojure data there is no need to specify a schema for anything.
 
 ### Name what you want to
 
 In Pig, every relation must be named:
+
+``` pig
 
     bar = FOREACH foo GENERATE ...;
 
@@ -178,20 +253,26 @@ In Pig, every relation must be named:
     baz2 = LIMIT baz 2;
 
     stuff = FOREACH baz2 GENERATE ...;
+```
 
 Say we now want to take out the LIMIT. Not only do we have to remove that command, we have to keep track of where it was used and update those commands as well.
 
 In PigPen, we can thread these commands together and avoid having to name the intermediate steps. It makes our script much clearer in that 'this is one block of logic'. When programming in any other language, we organize our logic into functions - why should map-reduce be any different?
+
+``` clj
 
     (->> foo
       (pig/map ...)
       (pig/filter ...)
       #_(pig/take 2)
       (pig/map ...))
+```
 
 Note also that I can comment out any form (using `#_`) and not have to worry about changing downstream consumers.
 
 Names in Pig stick with relations and fields far after they're relevant. Pig takes the approach of deferring field selection after a join, instead choosing to just qualify the names of the fields. This causes field names to get out of control pretty quickly. Take a look at the following example where we do three joins:
+
+``` pig
 
     a = LOAD 'numbers0.tsv' AS (i:int, w:int);
     b = LOAD 'numbers1.tsv' AS (i:int, x:int);
@@ -203,22 +284,34 @@ Names in Pig stick with relations and fields far after they're relevant. Pig tak
     j1 = JOIN j0 BY a::i, c BY i;
 
     j2 = JOIN j1 BY j0::a::i, d BY i;
+```
 
 The first join, `j0`, is easy - there aren't any conflicting `i`'s in `a` or `b`. When we describe `j0`, we see that we now have two separate fields named `i`:
 
+``` pig
+
     j0: {a::i: int,a::w: int,b::i: int,b::x: int}
+```
 
 There's `a::i` and `b::i`, so we need to be aware of that in any subsequent steps, such as `j1`. When we describe `j1`, we see that our problem is getting worse:
 
+``` pig
+
     j1: {j0::a::i: int,j0::a::w: int,j0::b::i: int,j0::b::x: int,c::i: int,c::y: int}
+```
 
 And in `j2`:
 
+``` pig
+
     j2: {j1::j0::a::i: int,j1::j0::a::w: int,j1::j0::b::i: int,j1::j0::b::x: int,j1::c::i: int,j1::c::y: int,d::i: int,d::z: int}
+```
 
 Now I've ended up with a field with the name `j1::j0::a::i`. If I wanted to sub in mock data for `j1`, I'm out of luck - there's no way to name a field that way without creating it the way we did. I'd have to modify my script to not use the long name for `i`. And this is using one character names for relations - imagine what it would look like if we used descriptive names!
 
 Let's take a look at the PigPen version:
+
+``` clj
 
     (let [a (pig/load-pig "numbers0.tsv" [i w])
           b (pig/load-pig "numbers1.tsv" [i x])
@@ -237,12 +330,16 @@ Let's take a look at the PigPen version:
                        (d on :i)
                        merge)]
       (pig/dump j2))
+```
 
 _Note: `merge` is a Clojure function that takes any number of maps and merges them together._
 
 When we run this, it returns the following data:
 
+``` clj
+
     {:i 1, :w 1, :x 2, :y 3, :z 4}
+```
 
 Simple, no? By using a consolidation function after each join, we get away from that nasty naming problem altogether.
 

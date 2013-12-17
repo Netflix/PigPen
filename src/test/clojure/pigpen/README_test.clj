@@ -26,7 +26,7 @@
   (->> lines
     (pig/mapcat #(-> % first
                    (clojure.string/lower-case)
-                   (clojure.string/replace #"[^a-zA-Z0-9\s]" "")
+                   (clojure.string/replace #"[^\w\s]" "")
                    (clojure.string/split #"\s+")))
     (pig/group-by identity)
     (pig/map (fn [[word occurrences]] [word (count occurrences)]))))
