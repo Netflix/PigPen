@@ -29,17 +29,16 @@ The primary goal of PigPen is to take language out of the equation. PigPen opera
 Here's the proverbial word count:
 
 ``` clj
+(require '[pigpen.core :as pig])
 
-    (require '[pigpen.core :as pig])
-
-    (defn word-count [lines]
-      (->> lines
-        (pig/mapcat #(-> % first
-                       (clojure.string/lower-case)
-                       (clojure.string/replace #"[^\w\s]" "")
-                       (clojure.string/split #"\s+")))
-        (pig/group-by identity)
-        (pig/map (fn [[word occurrences]] [word (count occurrences)]))))
+(defn word-count [lines]
+  (->> lines
+    (pig/mapcat #(-> % first
+                   (clojure.string/lower-case)
+                   (clojure.string/replace #"[^\w\s]" "")
+                   (clojure.string/split #"\s+")))
+    (pig/group-by identity)
+    (pig/map (fn [[word occurrences]] [word (count occurrences)]))))
 ```
 
 As you can see, this is just the word count logic. We don't have to conflate external concerns, like where our data is coming from or going.
@@ -52,12 +51,11 @@ Yep - PigPen queries are written as function compositions - data in, data out. W
 Here we use word-count to make a PigPen query:
 
 ``` clj
-
-    (defn word-count-query [input output]
-      (->>
-        (pig/load-tsv input)
-        (word-count)
-        (pig/store-tsv output)))
+(defn word-count-query [input output]
+  (->>
+    (pig/load-tsv input)
+    (word-count)
+    (pig/store-tsv output)))
 ```
 
 This function returns the PigPen representation of the query. By itself, it won't do anything - we have to execute it locally or generate a script (more on that later).
@@ -70,12 +68,11 @@ With PigPen, you can mock out data and write a unit test for your query. No more
 Mocking is super easy - run the first part of the query to produce some sample rows. Then copy & paste the sample data into your unit test.
 
 ``` clj
-
-    (deftest test-word-count
-      (let [data (pig/return [["The fox jumped over the dog."]
-                              ["The cow jumped over the moon."]])]
-        (is (= (pig/dump (word-count data))
-               [["moon" 1] ["jumped" 2] ["dog" 1] ["over" 2] ["cow" 1] ["fox" 1] ["the" 4]]))))
+(deftest test-word-count
+  (let [data (pig/return [["The fox jumped over the dog."]
+                          ["The cow jumped over the moon."]])]
+    (is (= (pig/dump (word-count data))
+           [["moon" 1] ["jumped" 2] ["dog" 1] ["over" 2] ["cow" 1] ["fox" 1] ["the" 4]]))))
 ```
 
 The [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) operator is what runs the query locally.
@@ -85,10 +82,9 @@ The [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) oper
 Parameterizing your query is trivial. Any in-scope function parameters or let bindings are available to use in functions.
 
 ``` clj
-
-    (defn reusable-fn [lower-bound data]
-      (let [upper-bound (+ lower-bound 10)]
-        (pig/filter (fn [x] (< lower-bound x upper-bound)) data)))
+(defn reusable-fn [lower-bound data]
+  (let [upper-bound (+ lower-bound 10)]
+    (pig/filter (fn [x] (< lower-bound x upper-bound)) data)))
 ```
 
 _Note: To exclude a local variable, add the metadata ^:local to the declaration._
@@ -98,8 +94,7 @@ _Note: To exclude a local variable, add the metadata ^:local to the declaration.
 Just tell PigPen where to write the query as a Pig script:
 
 ``` clj
-
-    (pig/write-script "word-count.pig" (word-count-query "input.tsv" "output.tsv"))
+(pig/write-script "word-count.pig" (word-count-query "input.tsv" "output.tsv"))
 ```
 
 And then you have a Pig script which you can submit to your cluster.
@@ -107,8 +102,7 @@ And then you have a Pig script which you can submit to your cluster.
 As you saw before, we can also use [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) to run the query locally and return Clojure data:
 
 ``` clj
-
-    (pig/dump (word-count data))
+(pig/dump (word-count data))
 ```
 
 Tutorials & Documentation
@@ -142,9 +136,8 @@ First, lets load some data. Text files (tsv, csv) can be read using [`pig/load-t
 The following code defines a function that returns a query. This query loads data from the file input.tsv.
 
 ``` clj
-
-    (defn my-data []
-      (pig/load-tsv "input.tsv"))
+(defn my-data []
+  (pig/load-tsv "input.tsv"))
 ```
 
 _Note: If you call this function, it will just return the PigPen representation of a query. To really use it, you'll need to execute it locally or convert it to a script (more on that later)._
@@ -152,85 +145,78 @@ _Note: If you call this function, it will just return the PigPen representation 
 We can test our query in a REPL like so... First, create some test data:
 
 ``` clj
-
-    => (spit "input.tsv" "1\t2\tfoo\n4\t5\tbar")
+=> (spit "input.tsv" "1\t2\tfoo\n4\t5\tbar")
 ```
 
 And then run the script to return our data:
 
 ``` clj
-
-    => (pig/dump (my-data))
-    [["1" "2" "foo"] ["4" "5" "bar"]]
+=> (pig/dump (my-data))
+[["1" "2" "foo"] ["4" "5" "bar"]]
 ```
 
 Now let's transform our data:
 
 ``` clj
-
-    (defn my-data []
-      (->>
-        (pig/load-tsv "input.tsv")
-        (pig/map (fn [[a b c]]
-                   {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
-                    :name c}))))
+(defn my-data []
+  (->>
+    (pig/load-tsv "input.tsv")
+    (pig/map (fn [[a b c]]
+               {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
+                :name c}))))
 ```
 
 If we run the script now, our output data reflects the transformation:
 
 ``` clj
-
-    => (pig/dump (my-data))
-    [{:sum 3, :name "foo"} {:sum 9, :name "bar"}]
+=> (pig/dump (my-data))
+[{:sum 3, :name "foo"} {:sum 9, :name "bar"}]
 ```
 
 And we can filter the data too:
 
 ``` clj
+(defn my-data []
+  (->>
+    (pig/load-tsv "input.tsv")
+    (pig/map (fn [[a b c]]
+               {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
+                :name c}))
+    (pig/filter (fn [{:keys [sum]}]
+                  (< sum 5)))))
 
-    (defn my-data []
-      (->>
-        (pig/load-tsv "input.tsv")
-        (pig/map (fn [[a b c]]
-                   {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
-                    :name c}))
-        (pig/filter (fn [{:keys [sum]}]
-                      (< sum 5)))))
-
-    => (pig/dump (my-data))
-    [{:sum 3, :name "foo"}]
+=> (pig/dump (my-data))
+[{:sum 3, :name "foo"}]
 ```
 
 It's generally a good practice to separate the loading of the data from our business logic. Let's separate our script into multiple functions and add a store operator:
 
 ``` clj
+(defn my-data [input-file]
+  (pig/load-tsv input-file))
 
-    (defn my-data [input-file]
-      (pig/load-tsv input-file))
+(defn my-func [data]
+  (->> data
+    (pig/map (fn [[a b c]]
+               {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
+                :name c}))
+    (pig/filter (fn [{:keys [sum]}]
+                  (< sum 5)))))
 
-    (defn my-func [data]
-      (->> data
-        (pig/map (fn [[a b c]]
-                   {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
-                    :name c}))
-        (pig/filter (fn [{:keys [sum]}]
-                      (< sum 5)))))
-
-    (defn my-query [input-file output-file]
-      (->>
-        (my-data input-file)
-        (my-func)
-        (pig/store-clj output-file)))
+(defn my-query [input-file output-file]
+  (->>
+    (my-data input-file)
+    (my-func)
+    (pig/store-clj output-file)))
 ```
 
 Now we can define a unit test for our query:
 
 ``` clj
-
-    (deftest test-my-func
-      (let [data (pig/return [[1 2 "foo"] [4 5 "bar"]])]
-        (is (= (pig/dump (my-func data))
-               [{:sum 3, :name "foo"}]))))
+(deftest test-my-func
+  (let [data (pig/return [[1 2 "foo"] [4 5 "bar"]])]
+    (is (= (pig/dump (my-func data))
+           [{:sum 3, :name "foo"}]))))
 ```
 
 The function [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) takes any PigPen query, executes it locally, and returns the data. Note that [`pig/store`](http://netflix.github.io/PigPen/pigpen.core.html#var-store-tsv) commands return `[]`.
@@ -238,8 +224,7 @@ The function [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-d
 If we want to generate a script, that's easy too:
 
 ``` clj
-
-    (pig/write-script "my-script.pig" (my-query "input.tsv" "output.clj"))
+(pig/write-script "my-script.pig" (my-query "input.tsv" "output.clj"))
 ```
 
 We'll use unit tests from here on to demonstrate a few more commands. 
@@ -247,20 +232,19 @@ We'll use unit tests from here on to demonstrate a few more commands.
 Take a look at `command`:
 
 ``` clj
+(deftest test-join
+  (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
+        right (pig/return [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
 
-    (deftest test-join
-      (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
-            right (pig/return [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
+        command (pig/join (left on :a)
+                          (right on :c)
+                          (fn [l r] [(:b l) (:d r)]))]
 
-            command (pig/join (left on :a)
-                              (right on :c)
-                              (fn [l r] [(:b l) (:d r)]))]
-
-        (is (= (pig/dump command)
-               [[2 "foo"]
-                [3 "foo"]
-                [4 "bar"]
-                [4 "baz"]]))))
+    (is (= (pig/dump command)
+           [[2 "foo"]
+            [3 "foo"]
+            [4 "bar"]
+            [4 "baz"]]))))
 ```
 
 This is how to join data in PigPen. You can specify 2 or more relations to join. See the docs for options regarding outer joins and nil handling. The last argument is the consolidation function - for each record from `left` & `right` that are joined, this function is called to merge the results.
@@ -270,18 +254,17 @@ Note that the return type of this function isn't a map. You can return anything 
 Next is a common map-reduce pattern - co-group:
 
 ``` clj
+(deftest test-cogroup
+  (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
+        right (pig/return [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
 
-    (deftest test-cogroup
-      (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
-            right (pig/return [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
+        command (pig/cogroup (left on :a)
+                             (right on :c)
+                             (fn [k l r] [k (map :b l) (map :d r)]))]
 
-            command (pig/cogroup (left on :a)
-                                 (right on :c)
-                                 (fn [k l r] [k (map :b l) (map :d r)]))]
-
-        (is (= (pig/dump command)
-               [[1 [2 3] ["foo"]]
-                [2 [4]   ["bar" "baz"]]]))))
+    (is (= (pig/dump command)
+           [[1 [2 3] ["foo"]]
+            [2 [4]   ["bar" "baz"]]]))))
 ```
 
 A cogroup is similar to a join, but instead of flattening the matching rows, all of the values are passed to the consolidation function. Note that our function takes 3 arguments - the first one is the key was joined, the rest are collections of the values that match the key for each of the relations.
