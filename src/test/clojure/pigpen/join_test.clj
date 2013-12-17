@@ -17,9 +17,9 @@
 ;;
 
 (ns pigpen.join-test
-  (:use clojure.test
-        pigpen.test-util)
-  (:require [pigpen.join :as pig]))
+  (:use clojure.test)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+            [pigpen.join :as pig]))
 
 (deftest test-select?
   (is (#'pigpen.join/select? '({} on (fn [x] x))))

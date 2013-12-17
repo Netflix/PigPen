@@ -17,8 +17,29 @@
 ;;
 
 (ns pigpen.util
-  (:require [clojure.set :as set])
+  (:require [clojure.test :refer [is]]
+            [clojure.data :refer [diff]]
+            [clojure.set :as set])
   (:import [rx Observable Observer Subscription]))
+
+(defn test-diff [actual expected]
+  (let [d (diff expected actual)
+        expected-only (nth d 0)
+        actual-only (nth d 1)]
+    (is (= nil expected-only))
+    (is (= nil actual-only))))
+
+(defn pigsym-zero [prefix-string]
+  (symbol (str prefix-string 0)))
+
+(defn pigsym-inc []
+  (let [pigsym-current (atom 0)]
+    (fn [prefix-string]
+      (symbol (str prefix-string (swap! pigsym-current inc))))))
+
+(defn regex->string [command]
+  ;; regexes don't implement value equality so we make them strings for tests
+  (clojure.walk/postwalk #(if (instance? java.util.regex.Pattern %) (str %) %) command))
 
 (defn obj->id [obj]
   (second (re-find #"@([0-9a-f]+)" (str obj))))

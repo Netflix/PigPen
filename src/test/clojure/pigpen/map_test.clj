@@ -17,9 +17,9 @@
 ;;
 
 (ns pigpen.map-test
-  (:use clojure.test
-        pigpen.test-util)
-  (:require [pigpen.map :as pig]))
+  (:use clojure.test)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+            [pigpen.map :as pig]))
 
 (deftest test-map
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

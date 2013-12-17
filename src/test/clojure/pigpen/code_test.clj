@@ -17,9 +17,9 @@
 ;;
 
 (ns pigpen.code-test
-  (:use clojure.test
-        pigpen.test-util)
-  (:require [pigpen.code :as pig]))
+  (:use clojure.test)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+            [pigpen.code :as pig]))
 
 (deftest test-assert-arity
   (testing "core"

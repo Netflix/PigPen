@@ -17,9 +17,9 @@
 ;;
 
 (ns pigpen.local-test
-  (:use clojure.test
-        pigpen.test-util)
-  (:require [pigpen.local :as local]
+  (:use clojure.test)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+            [pigpen.local :as local]
             [pigpen.pig :refer [freeze-vals thaw-anything]]
             [pigpen.raw :as raw]
             [pigpen.io :as io]

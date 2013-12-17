@@ -18,9 +18,9 @@
 
 (ns pigpen.pig-test
   (:use clojure.test
-        pigpen.test-util
         pigpen.pig)
-  (:require [clj-time.format :as time]
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+            [clj-time.format :as time]
             [taoensso.nippy :refer [freeze thaw]])
   (:import [org.apache.pig.data
             DataByteArray

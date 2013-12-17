@@ -18,9 +18,9 @@
 
 (ns pigpen.oven-test
   (:use clojure.test
-        pigpen.test-util
         pigpen.oven)
-  (:require [pigpen.raw :as pig-raw]
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+            [pigpen.raw :as pig-raw]
             [pigpen.core :as pig]))
 
 (deftest test-braise
@@ -253,7 +253,7 @@
                      (#'pigpen.oven/trim-fat))]
       
       (test-diff
-        (map verify-functions commands)
+        commands
         '[{:ancestors []
            :type :load
            :id load1

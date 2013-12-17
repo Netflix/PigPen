@@ -17,9 +17,9 @@
 ;;
 
 (ns pigpen.filter-test
-  (:use clojure.test
-        pigpen.test-util)
-  (:require [pigpen.filter :as pig]))
+  (:use clojure.test)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+            [pigpen.filter :as pig]))
 
 (deftest test-filter
   (with-redefs [pigpen.raw/pigsym pigsym-zero]

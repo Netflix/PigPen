@@ -17,9 +17,9 @@
 ;;
 
 (ns pigpen.io-test
-  (:use clojure.test
-        pigpen.test-util)
-  (:require [pigpen.io :as io]))
+  (:use clojure.test)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc regex->string]]
+            [pigpen.io :as io]))
 
 (deftest test-load-pig
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

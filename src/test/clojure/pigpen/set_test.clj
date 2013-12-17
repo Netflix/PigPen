@@ -17,9 +17,9 @@
 ;;
 
 (ns pigpen.set-test
-  (:use clojure.test
-        pigpen.test-util)
-  (:require [pigpen.raw :as raw]
+  (:use clojure.test)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+            [pigpen.raw :as raw]
             [pigpen.set :as pig]))
 
 (deftest test-split-opts-relations

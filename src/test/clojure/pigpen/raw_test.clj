@@ -18,8 +18,8 @@
 
 (ns pigpen.raw-test
   (:use clojure.test
-        pigpen.test-util
-        pigpen.raw))
+        pigpen.raw)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]))
 
 (deftest test-field?
 
