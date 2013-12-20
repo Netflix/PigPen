@@ -26,6 +26,8 @@
             [pigpen.raw :as raw]
             [pigpen.code :as code]))
 
+(set! *warn-on-reflection* true)
+
 (defn ^:private split-opts-relations
   "Identifies optional opts map"
   [opts-relations]

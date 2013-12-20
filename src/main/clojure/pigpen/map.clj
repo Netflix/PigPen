@@ -31,6 +31,8 @@
 ;; TODO How to package external code
 ;; TODO Loading of external libs
 
+(set! *warn-on-reflection* true)
+
 (defn map*
   "See pigpen.core/map"
   [f opts relation]

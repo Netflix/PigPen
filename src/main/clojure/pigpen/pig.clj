@@ -35,6 +35,8 @@ possible as it's used at runtime."
            [java.util List Map]
            [clojure.lang Keyword IPersistentVector]))
 
+(set! *warn-on-reflection* true)
+
 (defn ^Tuple tuple
   "Create a pig tuple"
   [& vals]

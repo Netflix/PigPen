@@ -25,6 +25,8 @@ See pigpen.core and pigpen.exec
   (:refer-clojure :exclude [replace])
   (:require [clojure.string :refer [join replace]]))
 
+(set! *warn-on-reflection* true)
+
 (defn ^:private format-field [field]
   (cond
     (string? field) (str "'" (replace field "'" "\\'") "'")

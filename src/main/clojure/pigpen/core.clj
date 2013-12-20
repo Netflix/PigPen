@@ -27,6 +27,8 @@
             [pigpen.join]
             [pigpen.exec]))
 
+(set! *warn-on-reflection* true)
+
 ;; ********** IO **********
 
 (intern *ns* (with-meta 'load-pig (meta #'pigpen.io/load-pig)) @#'pigpen.io/load-pig)

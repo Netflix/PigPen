@@ -24,6 +24,8 @@ See pigpen.core and pigpen.exec
 "
   (:require [rhizome.viz :as viz]))
 
+(set! *warn-on-reflection* true)
+
 (defn command->description [{:keys [id]}]
   "Returns a simple human readable description of a command"
   (str id))

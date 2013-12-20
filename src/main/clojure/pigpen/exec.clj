@@ -29,7 +29,10 @@ how you 'use' a PigPen query.
             [pigpen.local :as local]
             [pigpen.viz :as viz]
             [taoensso.nippy :refer [freeze thaw]])
-  (:import [rx.observables BlockingObservable]))
+  (:import [rx Observable]
+           [rx.observables BlockingObservable]))
+
+(set! *warn-on-reflection* true)
 
 (defn generate-script
   "Generates a Pig script from the relation specified and returns it as a string.
@@ -84,7 +87,7 @@ combine them. Optionally takes a map of options.
   ([location opts script]
     (spit location (generate-script opts script))))
 
-(defn script->observable
+(defn ^Observable script->observable
   ([script] (script->observable {} script))
   ([opts script]
     (-> script

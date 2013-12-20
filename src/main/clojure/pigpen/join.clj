@@ -28,6 +28,8 @@
             [pigpen.code :as code])
   (:import [org.apache.pig.data DataByteArray]))
 
+(set! *warn-on-reflection* true)
+
 (defn ^:private select?
   "Returns true if the specified value is a select clause"
   [potential]

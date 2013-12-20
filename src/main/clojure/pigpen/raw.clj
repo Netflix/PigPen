@@ -20,6 +20,8 @@
   "Contains functions that create basic Pig commands. These are the primitive
 building blocks for more complex operations.")
 
+(set! *warn-on-reflection* true)
+
 (defn pigsym
   "Wraps gensym to facilitate easier mocking"
   [prefix-string]

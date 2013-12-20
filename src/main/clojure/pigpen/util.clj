@@ -24,6 +24,8 @@
   (:import [rx Observable Observer Subscription]
            [java.io StringWriter]))
 
+(set! *warn-on-reflection* true)
+
 (defn test-diff [actual expected]
   (let [d (diff expected actual)
         expected-only (nth d 0)
@@ -72,8 +74,8 @@ Useful for unit tests."
    subscriptions & they will not create multiple subscriptions to the parent.
    However, as soon as the last child is subscribed to, the parent subscription
    is started."
-  ([parent] (multicast parent nil))
-  ([parent debug]
+  ([^Observable parent] (multicast parent nil))
+  ([^Observable parent debug]
     (let [children (atom {:observables #{}
                           :observers {}
                           :subscription nil
@@ -94,10 +96,10 @@ Useful for unit tests."
           subscribe (fn [id]
                       (if debug (println debug "subscribe" id (obj->id parent)))
                       (.subscribe parent
-                        (fn [next] (push-observers #(.onNext % next)))
-                        (fn [error] (push-observers #(.onError % error)))
-                        (fn [] (push-observers #(.onCompleted %)))))
-          unsubscribe (fn [id s]
+                        (fn [next] (push-observers (fn [^Observer o] (.onNext o next))))
+                        (fn [error] (push-observers (fn [^Observer o] (.onError o error))))
+                        (fn [] (push-observers (fn [^Observer o] (.onCompleted o))))))
+          unsubscribe (fn [id ^Subscription s]
                         (if debug (println debug "unsubscribe" id (obj->id parent)))
                         (if s (.unsubscribe s)))
         

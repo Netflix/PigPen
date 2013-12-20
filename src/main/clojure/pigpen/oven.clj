@@ -29,6 +29,8 @@ See pigpen.core and pigpen.exec
             [pigpen.code :as code])
   (:import [org.apache.pig.data DataBag]))
 
+(set! *warn-on-reflection* true)
+
 (defmulti tree->command
   "Converts a tree node into a single edge. This is done by converting the
    reference to another node to that node's id"

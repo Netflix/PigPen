@@ -26,6 +26,8 @@
             [pigpen.raw :as raw]
             [pigpen.code :as code]))
 
+(set! *warn-on-reflection* true)
+
 (defn filter*
   "See #'pigpen.core/filter"
   [pred opts relation]
