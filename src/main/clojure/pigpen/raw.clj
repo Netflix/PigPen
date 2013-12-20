@@ -18,9 +18,7 @@
 
 (ns pigpen.raw
   "Contains functions that create basic Pig commands. These are the primitive
-building blocks for more complex operations."
-  (:require [clojure.pprint])
-  (:import [java.io StringWriter]))
+building blocks for more complex operations.")
 
 (defn pigsym
   "Wraps gensym to facilitate easier mocking"
@@ -32,123 +30,6 @@ building blocks for more complex operations."
   [id]
   (boolean (and (symbol? id)
                 (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))))
-
-;; TODO move these functions to oven
-(defmulti tree->command
-  "Converts a tree node into a single edge. This is done by converting the
-   reference to another node to that node's id"
-  :type)
-
-(defmethod tree->command :default
-  [command]
-  (update-in command [:ancestors] #(mapv :id %)))
-
-(defn update-field
-  "Updates a single field with an id mapping. This is aware of the
-   pigpen field structure:
-
-   foo             > foo
-   [[foo bar]]     > foo::bar
-   [[foo bar] baz] > foo::bar.baz
-
-"
-  [field id-mapping]
-  {:pre [field (map? id-mapping)]}
-  (if-not (sequential? field) field
-    (let [[relation dereference] field
-          new-relation (mapv #(get id-mapping % %) relation)]
-      (if dereference
-        [new-relation dereference]
-        [new-relation]))))
-
-(defn ^:private update-projections
-  "Updates fields used in projections"
-  [{:keys [projections] :as command} id-mapping]
-  (if-not projections
-    command
-    (let [projections' (for [p projections]
-                         (if (= (:type p) :projection-func)
-                           (update-in p [:code :args]
-                                      (fn [args] (mapv #(update-field % id-mapping) args)))
-                           p))]
-      (assoc command :projections projections'))))
-
-(defn update-fields
-  "The default way to update ids in a command. This updates the id of the
-   command and any ancestors."
-  [command id-mapping]
-  {:pre [(map? command) (map? id-mapping)]}  
-  (-> command
-    (update-in [:id] (fn [id] (id-mapping id id)))
-    (update-in [:ancestors] #(mapv (fn [id] (id-mapping id id)) %))
-    (update-in [:fields] #(mapv (fn [f] (update-field f id-mapping)) %))
-    (update-in [:args] #(mapv (fn [f] (update-field f id-mapping)) %))
-    (update-projections id-mapping)))
-
-;; **********
-
-(defmulti command->required-fields
-  "Returns the fields required for a command. Always a set."
-  :type)
-
-(defmethod command->required-fields :default [command] nil)
-
-(defmethod command->required-fields :projection-field [command]
-  #{(:field command)})
-
-(defmethod command->required-fields :projection-func [command]
-  (->> command :code :args (filter (some-fn symbol? sequential?)) (set)))
-
-(defmethod command->required-fields :generate [command]
-  (->> command :projections (mapcat command->required-fields) (set)))
-
-;; **********
-
-(defmulti remove-fields
-  "Prune unnecessary fields from a command. The default does nothing - add an
-   override for commands that have prunable fields."
-  (fn [command fields] (:type command)))
-
-(defmethod remove-fields :default [command fields] command)
-
-(defmethod remove-fields :generate [command fields]
-  {:pre [(map? command) (set? fields)]}
-  (-> command
-    (update-in [:projections] (fn [ps] (remove (fn [p] (fields (:alias p))) ps)))
-    (update-in [:fields] #(remove fields %))))
-
-;; **********
-
-(defn command->references
-  "Gets any references required for a command"
-  [command]
-  (case (:type command)
-    :code ["pigpen.jar"]
-    :bind ["pigpen.jar"]
-    :storage (:references command)
-    (:load :store) (command->references (:storage command))
-    (:projection-func filter) (command->references (:code command))
-    :generate (->> command :projections (mapcat command->references))
-    nil))
-
-;; **********
-
-(defn pp-str
- "Pretty prints to a string"
- [object]
- (let [writer (StringWriter.)]
-   (clojure.pprint/pprint object writer)
-   (.toString writer)))
-
-(defn command->description [{:keys [id]}]
-  "Returns a simple human readable description of a command"
-  (str id))
-
-(defn command->description+ [{:keys [id description]}]
-  "Returns a verbose human readable description of a command"
-  (if description
-   (str id "\n\n" description)
-   (str id)))
 
 ;; **********
 

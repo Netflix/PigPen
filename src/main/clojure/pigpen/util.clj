@@ -19,8 +19,10 @@
 (ns pigpen.util
   (:require [clojure.test :refer [is]]
             [clojure.data :refer [diff]]
-            [clojure.set :as set])
-  (:import [rx Observable Observer Subscription]))
+            [clojure.set :as set]
+            [clojure.pprint])
+  (:import [rx Observable Observer Subscription]
+           [java.io StringWriter]))
 
 (defn test-diff [actual expected]
   (let [d (diff expected actual)
@@ -41,6 +43,13 @@ Useful for unit tests."
   (let [pigsym-current (atom 0)]
     (fn [prefix-string]
       (symbol (str prefix-string (swap! pigsym-current inc))))))
+
+(defn pp-str
+ "Pretty prints to a string"
+ [object]
+ (let [writer (StringWriter.)]
+   (clojure.pprint/pprint object writer)
+   (.toString writer)))
 
 (defn regex->string [command]
   ;; regexes don't implement value equality so we make them strings for tests

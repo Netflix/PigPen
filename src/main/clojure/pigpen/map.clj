@@ -22,7 +22,8 @@
   Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
   (:refer-clojure :exclude [map mapcat map-indexed sort sort-by])
-  (:require [pigpen.raw :as raw]
+  (:require [pigpen.util :as util]
+            [pigpen.raw :as raw]
             [pigpen.code :as code])
   (:import [org.apache.pig.data DataBag]))
 
@@ -54,7 +55,7 @@ pig/cogroup, and pig/union for combining sets of data.
             pigpen.core/cogroup, pigpen.core/union
 "
   [f relation]
-  `(map* (code/trap-locals ~f) {:description ~(raw/pp-str f)} ~relation))
+  `(map* (code/trap-locals ~f) {:description ~(util/pp-str f)} ~relation))
 
 (defn mapcat*
   "See pigpen.core/mapcat"
@@ -74,7 +75,7 @@ f to each item in relation. Thus f should return a collection.
   See also: pigpen.core/map, pigpen.core/map-indexed
 "
   [f relation]
-  `(mapcat* (code/trap-locals ~f) {:description ~(raw/pp-str f)} ~relation))
+  `(mapcat* (code/trap-locals ~f) {:description ~(util/pp-str f)} ~relation))
 
 (defn map-indexed*
   [f opts relation]
@@ -105,7 +106,7 @@ and the value. If you require sequential ids, use option {:dense true}.
 "
   ([f relation] `(map-indexed ~f {} ~relation))
   ([f opts relation]
-    `(map-indexed* (code/trap-locals ~f) (assoc ~opts :description ~(raw/pp-str f)) ~relation)))
+    `(map-indexed* (code/trap-locals ~f) (assoc ~opts :description ~(util/pp-str f)) ~relation)))
 
 (defn sort*
   "See pigpen.core/sort, pigpen.core/sort-by"
@@ -171,4 +172,4 @@ optional map of options.
   ([key-fn relation] `(sort-by ~key-fn :asc {} ~relation))
   ([key-fn comp relation] `(sort-by ~key-fn ~comp {} ~relation))
   ([key-fn comp opts relation]
-    `(sort* (code/trap-locals ~key-fn) '~comp (assoc ~opts :description ~(raw/pp-str key-fn)) ~relation)))
+    `(sort* (code/trap-locals ~key-fn) '~comp (assoc ~opts :description ~(util/pp-str key-fn)) ~relation)))
