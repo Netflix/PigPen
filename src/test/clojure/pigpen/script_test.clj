@@ -20,21 +20,21 @@
   (:use clojure.test pigpen.script))
 
 (deftest test-format-field
-  (is (= (format-field "abc") "'abc'"))
-  (is (= (format-field "a'b'c") "'a\\'b\\'c'"))
-  (is (= (format-field 'foo) "foo"))
-  (is (= (format-field '[[foo bar]]) "foo::bar"))
-  (is (= (format-field '[[foo bar baz]]) "foo::bar::baz"))
-  (is (= (format-field '[[foo] bar]) "foo.bar"))
-  (is (= (format-field '[[foo bar] baz]) "foo::bar.baz")))
+  (is (= (#'pigpen.script/format-field "abc") "'abc'"))
+  (is (= (#'pigpen.script/format-field "a'b'c") "'a\\'b\\'c'"))
+  (is (= (#'pigpen.script/format-field 'foo) "foo"))
+  (is (= (#'pigpen.script/format-field '[[foo bar]]) "foo::bar"))
+  (is (= (#'pigpen.script/format-field '[[foo bar baz]]) "foo::bar::baz"))
+  (is (= (#'pigpen.script/format-field '[[foo] bar]) "foo.bar"))
+  (is (= (#'pigpen.script/format-field '[[foo bar] baz]) "foo::bar.baz")))
 
 (deftest test-expr->script
-  (is (= (expr->script nil) nil))
-  (is (= (expr->script "a'b\\c") "'a\\'b\\\\c'"))
-  (is (= (expr->script 42) "42"))
-  (is (= (expr->script 'foo) "foo"))
-  (is (= (expr->script '(clojure.core/let [foo '2] foo)) "2"))
-  (is (= (expr->script '(clojure.core/let [foo '2] (and (= bar foo) (> baz 3)))) "((bar == 2) AND (baz > 3))")))
+  (is (= (#'pigpen.script/expr->script nil) nil))
+  (is (= (#'pigpen.script/expr->script "a'b\\c") "'a\\'b\\\\c'"))
+  (is (= (#'pigpen.script/expr->script 42) "42"))
+  (is (= (#'pigpen.script/expr->script 'foo) "foo"))
+  (is (= (#'pigpen.script/expr->script '(clojure.core/let [foo '2] foo)) "2"))
+  (is (= (#'pigpen.script/expr->script '(clojure.core/let [foo '2] (and (= bar foo) (> baz 3)))) "((bar == 2) AND (baz > 3))")))
 
 ;; ********** Util **********
 

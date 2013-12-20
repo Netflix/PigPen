@@ -46,10 +46,10 @@ Useful for unit tests."
   ;; regexes don't implement value equality so we make them strings for tests
   (clojure.walk/postwalk #(if (instance? java.util.regex.Pattern %) (str %) %) command))
 
-(defn obj->id [obj]
+(defn ^:private obj->id [obj]
   (second (re-find #"@([0-9a-f]+)" (str obj))))
 
-(defn observers->ids [o]
+(defn ^:private observers->ids [o]
   (->> o
     (map (fn [[k os]] [k (map obj->id os)]))
     (into {})))
