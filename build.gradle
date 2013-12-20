@@ -27,6 +27,7 @@ apply from: file('gradle/license.gradle')
 apply from: file('gradle/release.gradle')
 
 apply plugin: 'clojure'
+tasks.uberjar.enabled=true
 
 compileClojure.dependsOn compileJava
 
