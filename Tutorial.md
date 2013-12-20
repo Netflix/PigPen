@@ -3,12 +3,18 @@
 Getting started with Clojure and PigPen is really easy. Just follow the steps below to get up and running.
 
   1. Install [Leiningen](https://github.com/technomancy/leiningen#leiningen)
-  2. Create a new leiningen project with `lein new pigpen-demo`
+  2. Create a new leiningen project with `lein new pigpen-demo`. This will create a pigpen-demo folder for your project.
   3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1.0"]` into your project's `project.clj` file.
   4. Run `lein repl` to start a REPL for your new project.
   5. Try some samples below...
 
 _Note: If you are not familiar at all with [Clojure](http://clojure.org/), I strongly recommend that you try a tutorial [here](http://tryclj.com/), [here](http://java.ociweb.com/mark/clojure/article.html), or [here](http://learn-clojure.com/) to understand some of the [basics](http://clojure.org/cheatsheet)._
+
+To get started, we import the pigpen.core namespace:
+
+``` clj
+(require '[pigpen.core :as pig])
+```
 
 First, lets load some data. Text files (tsv, csv) can be read using [`pig/load-tsv`](http://netflix.github.io/PigPen/pigpen.core.html#var-load-tsv). If you have Clojure data, take a look at [`pig/load-clj`](http://netflix.github.io/PigPen/pigpen.core.html#var-load-clj).
 
@@ -92,6 +98,8 @@ It's generally a good practice to separate the loading of the data from our busi
 Now we can define a unit test for our query:
 
 ``` clj
+(use 'clojure.test)
+
 (deftest test-my-func
   (let [data (pig/return [["1" "2" "foo"] ["4" "5" "bar"]])]
     (is (= (pig/dump (my-func data))
@@ -105,6 +113,18 @@ If we want to generate a script, that's easy too:
 ``` clj
 (pig/write-script "my-script.pig" (my-query "input.tsv" "output.clj"))
 ```
+
+We can optionally run our script in Pig (if you have it installed, which is a not a requirement of PigPen). The easiest way to get the pigpen jar is to build an uberjar for our project. From the command line:
+
+```
+$ lein uberjar
+$ cp target/pigpen-demo-0.1.0-SNAPSHOT-standalone.jar pigpen.jar
+$ pig -x local -f my-script.pig
+$ cat output.clj/part-m-00000
+{:sum 3, :name "foo"}
+```
+
+_Note: Pig can't overwrite files, so you'll need to delete this folder to run again. Another recommended option is to put a timestamp in the path._
 
 We'll use unit tests from here on to demonstrate a few more commands. 
 
