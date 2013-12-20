@@ -96,7 +96,7 @@
 (defn my-func [data]
   (->> data
     (pig/map (fn [[a b c]]
-               {:sum (+ a b)
+               {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
                 :name c}))
     (pig/filter (fn [{:keys [sum]}]
                   (< sum 5)))))
@@ -108,7 +108,7 @@
     (pig/store-clj output-file)))
 
 (deftest test-my-func
-  (let [data (pig/return [[1 2 "foo"] [4 5 "bar"]])]
+  (let [data (pig/return [["1" "2" "foo"] ["4" "5" "bar"]])]
     (is (= (pig/dump (my-func data))
            [{:sum 3, :name "foo"}]))))
 
@@ -167,6 +167,23 @@
     (is (= (pig/dump j2)
            [{:i 1, :w 1, :x 2, :y 3, :z 4}
             {:i 2, :w 5, :x 6, :y 7, :z 8}]))))
+
+(defn show-deduping []
+  (let [even-squares (->>
+                       (pig/load-clj "input.clj")
+                       (pig/map (fn [x] (* x x)))
+                       (pig/filter even?)
+                       (pig/store-clj "even-squares.clj"))
+        odd-squares (->>
+                      (pig/load-clj "input.clj")
+                      (pig/map (fn [x] (* x x)))
+                      (pig/filter odd?)
+                      (pig/store-clj "odd-squares.clj"))]
+    (->>
+      (pig/script even-squares odd-squares)
+      (pig/show))))
+
+
 
 
 
