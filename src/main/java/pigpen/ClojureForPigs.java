@@ -27,17 +27,34 @@ import clojure.lang.RT;
 import clojure.lang.Symbol;
 import clojure.lang.Var;
 
-public class ClojureForPigs {
+/**
+ * Used to execute Clojure code from within a Pig UDF. Passes the tuple directly to pigpen.pig/eval-udf
+ *
+ * @author mbossenbroek
+ *
+ */
+public final class ClojureForPigs {
 
-    private static final IFn eval;
+    private static final IFn EVAL;
 
     static {
         final Var require = RT.var("clojure.core", "require");
         require.invoke(Symbol.intern("pigpen.pig"));
-        eval = RT.var("pigpen.pig", "eval-udf");
+        EVAL = RT.var("pigpen.pig", "eval-udf");
     }
 
+    /**
+     * Invokes the Clojure code specified by the tuple.
+     *
+     * @param tuple
+     *            The tuple passed to the Pig UDF
+     * @return The result
+     * @throws IOException
+     */
     public static Object invoke(Tuple tuple) throws IOException {
-        return eval.invoke(tuple);
+        return EVAL.invoke(tuple);
+    }
+
+    private ClojureForPigs() {
     }
 }

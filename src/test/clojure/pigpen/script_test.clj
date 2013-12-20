@@ -39,7 +39,7 @@
 ;; ********** Util **********
 
 (deftest test-code
-  (is (= "pigpen.UDF_DataByteArray('(require (quote [pigpen.pig]))', 'identity')"
+  (is (= "pigpen.PigPenFnDataByteArray('(require (quote [pigpen.pig]))', 'identity')"
          (command->script '{:type :code
                             :expr {:init (require '[pigpen.pig])
                                    :func identity}
@@ -114,7 +114,7 @@
                             :alias b}))))
 
 (deftest test-projection-func
-  (is (= "pigpen.UDF_DataByteArray('', '(fn [x] (* x x))', 'a', a) AS b"
+  (is (= "pigpen.PigPenFnDataByteArray('', '(fn [x] (* x x))', 'a', a) AS b"
          (command->script '{:type :projection-func
                             :code {:type :code
                                    :expr {:init nil
@@ -126,7 +126,7 @@
 (deftest test-generate
   (is (= "generate0 = FOREACH relation0 GENERATE
     a AS b,
-    pigpen.UDF_DataByteArray('', '(fn [x] (* x x))', 'a', a) AS b;\n\n"
+    pigpen.PigPenFnDataByteArray('', '(fn [x] (* x x))', 'a', a) AS b;\n\n"
          (command->script '{:type :generate
                             :id generate0
                             :ancestors [relation0]
@@ -143,7 +143,7 @@
 
 (deftest test-generate-flatten
   (is (= "generate0 = FOREACH relation0 GENERATE
-    FLATTEN(pigpen.UDF_DataBag('', '(fn [x] [x x])', 'a', a)) AS b;\n\n"
+    FLATTEN(pigpen.PigPenFnDataBag('', '(fn [x] [x x])', 'a', a)) AS b;\n\n"
          (command->script '{:type :generate
                             :id generate0
                             :ancestors [relation0]
@@ -195,7 +195,7 @@
 ;; ********** Filter **********
 
 (deftest test-filter
-  (is (= "filter0 = FILTER relation0 BY pigpen.UDF_Boolean('', '(fn [x] (even? x))', 'a', a);\n\n"
+  (is (= "filter0 = FILTER relation0 BY pigpen.PigPenFnBoolean('', '(fn [x] (even? x))', 'a', a);\n\n"
          (command->script '{:type :filter
                             :id filter0
                             :ancestors [relation0]

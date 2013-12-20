@@ -20,19 +20,23 @@ package pigpen;
 
 import java.io.IOException;
 
+/**
+ * An exception used to wrap Errors thrown from Clojure code as an IOException, which Pig can handle appropriately.
+ *
+ * @author mbossenbroek
+ *
+ */
 public class PigPenException extends IOException {
 
     private static final long serialVersionUID = 1L;
 
-    private final Throwable z;
-
+    /**
+     * Initialize a new PigPen exception.
+     *
+     * @param z The original exception
+     */
     public PigPenException(Throwable z) {
         super(z);
-        this.z = z;
         setStackTrace(new StackTraceElement[0]);
-    }
-
-    public Throwable get() {
-        return z;
     }
 }

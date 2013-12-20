@@ -95,7 +95,7 @@ See pigpen.core and pigpen.exec
   (let [{:keys [init func]} expr
         pig-code [(escape+quote init) (escape+quote func)]
         pig-args (->> args (map format-field) (concat pig-code) (join ", "))]
-    (str "pigpen.UDF_" return "(" pig-args ")")))
+    (str "pigpen.PigPenFn" return "(" pig-args ")")))
 
 (defmethod command->script :register
   [{:keys [jar]}]

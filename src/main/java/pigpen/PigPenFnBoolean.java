@@ -23,8 +23,14 @@ import java.io.IOException;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 
-public class UDF_Boolean extends EvalFunc<Boolean> {
-    
+/**
+ * A user function that returns a Boolean.
+ *
+ * @author mbossenbroek
+ *
+ */
+public class PigPenFnBoolean extends EvalFunc<Boolean> {
+
     @Override
     public Boolean exec(final Tuple input) throws IOException {
 

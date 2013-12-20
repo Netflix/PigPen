@@ -37,14 +37,14 @@ See pigpen.core and pigpen.exec
 
 (defn ^:private eval-code [{:keys [return expr args]} values]
   (let [{:keys [init func]} expr
-        ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.UDF_" return))))
+        ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.PigPenFn" return))))
         ^Tuple tuple (->> args
                        (mapv #(if ((some-fn symbol? vector?) %) (values %) %))
                        (concat [(str init) (str func)])
                        (apply pig/tuple))]
     (try
       (.exec instance tuple)
-      (catch PigPenException z (throw (.get z))))))
+      (catch PigPenException z (throw (.getCause z))))))
 
 (defn ^:private cross-product [data]
   (if (empty? data) [{}]
