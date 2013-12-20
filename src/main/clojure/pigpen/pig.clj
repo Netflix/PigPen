@@ -17,6 +17,10 @@
 ;;
 
 (ns pigpen.pig
+  "Contains functions that are used when interacting with Pig. This includes
+mapping of data from Pig to Clojure and back, serializing and deserializing
+data, and executing user code. Everything in here should be as performant as
+possible as it's used at runtime."
   (:require [clojure.string :as string]
             [clojure.edn :as edn]
             [clojure.data.json :as json]
@@ -341,7 +345,8 @@ STRING    = #'[^\\,\\)\\}\\]\\#]+'
     `(~(symbol "bag") ~@v)))
 
 (defmulti thaw-values
-  "Attempts to thaw any child value. Returns it as '(freeze ...)"
+  "Attempts to thaw any child value. Returns only the value, strips all
+serialization info."
   type)
 
 (defmethod thaw-values :default [value]

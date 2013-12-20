@@ -17,6 +17,10 @@
 ;;
 
 (ns pigpen.map
+  "Commands to transform data.
+
+  Note: Most of these are present in pigpen.core. Normally you should use those instead.
+"
   (:refer-clojure :exclude [map mapcat map-indexed sort sort-by])
   (:require [pigpen.raw :as raw]
             [pigpen.code :as code])

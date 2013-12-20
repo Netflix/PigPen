@@ -29,10 +29,15 @@
     (is (= nil expected-only))
     (is (= nil actual-only))))
 
-(defn pigsym-zero [prefix-string]
+(defn pigsym-zero
+  "Generates command ids that are all 0. Useful for unit tests."
+  [prefix-string]
   (symbol (str prefix-string 0)))
 
-(defn pigsym-inc []
+(defn pigsym-inc
+  "Returns a function that generates command ids that are sequential ints.
+Useful for unit tests."
+  []
   (let [pigsym-current (atom 0)]
     (fn [prefix-string]
       (symbol (str prefix-string (swap! pigsym-current inc))))))

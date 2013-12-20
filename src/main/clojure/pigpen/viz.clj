@@ -17,6 +17,11 @@
 ;;
 
 (ns pigpen.viz
+  "Functions to create graph-viz graphs from PigPen expression graphs
+
+Nothing in here will be used directly with normal PigPen usage.
+See pigpen.core and pigpen.exec
+"
   (:require [pigpen.raw :refer [command->description]]
             [rhizome.viz :as viz]))
 

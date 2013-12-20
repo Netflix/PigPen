@@ -17,6 +17,11 @@
 ;;
 
 (ns pigpen.script
+  "Contains functions for converting an expression graph into a Pig script
+
+Nothing in here will be used directly with normal PigPen usage.
+See pigpen.core and pigpen.exec
+"
   (:refer-clojure :exclude [replace])
   (:require [clojure.string :refer [join replace]]))
 
@@ -78,7 +83,9 @@
      
      :else (throw (IllegalArgumentException. (str "Unknown expression:" (type expr) " " expr))))))
 
-(defmulti command->script :type)
+(defmulti command->script
+  "Converts an individual command into the equivalent Pig script"
+  :type)
 
 ;; ********** Util **********
 

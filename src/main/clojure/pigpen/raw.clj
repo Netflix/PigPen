@@ -17,11 +17,12 @@
 ;;
 
 (ns pigpen.raw
+  "Contains functions that create basic Pig commands. These are the primitive
+building blocks for more complex operations."
   (:require [clojure.pprint])
   (:import [java.io StringWriter]))
 
-;; TODO expose this for user testing
-(defn ^:private pigsym
+(defn pigsym
   "Wraps gensym to facilitate easier mocking"
   [prefix-string]
   (gensym prefix-string))
@@ -32,6 +33,7 @@
   (boolean (and (symbol? id)
                 (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))))
 
+;; TODO move these functions to oven
 (defmulti tree->command
   "Converts a tree node into a single edge. This is done by converting the
    reference to another node to that node's id"

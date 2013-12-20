@@ -17,6 +17,11 @@
 ;;
 
 (ns pigpen.exec
+  "Contains functions related to script generation and manipulation. These are
+how you 'use' a PigPen query.
+
+  Note: Most of these are present in pigpen.core. Normally you should use those instead.
+"
   (:require [pigpen.raw :as raw]
             [pigpen.pig :as pig]
             [pigpen.oven :as oven]
@@ -25,8 +30,6 @@
             [pigpen.viz :as viz]
             [taoensso.nippy :refer [freeze thaw]])
   (:import [rx.observables BlockingObservable]))
-
-;; Contains functions for doing stuff with scripts
 
 (defn generate-script
   "Generates a Pig script from the relation specified and returns it as a string.

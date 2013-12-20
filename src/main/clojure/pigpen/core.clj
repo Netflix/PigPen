@@ -17,6 +17,7 @@
 ;;
 
 (ns pigpen.core
+  "Contains the operators for PigPen."
   (:refer-clojure :exclude [constantly map mapcat map-indexed sort sort-by filter remove distinct concat take group-by into reduce])
   (:require [pigpen.raw :as raw]
             [pigpen.io]
@@ -25,9 +26,6 @@
             [pigpen.set]
             [pigpen.join]
             [pigpen.exec]))
-
-;;; The sugar versions of commands. These may generate multiple output commands
-;;; and/or use macros to trap code and fields.
 
 ;; ********** IO **********
 

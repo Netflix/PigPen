@@ -17,6 +17,8 @@
 ;;
 
 (ns pigpen.code
+  "Contains functions that assist in handling user code in operations like map
+or reduce."
   (:require [pigpen.raw :as raw])
   (:import [org.apache.pig.data DataBag]))
 

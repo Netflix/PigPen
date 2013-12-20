@@ -17,6 +17,10 @@
 ;;
 
 (ns pigpen.io
+  "Commands to load, store, and mock data.
+
+  Note: Most of these are present in pigpen.core. Normally you should use those instead.
+"
   (:refer-clojure :exclude [constantly])
   (:require [pigpen.raw :as raw]
             [pigpen.code :as code]

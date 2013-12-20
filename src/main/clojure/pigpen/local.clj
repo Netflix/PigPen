@@ -17,6 +17,11 @@
 ;;
 
 (ns pigpen.local
+  "Contains functions for running PigPen locally.
+
+Nothing in here will be used directly with normal PigPen usage.
+See pigpen.core and pigpen.exec
+"
   (:refer-clojure :exclude [load])
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
@@ -284,7 +289,7 @@
                                              k)}
                     (fn [values [k v]]
                       (assoc values k v))))))
-    ;; TODO This is a shitty way to do inner groupings
+    ;; TODO This is a bad way to do inner groupings
     (.filter (fn [g]
                (every? identity
                  (map (fn [a [k] j] (or (= j :optional) (contains? g [[a] k]))) ancestors keys join-types))))))

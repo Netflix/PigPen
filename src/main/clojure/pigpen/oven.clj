@@ -17,6 +17,13 @@
 ;;
 
 (ns pigpen.oven
+  "Converts an expression tree into an expression graph required for local
+execution or script generation. Applies a number of optimizations and
+transforms to the graph.
+
+Nothing in here will be used directly with normal PigPen usage.
+See pigpen.core and pigpen.exec
+"
   (:refer-clojure :exclude [ancestors])
   (:require [pigpen.raw :as raw]
             [pigpen.code :as code])

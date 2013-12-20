@@ -17,6 +17,10 @@
 ;;
 
 (ns pigpen.join
+  "Commands to join and group data.
+
+  Note: Most of these are present in pigpen.core. Normally you should use those instead.
+"
   (:refer-clojure :exclude [group-by into reduce])
   (:require [pigpen.pig :as pig]
             [pigpen.raw :as raw]

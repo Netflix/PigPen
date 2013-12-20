@@ -17,6 +17,10 @@
 ;;
 
 (ns pigpen.set
+  "Set operations for PigPen.
+
+  Note: Most of these are present in pigpen.core. Normally you should use those instead.
+"
   (:refer-clojure :exclude [distinct concat])
   (:require [clojure.set]
             [pigpen.raw :as raw]
