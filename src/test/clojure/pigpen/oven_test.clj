@@ -23,6 +23,81 @@
             [pigpen.raw :as pig-raw]
             [pigpen.core :as pig]))
 
+(deftest test-tree->command
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+
+    (test-diff
+      (->
+        (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
+        (pig-raw/store$ "bar" pig-raw/default-storage {})
+        (tree->command))
+      '{:type :store
+        :id store2
+        :description "bar"
+        :ancestors (load1)
+        :location "bar"
+        :storage {:type :storage, :references [], :func "PigStorage", :args []}
+        :fields [foo]
+        :opts {:type :store-opts}})))
+
+(deftest test-command->required-fields
+  (is (= '#{foo bar}
+         (command->required-fields '{:type :generate
+                                     :id generate0
+                                     :projections [{:type :projection-field, :field foo, :alias baz}
+                                                   {:type :projection-func
+                                                    :code {:type :code, :udf "f", :args [foo bar]}
+                                                    :alias bar}]
+                                     :fields [baz bar]
+                                     :ancestors [{:fields [foo bar]}]})))
+  
+  (is (= nil
+         (command->required-fields
+           (pig-raw/load$ "foo" '[a0 b0 c0 d0] pig-raw/default-storage {})))))
+
+(deftest test-remove-fields
+  
+  (let [command '{:type :generate
+                  :id generate0
+                  :projections [{:type :projection-field, :field foo, :alias baz}
+                                {:type :projection-func
+                                 :code {:type :code, :udf "f", :args [foo bar]}
+                                 :alias bar}]
+                  :fields [baz bar]
+                  :ancestors [{:fields [foo bar]}]}]
+    
+    (test-diff
+      (remove-fields command '#{baz})
+      '{:type :generate
+        :id generate0
+        :projections [{:type :projection-func
+                       :code {:type :code, :udf "f", :args [foo bar]}
+                       :alias bar}]
+        :fields [bar]
+        :ancestors [{:fields [foo bar]}]})
+      
+    (test-diff
+      (remove-fields command '#{bar})
+      '{:type :generate
+        :id generate0
+        :projections [{:type :projection-field, :field foo, :alias baz}]
+        :fields [baz]
+        :ancestors [{:fields [foo bar]}]})))
+
+(deftest test-command->references
+  
+  (test-diff
+    (#'pigpen.oven/command->references (pig-raw/generate$ {}
+                                         [(pig-raw/projection-func$ 'foo
+                                            (pig-raw/code$ String ['foo]
+                                              (pig-raw/expr$ '(require '[pigpen.pig])
+                                                             '(var clojure.core/prn))))] {}))
+    ["pigpen.jar"])
+  
+  (test-diff
+    (#'pigpen.oven/command->references (pig-raw/store$ {} "" (pig-raw/storage$ ["my-jar.jar"] "f" []) {}))
+    ["my-jar.jar"]))
+
 (deftest test-braise
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 

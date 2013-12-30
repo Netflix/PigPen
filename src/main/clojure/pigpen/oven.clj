@@ -29,6 +29,107 @@ See pigpen.core and pigpen.exec
             [pigpen.code :as code])
   (:import [org.apache.pig.data DataBag]))
 
+(set! *warn-on-reflection* true)
+
+(defmulti tree->command
+  "Converts a tree node into a single edge. This is done by converting the
+   reference to another node to that node's id"
+  :type)
+
+(defmethod tree->command :default
+  [command]
+  (update-in command [:ancestors] #(mapv :id %)))
+
+(defn ^:private update-field
+  "Updates a single field with an id mapping. This is aware of the
+   pigpen field structure:
+
+   foo             > foo
+   [[foo bar]]     > foo::bar
+   [[foo bar] baz] > foo::bar.baz
+
+"
+  [field id-mapping]
+  {:pre [field (map? id-mapping)]}
+  (if-not (sequential? field) field
+    (let [[relation dereference] field
+          new-relation (mapv #(get id-mapping % %) relation)]
+      (if dereference
+        [new-relation dereference]
+        [new-relation]))))
+
+(defn ^:private update-projections
+  "Updates fields used in projections"
+  [{:keys [projections] :as command} id-mapping]
+  (if-not projections
+    command
+    (let [projections' (for [p projections]
+                         (if (= (:type p) :projection-func)
+                           (update-in p [:code :args]
+                                      (fn [args] (mapv #(update-field % id-mapping) args)))
+                           p))]
+      (assoc command :projections projections'))))
+
+(defn ^:private update-fields
+  "The default way to update ids in a command. This updates the id of the
+   command and any ancestors."
+  [command id-mapping]
+  {:pre [(map? command) (map? id-mapping)]}  
+  (-> command
+    (update-in [:id] (fn [id] (id-mapping id id)))
+    (update-in [:ancestors] #(mapv (fn [id] (id-mapping id id)) %))
+    (update-in [:fields] #(mapv (fn [f] (update-field f id-mapping)) %))
+    (update-in [:args] #(mapv (fn [f] (update-field f id-mapping)) %))
+    (update-projections id-mapping)))
+
+;; **********
+
+(defmulti command->required-fields
+  "Returns the fields required for a command. Always a set."
+  :type)
+
+(defmethod command->required-fields :default [command] nil)
+
+(defmethod command->required-fields :projection-field [command]
+  #{(:field command)})
+
+(defmethod command->required-fields :projection-func [command]
+  (->> command :code :args (filter (some-fn symbol? sequential?)) (set)))
+
+(defmethod command->required-fields :generate [command]
+  (->> command :projections (mapcat command->required-fields) (set)))
+
+;; **********
+
+(defmulti remove-fields
+  "Prune unnecessary fields from a command. The default does nothing - add an
+   override for commands that have prunable fields."
+  (fn [command fields] (:type command)))
+
+(defmethod remove-fields :default [command fields] command)
+
+(defmethod remove-fields :generate [command fields]
+  {:pre [(map? command) (set? fields)]}
+  (-> command
+    (update-in [:projections] (fn [ps] (remove (fn [p] (fields (:alias p))) ps)))
+    (update-in [:fields] #(remove fields %))))
+
+;; **********
+
+(defn ^:private command->references
+  "Gets any references required for a command"
+  [command]
+  (case (:type command)
+    :code ["pigpen.jar"]
+    :bind ["pigpen.jar"]
+    :storage (:references command)
+    (:load :store) (command->references (:storage command))
+    (:projection-func filter) (command->references (:code command))
+    :generate (->> command :projections (mapcat command->references))
+    nil))
+
+;; **********
+
 (defn ^:private ancestors
   "Gets all ancestors for a command"
   [command]
@@ -42,8 +143,10 @@ See pigpen.core and pigpen.exec
   [command]
   (->> command
     (ancestors)
-    (map raw/tree->command)
+    (map tree->command)
     (reverse)))
+
+;; **********
 
 (defn ^:private extract-references
   "Extract all references from commands and create new reference commands at
@@ -51,10 +154,12 @@ See pigpen.core and pigpen.exec
   [commands]
   (concat 
     (->> commands
-      (mapcat raw/command->references)
+      (mapcat command->references)
       (distinct)
       (map raw/register$))
     commands))
+
+;; **********
 
 (defn ^:private next-match
   "Find the first two commands that are equivalent and return them as a map.
@@ -80,7 +185,7 @@ See pigpen.core and pigpen.exec
    and ancestor keys of each command map. There will remain duplicates in the
    result - this just updates the id space."
   [commands mapping]
-  (map (fn [c] (raw/update-fields c mapping)) commands))
+  (map (fn [c] (update-fields c mapping)) commands))
 
 (defn ^:private dedupe
   "Collapses duplicate commands in a graph. The strategy is to take the set of
@@ -92,6 +197,8 @@ See pigpen.core and pigpen.exec
     (if next-merge
       (recur (merge-command distinct-commands next-merge))
       distinct-commands)))
+
+;; **********
 
 (defn ^:private next-order-rank
   "Finds a pig/sort or pig/sort-by followed by a pig/map-indexed."
@@ -129,13 +236,15 @@ See pigpen.core and pigpen.exec
       ;; If we don't find one, we're done
       commands)))
 
+;; **********
+
 (defn ^:private command->fat
   "Returns the fields that could be pruned from the specified command. If
    pruning is not possible, returns nil."
   [commands command]
   (let [potential (->> commands
                     (filter #((set (:ancestors %)) (:id command)))
-                    (map raw/command->required-fields))]
+                    (map command->required-fields))]
     (if (and (not-empty potential) (every? (comp not nil?) potential))
       (clojure.set/difference (set (:fields command)) (set (mapcat identity potential))))))
 
@@ -147,10 +256,12 @@ See pigpen.core and pigpen.exec
       (for [command (reverse commands)]
         (if-let [fat (command->fat @command-set command)]
           (if-not (seq fat) command
-            (let [new-command (raw/remove-fields command fat)]
+            (let [new-command (remove-fields command fat)]
               (swap! command-set #(-> % (disj command) (conj new-command)))
               new-command))
           command)))))
+
+;; **********
 
 (defn ^:private command->debug
   "Adds an extra store statement after the command. Returns nil if no debug is
@@ -172,6 +283,8 @@ See pigpen.core and pigpen.exec
     (filter identity)
     (cons script)
     (raw/script$)))
+
+;; **********
 
 ;; TODO Add documentation
 (defn ^:private find-bind-sequence [commands]
@@ -229,6 +342,8 @@ See pigpen.core and pigpen.exec
               next (merge-command next {(-> binds last :id) (:id generate)})]
           (recur next))))))
 
+;; **********
+
 (defn ^:private expand-load-filters
   "Load commands can specify a native filter. This filter must be defined with
    the load command because of some nuances in Pig. This expands that into an
@@ -246,6 +361,8 @@ See pigpen.core and pigpen.exec
                      (assoc :id id))])
                 [c])))))
 
+;; **********
+
 (defn ^:private clean
   "Some optimizations produce unused commands. This prunes them from the graph."
   [commands]
@@ -258,6 +375,8 @@ See pigpen.core and pigpen.exec
     (if (= (count commands) (count referenced-commands))
       commands
       (recur (filter #(-> % :id referenced-commands) commands)))))
+
+;; **********
 
 (defn bake
   "Takes a script as a tree of commands and returns a sequence of commands as a

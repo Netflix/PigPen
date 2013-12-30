@@ -21,14 +21,19 @@ package pigpen;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 
-public class UDF_DataByteArray extends EvalFunc<DataByteArray> {
+/**
+ * A user function that returns a Tuple.
+ *
+ * @author mbossenbroek
+ *
+ */
+public class PigPenFnTuple extends EvalFunc<Tuple> {
 
     @Override
-    public DataByteArray exec(final Tuple input) throws IOException {
+    public Tuple exec(final Tuple input) throws IOException {
 
-        return (DataByteArray) ClojureForPigs.invoke(input);
+        return (Tuple) ClojureForPigs.invoke(input);
     }
 }

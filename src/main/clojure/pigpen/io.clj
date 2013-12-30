@@ -26,6 +26,8 @@
             [pigpen.code :as code]
             [pigpen.pig :as pig]))
 
+(set! *warn-on-reflection* true)
+
 (defmacro load-binary
   "Loads data stored in the pigpen binary format. This is generally not used
 unless debugging scripts."

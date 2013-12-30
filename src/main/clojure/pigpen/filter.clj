@@ -22,8 +22,11 @@
   Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
   (:refer-clojure :exclude [filter remove take])
-  (:require [pigpen.raw :as raw]
+  (:require [pigpen.util :as util]
+            [pigpen.raw :as raw]
             [pigpen.code :as code]))
+
+(set! *warn-on-reflection* true)
 
 (defn filter*
   "See #'pigpen.core/filter"
@@ -44,7 +47,7 @@ returns true.
   See also: pigpen.core/remove, pigpen.core/take, pigpen.core/sample, pigpen.core/distinct
 "
   [pred relation]
-  `(filter* (code/trap-locals ~pred) {:description ~(raw/pp-str pred)} ~relation))
+  `(filter* (code/trap-locals ~pred) {:description ~(util/pp-str pred)} ~relation))
 
 (defmacro remove
   "Returns a relation without items for which (pred item) returns true.

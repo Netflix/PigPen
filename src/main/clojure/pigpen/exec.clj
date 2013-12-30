@@ -29,7 +29,10 @@ how you 'use' a PigPen query.
             [pigpen.local :as local]
             [pigpen.viz :as viz]
             [taoensso.nippy :refer [freeze thaw]])
-  (:import [rx.observables BlockingObservable]))
+  (:import [rx Observable]
+           [rx.observables BlockingObservable]))
+
+(set! *warn-on-reflection* true)
 
 (defn generate-script
   "Generates a Pig script from the relation specified and returns it as a string.
@@ -84,7 +87,7 @@ combine them. Optionally takes a map of options.
   ([location opts script]
     (spit location (generate-script opts script))))
 
-(defn script->observable
+(defn ^Observable script->observable
   ([script] (script->observable {} script))
   ([opts script]
     (-> script
@@ -161,7 +164,7 @@ This command uses a terse description for each operation.
   [script]
   (-> script
     (oven/bake {})
-    (viz/view-graph raw/command->description)))
+    (viz/view-graph viz/command->description)))
 
 (defn show+
   "Generates a graph image for a PigPen query. This allows you to see what steps
@@ -177,7 +180,7 @@ This command uses a verbose description for each operation, including user code.
   [script]
   (-> script
     (oven/bake {})
-    (viz/view-graph raw/command->description+)))
+    (viz/view-graph viz/command->description+)))
 
 (defn ^:private dump&show* [command->description script]
   (let [g (oven/bake script {})]
@@ -190,9 +193,9 @@ This command uses a verbose description for each operation, including user code.
 (def ^{:arglists '([script])} dump&show
   "Combines pig/show and pig/dump. This is useful so that the graph & resulting
 script have the same ids."
-  (partial dump&show* raw/command->description))
+  (partial dump&show* viz/command->description))
 
 (def ^{:arglists '([script])} dump&show+
   "Combines pig/show+ and pig/dump. This is useful so that the graph & resulting
 script have the same ids."
-  (partial dump&show* raw/command->description+))
+  (partial dump&show* viz/command->description+))

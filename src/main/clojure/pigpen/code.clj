@@ -20,7 +20,10 @@
   "Contains functions that assist in handling user code in operations like map
 or reduce."
   (:require [pigpen.raw :as raw])
-  (:import [org.apache.pig.data DataBag]))
+  (:import [org.apache.pig.data DataBag]
+           [java.lang.reflect Method]))
+
+(set! *warn-on-reflection* true)
 
 (defn object-projection [alias args f]
   (raw/projection-flat$ alias
@@ -35,12 +38,12 @@ or reduce."
   {:pre [f]}
   (let [methods (-> f class .getDeclaredMethods)
         fixed (->> methods
-                (filter #(= "invoke" (.getName %)))
-                (map #(-> % .getParameterTypes alength))
+                (filter (fn [^Method m] (= "invoke" (.getName m))))
+                (map (fn [^Method m] (-> m .getParameterTypes alength)))
                 set)
         varargs (->> methods
-                  (filter #(= "doInvoke" (.getName %)))
-                  (map #(-> % .getParameterTypes alength))
+                  (filter (fn [^Method m] (= "doInvoke" (.getName m))))
+                  (map (fn [^Method m] (-> m .getParameterTypes alength)))
                   first)]
     [fixed varargs]))
 

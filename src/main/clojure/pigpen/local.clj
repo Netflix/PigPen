@@ -32,19 +32,24 @@ See pigpen.core and pigpen.exec
            [org.apache.pig.data Tuple DataBag]
            [rx Observable Observer Subscription]
            [rx.concurrency Schedulers]
+           [rx.observables GroupedObservable]
            [rx.util.functions Action0]
-           [java.util.regex Pattern]))
+           [java.util.regex Pattern]
+           [java.io Writer]
+           [java.util List]))
+
+(set! *warn-on-reflection* true)
 
 (defn ^:private eval-code [{:keys [return expr args]} values]
   (let [{:keys [init func]} expr
-        ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.UDF_" return))))
+        ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.PigPenFn" return))))
         ^Tuple tuple (->> args
                        (mapv #(if ((some-fn symbol? vector?) %) (values %) %))
                        (concat [(str init) (str func)])
                        (apply pig/tuple))]
     (try
       (.exec instance tuple)
-      (catch PigPenException z (throw (.get z))))))
+      (catch PigPenException z (throw (.getCause z))))))
 
 (defn ^:private cross-product [data]
   (if (empty? data) [{}]
@@ -61,14 +66,14 @@ See pigpen.core and pigpen.exec
 
 (defn graph->local* [{:keys [id] :as command} data]
   (let [first (atom true)
-        data' (for [d data]
+        data' (for [^Observable d data]
                 (.map d (fn [v]
                           (when @first
                             (println id "start")
                             (reset! first false))
-                          v)))]
-    (->
-      (graph->local command data')
+                          v)))
+        ^Observable o (graph->local command data')]
+    (-> o
       (.finallyDo
         (reify Action0
           (call [this] (println id "stop")))))))
@@ -133,7 +138,7 @@ See pigpen.core and pigpen.exec
             (on-next
               (->>
                 (clojure.string/split line delimiter)
-                (map #(pig/cast-bytes cast (.getBytes %)))
+                (map (fn [^String s] (pig/cast-bytes cast (.getBytes s))))
                 (zipmap fields)))))))))
 
 (defmulti store (fn [command data] (get-in command [:storage :func])))
@@ -146,13 +151,13 @@ See pigpen.core and pigpen.exec
       (.filter
         (fn [value]
           (let [line (str (clojure.string/join "\t" (for [f fields] (str (f value)))) "\n")]
-            (.write @writer line)) 
+            (.write ^Writer @writer line)) 
           false))
       (.finallyDo
         (reify Action0
           (call [this] (when (realized? writer)
                          (println "Stop writing to PigStorage:" location)
-                         (.close @writer))))))))
+                         (.close ^Writer @writer))))))))
 
 (defmethod graph->local :load [command _]
   (load command))
@@ -160,7 +165,7 @@ See pigpen.core and pigpen.exec
 (defmethod graph->local :store [command data]
   (store command (first data)))
 
-(defmethod graph->local :return [{:keys [data]} _]
+(defmethod graph->local :return [{:keys [^Iterable data]} _]
   (Observable/from data))
 
 ;; ********** Map **********
@@ -176,7 +181,7 @@ See pigpen.core and pigpen.exec
     (cond
       ;; Following Pig logic, Bags are actually flattened
       (instance? DataBag result) (for [v' result]
-                                   {alias (.get v' 0)})
+                                   {alias (.get ^Tuple v' 0)})
       ;; While Tuples just expand their elements
       (instance? Tuple result) (->>
                                  (.getAll ^Tuple result)
@@ -188,11 +193,11 @@ See pigpen.core and pigpen.exec
 (defmethod graph->local :generate [{:keys [projections] :as command} data]
   (let [^Observable data (first data)]
     (.mapMany data
-      (fn [values] 
-        (->> projections
-          (map (fn [p] (graph->local p values)))
-          (cross-product)
-          (Observable/from))))))
+      (fn [values]
+        (let [^Iterable result (->> projections
+                             (map (fn [p] (graph->local p values)))
+                             (cross-product))]
+          (Observable/from result))))))
 
 (defn ^:private pig-compare [[key order & sort-keys] x y]
   (let [r (compare (key x) (key y))]
@@ -208,14 +213,14 @@ See pigpen.core and pigpen.exec
   (let [^Observable data (first data)]
     (-> data
       (.toSortedList (partial pig-compare sort-keys))
-      (.mapMany #(Observable/from %)))))
+      (.mapMany #(Observable/from ^Iterable %)))))
 
 (defmethod graph->local :rank [{:keys [sort-keys]} data]
   (let [^Observable data (first data)]
     (if (not-empty sort-keys)
       (-> data
         (.toSortedList (partial pig-compare sort-keys))
-        (.mapMany #(Observable/from (map-indexed (fn [i v] (assoc v '$0 i)) %))))
+        (.mapMany #(Observable/from ^Iterable (map-indexed (fn [i v] (assoc v '$0 i)) %))))
       (let [i (atom -1)]
         (-> data
           (.map (fn [v] (assoc v '$0 (swap! i inc)))))))))
@@ -254,36 +259,38 @@ See pigpen.core and pigpen.exec
 
 ;; ********** Join **********
 
-(defmethod graph->local :union [_ data]
+(defmethod graph->local :union [_ ^List data]
   (Observable/merge data))
 
 (defn ^:private graph->local-group [{:keys [ancestors keys join-types fields]} data]
   (->
-    (mapv (fn [a k d j]
+    ^List
+    (mapv (fn [a k ^Observable d j]
             (.mapMany d (fn [values]
-                          (Observable/from
-                            ;; This selects all of the fields that are in this relation
-                            (for [[[r] v :as f] (next fields)
-                                  :when (= r a)]
-                              {:values (pig/tuple (values v))
-                               ;; This is to emulate the way pig handles nils
-                               ;; This changes a nil values into a relation specific nil value
-                               :key (mapv #(or (values %) (keyword (name a) "nil")) k)
-                               :relation f
-                               :required (= j :required)})))))
+                          ;; This selects all of the fields that are in this relation
+                          (let [^Iterable result
+                                (for [[[r] v :as f] (next fields)
+                                      :when (= r a)]
+                                  {:values (pig/tuple (values v))
+                                   ;; This is to emulate the way pig handles nils
+                                   ;; This changes a nil values into a relation specific nil value
+                                   :key (mapv #(or (values %) (keyword (name a) "nil")) k)
+                                   :relation f
+                                   :required (= j :required)})]
+                            (Observable/from result)))))
          ancestors keys data join-types)
     (Observable/merge)
     (.groupBy :key)
-    (.mapMany (fn [o]
+    (.mapMany (fn [^Observable o]
                 (-> o
                   (.groupBy :relation)
-                  (.mapMany #(-> %
+                  (.mapMany #(-> ^Observable %
                                (.toList)
-                               (.map (fn [v] [(if (keyword? (.getKey %)) nil (.getKey %))
+                               (.map (fn [v] [(if (keyword? (.getKey ^GroupedObservable %)) nil (.getKey ^GroupedObservable %))
                                               (apply pig/bag (mapv :values v))]))))
                   ;; Start with the group key. If it's a single value, flatten it.
                   ;; Keywords are the fake nils we put in earlier
-                  (.reduce {(first fields) (let [k (.getKey o)
+                  (.reduce {(first fields) (let [k (.getKey ^GroupedObservable o)
                                                  k (if (= 1 (count k)) (first k) k)
                                                  k (if (keyword? k) nil k)]
                                              k)}
@@ -296,16 +303,17 @@ See pigpen.core and pigpen.exec
 
 (defn ^:private graph->local-group-all [{:keys [fields]} data]
   (->
-    (mapv (fn [[r v] d]
+    ^List
+    (mapv (fn [[r v] ^Observable d]
             (.map d (fn [values]
                       {:values (pig/tuple (v values))
                        :relation [r v]})))  
          (next fields) data)
     (Observable/merge)
     (.groupBy :relation)
-    (.mapMany #(-> %
+    (.mapMany #(-> ^Observable %
                  (.toList)
-                 (.map (fn [v] [(.getKey %) (apply pig/bag (mapv :values v))]))))
+                 (.map (fn [v] [(.getKey ^GroupedObservable %) (apply pig/bag (mapv :values v))]))))
     (.reduce {(first fields) nil}
       (fn [values [k v]]
         (assoc values k v)))))
@@ -317,7 +325,8 @@ See pigpen.core and pigpen.exec
 
 (defmethod graph->local :join [{:keys [ancestors keys join-types fields]} data]
   (->
-    (mapv (fn [a k d]
+    ^List
+    (mapv (fn [a k ^Observable d]
             (.map d (fn [values]
                       ;; This selects all of the fields that are in this relation
                       {:values (into {} (for [[[r v] :as f] fields
@@ -330,12 +339,12 @@ See pigpen.core and pigpen.exec
          ancestors keys data)
     (Observable/merge)
     (.groupBy :key)
-    (.mapMany (fn [key-grouping]
+    (.mapMany (fn [^Observable key-grouping]
                 (-> key-grouping
                   (.groupBy :relation)
-                  (.mapMany #(-> %
+                  (.mapMany #(-> ^Observable %
                                (.toList)
-                               (.map (fn [v] [(.getKey %) (map :values v)]))))
+                               (.map (fn [v] [(.getKey ^GroupedObservable %) (map :values v)]))))
                   (.reduce (->>
                              ;; This seeds the inner/outer joins, by placing a
                              ;; defualt empty value for inner joins
@@ -346,9 +355,9 @@ See pigpen.core and pigpen.exec
                     (fn [values [k v]]
                       (assoc values k v)))
                   (.mapMany (fn [relation-grouping]
-                              (Observable/from (cross-product (vals relation-grouping))))))))))
+                              (Observable/from ^Iterable (cross-product (vals relation-grouping))))))))))
 
 ;; ********** Script **********
 
 (defmethod graph->local :script [_ data]
-  (Observable/merge (vec data)))
+  (Observable/merge ^List (vec data)))

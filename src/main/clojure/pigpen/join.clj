@@ -22,10 +22,13 @@
   Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
   (:refer-clojure :exclude [group-by into reduce])
-  (:require [pigpen.pig :as pig]
+  (:require [pigpen.util :as util]
+            [pigpen.pig :as pig]
             [pigpen.raw :as raw]
             [pigpen.code :as code])
   (:import [org.apache.pig.data DataByteArray]))
+
+(set! *warn-on-reflection* true)
 
 (defn ^:private select?
   "Returns true if the specified value is a select clause"
@@ -119,7 +122,7 @@ Optionally takes a map of options.
   ([key-selector opts relation]
     `(group* [[~relation (code/trap-locals ~key-selector) :optional]]
              '(fn [~'k ~'v] (clojure.lang.MapEntry. ~'k ~'v))
-             (assoc ~opts :description ~(raw/pp-str key-selector)))))
+             (assoc ~opts :description ~(util/pp-str key-selector)))))
 
 (defmacro into
   "Returns a new relation with all values from relation conjoined onto to.
@@ -147,9 +150,9 @@ for further processing.
   See also: pigpen.core/into
 "
   ([f relation]
-    `(group-all* ~relation (code/trap-locals (partial clojure.core/reduce ~f)) {:description ~(raw/pp-str f)}))
+    `(group-all* ~relation (code/trap-locals (partial clojure.core/reduce ~f)) {:description ~(util/pp-str f)}))
   ([f val relation]
-    `(group-all* ~relation (code/trap-locals (partial clojure.core/reduce ~f ~val)) {:description ~(raw/pp-str f)})))
+    `(group-all* ~relation (code/trap-locals (partial clojure.core/reduce ~f ~val)) {:description ~(util/pp-str f)})))
 
 ;; TODO trap locals in key selectors
 
@@ -188,7 +191,7 @@ collections. The last argument is an optional map of options.
   (let [[selects# f# opts#] (split-selects selects)
         _ (doseq [s# selects#] (assert (select? s#) (str s# " is not a valid select clause. If provided, opts should be a map.")))
         selects# (mapv (fn [[r _ k t]] `[~r '~k ~(keyword t)]) selects#)]
-    `(group* ~selects# (code/trap-locals ~f#) (assoc ~opts# :description ~(raw/pp-str f#)))))
+    `(group* ~selects# (code/trap-locals ~f#) (assoc ~opts# :description ~(util/pp-str f#)))))
 
 ;; TODO group strategies
 
@@ -228,7 +231,7 @@ options.
   (let [[selects# f# opts#] (split-selects selects)
         _ (doseq [s# selects#] (assert (select? s#) (str s# " is not a valid select clause. If provided, opts should be a map.")))
         selects# (mapv (fn [[r _ k t]] `[~r '~k ~(keyword t)]) selects#)]
-    `(join* ~selects# (code/trap-locals ~f#) (assoc ~opts# :description ~(raw/pp-str f#)))))
+    `(join* ~selects# (code/trap-locals ~f#) (assoc ~opts# :description ~(util/pp-str f#)))))
 
 ;; TODO join strategies
 ;; TODO semi-join

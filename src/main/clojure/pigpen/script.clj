@@ -25,7 +25,9 @@ See pigpen.core and pigpen.exec
   (:refer-clojure :exclude [replace])
   (:require [clojure.string :refer [join replace]]))
 
-(defn format-field [field]
+(set! *warn-on-reflection* true)
+
+(defn ^:private format-field [field]
   (cond
     (string? field) (str "'" (replace field "'" "\\'") "'")
     (symbol? field) (str field)
@@ -43,7 +45,7 @@ See pigpen.core and pigpen.exec
 (defn ^:private escape-id [id]
   (clojure.string/replace id "-" "_"))
 
-(def clj->op
+(def ^:private clj->op
  {"and" " AND "
   "or" " OR "
   "=" " == "
@@ -53,7 +55,7 @@ See pigpen.core and pigpen.exec
   "<=" " <= "
   ">=" " >= "})
 
-(defn expr->script
+(defn ^:private expr->script
  ([expr] (expr->script {} expr))
  ([scope expr]
    (cond
@@ -95,7 +97,7 @@ See pigpen.core and pigpen.exec
   (let [{:keys [init func]} expr
         pig-code [(escape+quote init) (escape+quote func)]
         pig-args (->> args (map format-field) (concat pig-code) (join ", "))]
-    (str "pigpen.UDF_" return "(" pig-args ")")))
+    (str "pigpen.PigPenFn" return "(" pig-args ")")))
 
 (defmethod command->script :register
   [{:keys [jar]}]

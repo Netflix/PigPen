@@ -22,8 +22,19 @@
 Nothing in here will be used directly with normal PigPen usage.
 See pigpen.core and pigpen.exec
 "
-  (:require [pigpen.raw :refer [command->description]]
-            [rhizome.viz :as viz]))
+  (:require [rhizome.viz :as viz]))
+
+(set! *warn-on-reflection* true)
+
+(defn command->description [{:keys [id]}]
+  "Returns a simple human readable description of a command"
+  (str id))
+
+(defn command->description+ [{:keys [id description]}]
+  "Returns a verbose human readable description of a command"
+  (if description
+   (str id "\n\n" description)
+   (str id)))
 
 (def ^:private line-len 50)
 (def ^:private max-lines 10)

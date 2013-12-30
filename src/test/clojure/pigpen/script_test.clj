@@ -20,26 +20,26 @@
   (:use clojure.test pigpen.script))
 
 (deftest test-format-field
-  (is (= (format-field "abc") "'abc'"))
-  (is (= (format-field "a'b'c") "'a\\'b\\'c'"))
-  (is (= (format-field 'foo) "foo"))
-  (is (= (format-field '[[foo bar]]) "foo::bar"))
-  (is (= (format-field '[[foo bar baz]]) "foo::bar::baz"))
-  (is (= (format-field '[[foo] bar]) "foo.bar"))
-  (is (= (format-field '[[foo bar] baz]) "foo::bar.baz")))
+  (is (= (#'pigpen.script/format-field "abc") "'abc'"))
+  (is (= (#'pigpen.script/format-field "a'b'c") "'a\\'b\\'c'"))
+  (is (= (#'pigpen.script/format-field 'foo) "foo"))
+  (is (= (#'pigpen.script/format-field '[[foo bar]]) "foo::bar"))
+  (is (= (#'pigpen.script/format-field '[[foo bar baz]]) "foo::bar::baz"))
+  (is (= (#'pigpen.script/format-field '[[foo] bar]) "foo.bar"))
+  (is (= (#'pigpen.script/format-field '[[foo bar] baz]) "foo::bar.baz")))
 
 (deftest test-expr->script
-  (is (= (expr->script nil) nil))
-  (is (= (expr->script "a'b\\c") "'a\\'b\\\\c'"))
-  (is (= (expr->script 42) "42"))
-  (is (= (expr->script 'foo) "foo"))
-  (is (= (expr->script '(clojure.core/let [foo '2] foo)) "2"))
-  (is (= (expr->script '(clojure.core/let [foo '2] (and (= bar foo) (> baz 3)))) "((bar == 2) AND (baz > 3))")))
+  (is (= (#'pigpen.script/expr->script nil) nil))
+  (is (= (#'pigpen.script/expr->script "a'b\\c") "'a\\'b\\\\c'"))
+  (is (= (#'pigpen.script/expr->script 42) "42"))
+  (is (= (#'pigpen.script/expr->script 'foo) "foo"))
+  (is (= (#'pigpen.script/expr->script '(clojure.core/let [foo '2] foo)) "2"))
+  (is (= (#'pigpen.script/expr->script '(clojure.core/let [foo '2] (and (= bar foo) (> baz 3)))) "((bar == 2) AND (baz > 3))")))
 
 ;; ********** Util **********
 
 (deftest test-code
-  (is (= "pigpen.UDF_DataByteArray('(require (quote [pigpen.pig]))', 'identity')"
+  (is (= "pigpen.PigPenFnDataByteArray('(require (quote [pigpen.pig]))', 'identity')"
          (command->script '{:type :code
                             :expr {:init (require '[pigpen.pig])
                                    :func identity}
@@ -114,7 +114,7 @@
                             :alias b}))))
 
 (deftest test-projection-func
-  (is (= "pigpen.UDF_DataByteArray('', '(fn [x] (* x x))', 'a', a) AS b"
+  (is (= "pigpen.PigPenFnDataByteArray('', '(fn [x] (* x x))', 'a', a) AS b"
          (command->script '{:type :projection-func
                             :code {:type :code
                                    :expr {:init nil
@@ -126,7 +126,7 @@
 (deftest test-generate
   (is (= "generate0 = FOREACH relation0 GENERATE
     a AS b,
-    pigpen.UDF_DataByteArray('', '(fn [x] (* x x))', 'a', a) AS b;\n\n"
+    pigpen.PigPenFnDataByteArray('', '(fn [x] (* x x))', 'a', a) AS b;\n\n"
          (command->script '{:type :generate
                             :id generate0
                             :ancestors [relation0]
@@ -143,7 +143,7 @@
 
 (deftest test-generate-flatten
   (is (= "generate0 = FOREACH relation0 GENERATE
-    FLATTEN(pigpen.UDF_DataBag('', '(fn [x] [x x])', 'a', a)) AS b;\n\n"
+    FLATTEN(pigpen.PigPenFnDataBag('', '(fn [x] [x x])', 'a', a)) AS b;\n\n"
          (command->script '{:type :generate
                             :id generate0
                             :ancestors [relation0]
@@ -195,7 +195,7 @@
 ;; ********** Filter **********
 
 (deftest test-filter
-  (is (= "filter0 = FILTER relation0 BY pigpen.UDF_Boolean('', '(fn [x] (even? x))', 'a', a);\n\n"
+  (is (= "filter0 = FILTER relation0 BY pigpen.PigPenFnBoolean('', '(fn [x] (even? x))', 'a', a);\n\n"
          (command->script '{:type :filter
                             :id filter0
                             :ancestors [relation0]

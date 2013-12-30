@@ -179,9 +179,7 @@
                       (pig/map (fn [x] (* x x)))
                       (pig/filter odd?)
                       (pig/store-clj "odd-squares.clj"))]
-    (->>
-      (pig/script even-squares odd-squares)
-      (pig/show))))
+    (pig/script even-squares odd-squares)))
 
 
 
