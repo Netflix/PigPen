@@ -72,7 +72,7 @@
                                       :func "PigStorage"
                                       :args []}
                             :fields [a b c]
-                            :opts {}})))
+                            :opts {:type :load-opts}})))
   (is (= "load0 = LOAD 'foo'\n    USING PigStorage();\n\n"
          (command->script '{:type :load
                             :id load0
@@ -81,7 +81,8 @@
                                       :func "PigStorage"
                                       :args []}
                             :fields [a b c]
-                            :opts {:implicit-schema true}})))
+                            :opts {:type :load-opts
+                                   :implicit-schema true}})))
   (is (= "load0 = LOAD 'foo'
     USING PigStorage()
     AS (a:chararray, b:chararray, c:chararray);\n\n"
@@ -92,7 +93,8 @@
                                       :func "PigStorage"
                                       :args []}
                             :fields [a b c]
-                            :opts {:cast "chararray"}}))))
+                            :opts {:type :load-opts
+                                   :cast "chararray"}}))))
 
 (deftest test-store
   (is (= "STORE relation0 INTO 'foo'\n    USING PigStorage();\n\n"
@@ -103,7 +105,7 @@
                             :storage {:type :storage
                                       :func "PigStorage"
                                       :args []}
-                            :opts {}}))))
+                            :opts {:type :store-opts}}))))
 
 ;; ********** Map **********
 
