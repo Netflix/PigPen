@@ -121,6 +121,7 @@ See pigpen.core and pigpen.exec
   "Gets any references required for a command"
   [command]
   (case (:type command)
+    ;; TODO make this name dynamic
     :code ["pigpen.jar"]
     :bind ["pigpen.jar"]
     :storage (:references command)
