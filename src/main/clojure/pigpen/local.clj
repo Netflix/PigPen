@@ -40,6 +40,7 @@ See pigpen.core and pigpen.exec
 
 (set! *warn-on-reflection* true)
 
+;; TODO add option to skip this for faster execution
 (defn ^:private eval-code [{:keys [return expr args]} values]
   (let [{:keys [init func]} expr
         ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.PigPenFn" return))))
