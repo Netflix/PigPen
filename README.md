@@ -1,6 +1,6 @@
 ![](logo.png)
 
-PigPen is a map-reduce abstraction for Clojure. It is written on top of [Apache Pig](http://pig.apache.org/), but you don't need to know much about Pig to use it.
+PigPen is map-reduce for Clojure. It compiles to [Apache Pig](http://pig.apache.org/), but you don't need to know much about Pig to use it.
 
 ##What is PigPen?
 
@@ -12,7 +12,7 @@ PigPen is a map-reduce abstraction for Clojure. It is written on top of [Apache 
 
 ### If you know Clojure, you already know PigPen
 
-The primary goal of PigPen is to take language out of the equation. PigPen operators are designed to be as close as possible to the Clojure equivalents. There are no special UDFs. Define Clojure functions, anonymously or named, and use them like you would in any Clojure program.
+The primary goal of PigPen is to take language out of the equation. PigPen operators are designed to be as close as possible to the Clojure equivalents. There are no special user defined functions (UDFs). Define Clojure functions, anonymously or named, and use them like you would in any Clojure program.
 
 Here's the proverbial word count:
 
@@ -88,12 +88,17 @@ Just tell PigPen where to write the query as a Pig script:
 (pig/write-script "word-count.pig" (word-count-query "input.tsv" "output.tsv"))
 ```
 
-And then you have a Pig script which you can submit to your cluster. The script uses pigpen.jar, so make sure that is submitted with it. Another option is to build an uberjar for your project and submit that instead. Just rename it prior to submission.
+And then you have a Pig script which you can submit to your cluster. The script uses `pigpen.jar`, an uberjar with all of the dependencies, so make sure that is submitted with it. Another option is to build an uberjar for your project and submit that instead. Just rename it prior to submission. Check out the tutorial for how to build an uberjar.
 
 As you saw before, we can also use [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) to run the query locally and return Clojure data:
 
 ``` clj
-(pig/dump (word-count data))
+=> (def data (pig/return [["The fox jumped over the dog."]
+                          ["The cow jumped over the moon."]]))
+#'pigpen-demo/data
+
+=> (pig/dump (word-count data))
+[["moon" 1] ["jumped" 2] ["dog" 1] ["over" 2] ["cow" 1] ["fox" 1] ["the" 4]]
 ```
 
 # Getting started
