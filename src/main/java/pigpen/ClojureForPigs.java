@@ -35,12 +35,15 @@ import clojure.lang.Var;
  */
 public final class ClojureForPigs {
 
-    private static final IFn EVAL;
+    private static final IFn EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
 
     static {
         final Var require = RT.var("clojure.core", "require");
         require.invoke(Symbol.intern("pigpen.pig"));
         EVAL = RT.var("pigpen.pig", "eval-udf");
+        ACCUMULATE = RT.var("pigpen.pig", "udf-accumulate");
+        GET_VALUE = RT.var("pigpen.pig", "udf-get-value");
+        CLEANUP = RT.var("pigpen.pig", "udf-cleanup");
     }
 
     /**
@@ -53,6 +56,42 @@ public final class ClojureForPigs {
      */
     public static Object invoke(Tuple tuple) throws IOException {
         return EVAL.invoke(tuple);
+    }
+
+    /**
+     * Invokes the Clojure code specified by the tuple.
+     *
+     * @param state
+     *            The existing state
+     * @param value
+     *            The tuple passed to the Pig UDF
+     * @return The new state
+     * @throws IOException
+     */
+    public static Object accumulate(Object state, Tuple value) throws IOException {
+        return ACCUMULATE.invoke(state, value);
+    }
+
+    /**
+     * Invokes the Clojure code specified by the tuple.
+     *
+     * @param state
+     *            The existing state
+     * @return The result
+     */
+    public static Object getValue(Object state) {
+        return GET_VALUE.invoke(state);
+    }
+
+    /**
+     * Invokes the Clojure code specified by the tuple.
+     *s
+     * @param state
+     *            The existing state
+     * @return The new state
+     */
+    public static Object cleanup(Object state) {
+        return CLEANUP.invoke(state);
     }
 
     private ClojureForPigs() {

@@ -21,7 +21,9 @@
         pigpen.pig)
   (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
             [clj-time.format :as time]
-            [taoensso.nippy :refer [freeze thaw]])
+            [taoensso.nippy :refer [freeze thaw]]
+            [clojure.core.async :as a]
+            [pigpen.util :as util])
   (:import [org.apache.pig.data
             DataByteArray
             Tuple TupleFactory
@@ -293,6 +295,155 @@
 ;; TODO test-freeze-vals
 ;; TODO test-thaw-anything
 ;; TODO test-thaw-values
+
+; *****************
+
+(deftest test-bag->chan
+  (let [c (a/chan 5)
+        b (bag (tuple 1) (tuple "a"))]
+    (#'pigpen.pig/bag->chan c b)
+    (is (= (a/<!! c) 1))
+    (is (= (a/<!! c) "a"))))
+
+(deftest test-lazy-bag-args
+  (let [b (bag (tuple 1) (tuple "a"))
+        args [b 2 "b"]
+        [args* input-bags] (#'pigpen.pig/lazy-bag-args args)
+        [a0 a1 a2] args*
+        [i0 i1 i2] input-bags]
+    (is (util/channel? a0))
+    (is (= a1 2))
+    (is (= a2 "b"))
+    (is (util/channel? i0))
+    (is (nil? i1))
+    (is (nil? i2))))
+
+(deftest test-create-accumulate-state
+  (let [b (bag (tuple 1) (tuple "a"))
+        t (tuple (str '(require '[clojure.core.async :as a]))
+                 (str '(fn [[x y z]] [(a/<!! x) y z])) b 2 "b")
+        [input-bags result] (#'pigpen.pig/create-accumulate-state t)
+        [i0 i1 i2] input-bags]
+    (is (util/channel? i0))
+    (is (nil? i1))
+    (is (nil? i2))
+    (is (util/channel? result))))
+
+(deftest test-accumulate
+  
+  (testing "1 bag"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (apply bag (map tuple (range 100))) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [(range 100) 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "2 bags"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (apply bag (map tuple (range 100))) 2 "b")
+          t' (tuple (str '(require '[clojure.core.async :as a]))
+                    (str '(fn [[x y z]] [(a/<!! x) y z]))
+                    (apply bag (map tuple (range 100 200))) 2 "b")
+          state (udf-accumulate nil t)
+          state (udf-accumulate state t')
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [(range 200) 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "2 bag args"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y]] [(a/<!! x) (a/<!! y)]))
+                   (bag (tuple 1) (tuple 2) (tuple 3)) (bag (tuple 4) (tuple 5) (tuple 6)))
+          t' (tuple (str '(require '[clojure.core.async :as a]))
+                    (str '(fn [[x y]] [(a/<!! x) (a/<!! y)]))
+                    (bag (tuple 7) (tuple 8) (tuple 9)) (bag (tuple 10) (tuple 11) (tuple 12)))
+          state (udf-accumulate nil t)
+          state (udf-accumulate state t')
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[1 2 3 7 8 9] [4 5 6 10 11 12]]))
+      (is (nil? state))))
+  
+  (testing "empty bag"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (bag) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[] 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "single value bag"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (bag (tuple 1)) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[1] 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "all values"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [x y z]))
+                   1 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [1 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "nil in bag"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (bag (tuple 1) (tuple nil) (tuple 3)) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[1 nil 3] 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "nil value"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (bag) nil "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[] nil "b"]))
+      (is (nil? state))))
+  
+  (testing "nil result"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] nil))
+                   (apply bag (map tuple (range 100))) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result nil))
+      (is (nil? state))))
+  
+  (testing "throw in agg"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(mapv #(java.lang.Long/valueOf %) (a/<!! x)) y z]))
+                   (bag (tuple "1") (tuple "a") (tuple "3")) 2 "b")
+          state (udf-accumulate nil t)]
+      (is (thrown? RuntimeException (udf-get-value state)))
+      (is (nil? (udf-cleanup state)))))
+  
+  (testing "throw in udf"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] (throw (Exception.))))
+                   (bag) 2 "b")
+          state (udf-accumulate nil t)]
+      (is (thrown? RuntimeException (udf-get-value state)))
+      (is (nil? (udf-cleanup state))))))
 
 ; *****************
 

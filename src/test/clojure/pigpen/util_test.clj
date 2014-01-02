@@ -19,6 +19,7 @@
 (ns pigpen.util-test
   (:use clojure.test
         pigpen.util)
+  (:require [clojure.core.async :as a])
   (:import [rx Observable Observer Subscription]
            [rx.observables BlockingObservable]))
 
@@ -90,3 +91,131 @@
         s0 (Observable/merge [j0 j1])
         v0 (BlockingObservable/toIterable s0)]
     (is (= (sort (seq v0)) [1 1 2 2 3 3 4 4 5 5 6 6]))))
+
+(deftest test-channel?
+  (let [c (a/chan)]
+    (is (channel? c))
+    (is (not (channel? 42)))))
+
+(deftest test-safe->!
+  
+  (testing "single"
+    (let [c (a/chan)]
+      (a/go (safe->! c 1))
+      (is (= (a/<!! (a/go (safe-<! c))) 1))))
+  
+  (testing "many"
+    (let [c (a/chan)]
+      (a/go
+        (safe->! c 1)
+        (safe->! c 2)
+        (safe->! c 3))
+      (is (= [1 2 3]
+             (a/<!!
+               (a/go
+                 [(safe-<! c)
+                  (safe-<! c)
+                  (safe-<! c)]))))))
+  
+  (testing "nil"
+    (let [c (a/chan)]
+      (a/go
+        (safe->! c 1)
+        (safe->! c nil)
+        (safe->! c 3))
+      (is (= [1 nil 3]
+             (a/<!!
+               (a/go
+                 [(safe-<! c)
+                  (safe-<! c)
+                  (safe-<! c)]))))))
+  
+  (testing "exception"
+    (let [c (a/chan 10)]
+      (a/go
+        (safe->! c 1)
+        (safe->! c (throw (Exception.)))
+        (safe->! c 3))
+      (let [[x y z] (a/<!!
+                       (a/go
+                         [(try (safe-<! c) (catch Throwable z z))
+                          (try (safe-<! c) (catch Throwable z z))
+                          (try (safe-<! c) (catch Throwable z z))]))]
+        (is (= x 1))
+        (is (instance? Exception y))
+        (is (= z 3))))))
+
+(deftest test-safe->!!
+  
+  (testing "single"
+    (let [c (a/chan 10)]
+      (safe->!! c 1)
+      (is (= (safe-<!! c) 1))))
+  
+  (testing "many"
+     (let [c (a/chan 10)]
+       (safe->!! c 1)
+       (safe->!! c 2)
+       (safe->!! c 3)
+       (is (= (safe-<!! c) 1))
+       (is (= (safe-<!! c) 2))
+       (is (= (safe-<!! c) 3))))
+  
+  (testing "nil"
+    (let [c (a/chan 10)]
+      (safe->!! c 1)
+      (safe->!! c nil)
+      (safe->!! c 3)
+      (is (= (safe-<!! c) 1))
+      (is (= (safe-<!! c) nil))
+      (is (= (safe-<!! c) 3))))
+  
+  (testing "exception"
+    (let [c (a/chan 10)]
+      (safe->!! c 1)
+      (safe->!! c (throw (Exception.)))
+      (safe->!! c 3)
+      (is (= (safe-<!! c) 1))
+      (is (thrown? Exception (safe-<!! c)))
+      (is (= (safe-<!! c) 3)))))
+
+(deftest test-safe-go
+  
+  (testing "normal"
+    (let [c (a/chan)]
+      (a/go (safe->! c 1))
+      (is (= (safe-<!! (safe-go (safe-<! c))) 1))))
+  
+  (testing "nil"
+    (is (nil? (safe-<!! (safe-go nil)))))
+  
+  (testing "exception"
+    (let [c (a/chan 10)]
+      (a/go
+        (safe->! c 1)
+        (safe->! c (throw (Exception.)))
+        (safe->! c 3))
+      
+      (is (= (safe-<!! (safe-go (safe-<! c))) 1))
+      (is (thrown? Exception (safe-<!! (safe-go (safe-<! c)))))
+      (is (= (safe-<!! (safe-go (safe-<! c))) 3)))))
+
+(deftest test-chan->lazy-seq
+  
+  (testing "normal"
+    (let [c (a/chan 10)]
+      (a/go (safe->! c 1)
+            (safe->! c 2)
+            (safe->! c 3)
+            (a/close! c))
+      (is (= (chan->lazy-seq c)
+             [1 2 3]))))
+  
+  (testing "with nil"
+    (let [c (a/chan 10)]
+      (a/go (safe->! c 1)
+            (safe->! c nil)
+            (safe->! c 3)
+            (a/close! c))
+      (is (= (chan->lazy-seq c)
+             [1 nil 3])))))

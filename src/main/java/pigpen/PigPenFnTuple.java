@@ -20,7 +20,7 @@ package pigpen;
 
 import java.io.IOException;
 
-import org.apache.pig.EvalFunc;
+import org.apache.pig.AccumulatorEvalFunc;
 import org.apache.pig.data.Tuple;
 
 /**
@@ -29,11 +29,22 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnTuple extends EvalFunc<Tuple> {
+public class PigPenFnTuple extends AccumulatorEvalFunc<Tuple> {
+
+    private Object state = null;
 
     @Override
-    public Tuple exec(final Tuple input) throws IOException {
+    public void accumulate(Tuple input) throws IOException {
+        state = ClojureForPigs.accumulate(state, input);
+    }
 
-        return (Tuple) ClojureForPigs.invoke(input);
+    @Override
+    public Tuple getValue() {
+        return (Tuple) ClojureForPigs.getValue(state);
+    }
+
+    @Override
+    public void cleanup() {
+        state = ClojureForPigs.cleanup(state);
     }
 }
