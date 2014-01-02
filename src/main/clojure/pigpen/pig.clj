@@ -371,12 +371,10 @@ serialization info."
   (thaw (.get value)))
 
 (defmethod thaw-values Tuple [^Tuple value]
-  (let [v (->> value (.getAll) (mapv thaw-values))]
-    (vec v)))
+  (->> value (.getAll) (mapv thaw-values)))
 
 (defmethod thaw-values DataBag [^DataBag value]
-  (let [v (->> value (.iterator) iterator-seq (map thaw-values))]
-    (list* v)))
+  (->> value (.iterator) iterator-seq (map thaw-values)))
 
 ;; **********
 
