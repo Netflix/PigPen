@@ -145,6 +145,6 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.1.0</version>
+  <version>0.1</version>
 </dependency>
 ```
