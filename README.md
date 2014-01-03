@@ -150,3 +150,5 @@ With Maven:
   <version>0.1.1</version>
 </dependency>
 ```
+
+_Note: Make sure you're using Clojure 1.5.1 or greater_
