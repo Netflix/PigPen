@@ -131,6 +131,8 @@ If you know both Clojure and Pig, you'll probably find all of the tutorials inte
 
 The full API documentation is located [here](http://netflix.github.io/PigPen/pigpen.core.html)
 
+Questions & Complaints: pigpen-support@googlegroups.com
+
 ## Artifacts
 
 `pigpen` is available from Maven:

@@ -8,6 +8,8 @@ Getting started with Clojure and PigPen is really easy. Just follow the steps be
   4. Run `lein repl` to start a REPL for your new project.
   5. Try some samples below...
 
+If you have any questions, or if something doesn't look quite right, contact us here: pigpen-support@googlegroups.com
+
 _Note: If you are not familiar at all with [Clojure](http://clojure.org/), I strongly recommend that you try a tutorial [here](http://tryclj.com/), [here](http://java.ociweb.com/mark/clojure/article.html), or [here](http://learn-clojure.com/) to understand some of the [basics](http://clojure.org/cheatsheet)._
 
 _Note: Make sure you're using Clojure 1.5.1 or greater_
