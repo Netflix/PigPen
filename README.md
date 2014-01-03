@@ -109,7 +109,7 @@ Getting started with Clojure and PigPen is really easy. Just follow the steps be
 
   1. Install [Leiningen](https://github.com/technomancy/leiningen#leiningen)
   2. Create a new leiningen project with `lein new pigpen-demo`
-  3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1.1"]` into your project's `project.clj` file.
+  3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1.2"]` into your project's `project.clj` file.
   4. Run `lein repl` to start a REPL for your new project.
   5. Try some samples in the [tutorial](Tutorial.md)
 
@@ -138,7 +138,7 @@ The full API documentation is located [here](http://netflix.github.io/PigPen/pig
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.1.1"]
+[com.netflix.pigpen/pigpen "0.1.2"]
 ```
 
 With Maven:
@@ -147,7 +147,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
 </dependency>
 ```
 

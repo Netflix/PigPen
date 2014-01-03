@@ -4,7 +4,7 @@ Getting started with Clojure and PigPen is really easy. Just follow the steps be
 
   1. Install [Leiningen](https://github.com/technomancy/leiningen#leiningen)
   2. Create a new leiningen project with `lein new pigpen-demo`. This will create a pigpen-demo folder for your project.
-  3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1.1"]` into your project's `project.clj` file.
+  3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1.2"]` into your project's `project.clj` file.
   4. Run `lein repl` to start a REPL for your new project.
   5. Try some samples below...
 

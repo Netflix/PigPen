@@ -1,25 +1,5 @@
 # PigPen for Clojure Users
 
-## Artifacts
-
-`pigpen` is available from Maven:
-
-With Leiningen:
-
-``` clj
-[com.netflix.pigpen/pigpen "0.1.1"]
-```
-
-With Maven:
-
-``` xml
-<dependency>
-  <groupId>com.netflix.pigpen</groupId>
-  <artifactId>pigpen</artifactId>
-  <version>0.1.1</version>
-</dependency>
-```
-
 _Note: Make sure you're using Clojure 1.5.1 or greater_
 
 ## Operators
