@@ -57,6 +57,8 @@ Mocking data is really easy. With [`pig/return`](http://netflix.github.io/PigPen
 A common pattern is to use [`pig/take`](http://netflix.github.io/PigPen/pigpen.core.html#var-take) to sample a few rows of the actual source data. Wrap the result with [`pig/return`](http://netflix.github.io/PigPen/pigpen.core.html#var-return) and you've got mock data.
 
 ``` clj
+(use 'clojure.test)
+
 (deftest test-word-count
   (let [data (pig/return [["The fox jumped over the dog."]
                           ["The cow jumped over the moon."]])]
@@ -107,7 +109,7 @@ Getting started with Clojure and PigPen is really easy. Just follow the steps be
 
   1. Install [Leiningen](https://github.com/technomancy/leiningen#leiningen)
   2. Create a new leiningen project with `lein new pigpen-demo`
-  3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1.0"]` into your project's `project.clj` file.
+  3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1"]` into your project's `project.clj` file.
   4. Run `lein repl` to start a REPL for your new project.
   5. Try some samples in the [tutorial](Tutorial.md)
 
