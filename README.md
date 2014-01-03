@@ -128,3 +128,23 @@ There are three distinct audiences for PigPen, so we wrote three different tutor
 If you know both Clojure and Pig, you'll probably find all of the tutorials interesting.
 
 The full API documentation is located [here](http://netflix.github.io/PigPen/pigpen.core.html)
+
+## Artifacts
+
+`pigpen` is available from Maven:
+
+With Leiningen:
+
+``` clj
+[com.netflix.pigpen/pigpen "0.1"]
+```
+
+With Maven:
+
+``` xml
+<dependency>
+  <groupId>com.netflix.pigpen</groupId>
+  <artifactId>pigpen</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```

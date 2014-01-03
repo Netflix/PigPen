@@ -7,7 +7,7 @@
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.1.0"]
+[com.netflix.pigpen/pigpen "0.1"]
 ```
 
 With Maven:
