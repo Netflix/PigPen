@@ -20,6 +20,8 @@ With Maven:
 </dependency>
 ```
 
+_Note: Make sure you're using Clojure 1.5.1 or greater_
+
 ## Operators
 
 Most of the usual operators you use on seqs ([`map`](http://netflix.github.io/PigPen/pigpen.core.html#var-map), [`mapcat`](http://netflix.github.io/PigPen/pigpen.core.html#var-mapcat), [`filter`](http://netflix.github.io/PigPen/pigpen.core.html#var-filter), [`reduce`](http://netflix.github.io/PigPen/pigpen.core.html#var-reduce), [`group-by`](http://netflix.github.io/PigPen/pigpen.core.html#var-group-by), [`into`](http://netflix.github.io/PigPen/pigpen.core.html#var-into), [`take`](http://netflix.github.io/PigPen/pigpen.core.html#var-take)) have PigPen equivalents. Check out the [full docs](http://netflix.github.io/PigPen/pigpen.core.html) for the whole list of what is supported.

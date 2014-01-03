@@ -115,6 +115,8 @@ Getting started with Clojure and PigPen is really easy. Just follow the steps be
 
 _Note: If you are not familiar at all with [Clojure](http://clojure.org/), I strongly recommend that you try a tutorial [here](http://tryclj.com/), [here](http://java.ociweb.com/mark/clojure/article.html), or [here](http://learn-clojure.com/) to understand some of the [basics](http://clojure.org/cheatsheet)._
 
+_Note: Make sure you're using Clojure 1.5.1 or greater_
+
 _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand edit. While it's entirely possible, the resulting scripts are not intended for human consumption._
 
 # Tutorials & Documentation
