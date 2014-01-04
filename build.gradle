@@ -69,3 +69,11 @@ shadow {
 		  include 'org.tukaani:xz:jar:'
     }
 }
+
+artifacts {
+    archives(shadowJar.outputJar) {
+        type 'jar'
+        classifier 'shadow'
+        builtBy shadowJar
+    }
+}
