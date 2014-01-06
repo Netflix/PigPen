@@ -54,6 +54,10 @@ dependencies {
     compile 'org.apache.hadoop:hadoop-core:1.1.2'
 }
 
+license {
+    mapping('clj', 'SEMICOLON_STYLE')
+}
+
 shadow {
     artifactSet {
 		  include 'org.clojure:clojure:jar:'
