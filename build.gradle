@@ -13,7 +13,7 @@ buildscript {
         maven { url 'http://clojars.org/repo' }
     }
     dependencies {
-        classpath 'clojuresque:clojuresque:1.5.8'
+        classpath 'clojuresque:clojuresque:1.7.0'
         classpath 'com.github.jengelman.gradle.plugins:shadow:0.8'
     }
     apply from: file('gradle/buildscript.gradle'), to: buildscript 
@@ -35,7 +35,20 @@ apply plugin: 'shadow'
 apply plugin: 'clojure'
 tasks.uberjar.enabled=true
 
-compileClojure.dependsOn compileJava
+compileClojure {
+    classpath = project.files(
+        project.compileJava.outputs,
+        classpath
+    )
+}
+
+clojuredoc {
+    includeNamespace "pigpen.core"
+    codox = [
+        srcDirUri: "https://github.com/Netflix/PigPen/blob/master/",
+        srcLinenumAnchorPrefix: "L"
+    ]
+}
 
 dependencies {
 	// these are transitive dependencies that don't get picked up normally
