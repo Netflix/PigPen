@@ -69,6 +69,8 @@ or reduce."
       (str "Expecting arity: " n " Found arities: "
            (pr-str (format-arity fixed varargs))))))
 
+;; TODO add an option to make the default include/exclude configurable
+
 (defn ^:private make-binding [k v]
   (cond
     (fn? v) nil
