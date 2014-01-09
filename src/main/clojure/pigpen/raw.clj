@@ -68,6 +68,14 @@ building blocks for more complex operations.")
   ^:pig {:type :register
          :jar jar})
 
+(defn option$
+  "A Pig option. Takes the name and a value. Not used locally."
+  [option value]
+  {:pre [(string? option)]}
+  ^:pig {:type :option
+         :option option
+         :value value})
+
 (defn expr$
   "Code to be passed to the UDF"
   [init func]

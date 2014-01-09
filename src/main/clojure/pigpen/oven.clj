@@ -117,6 +117,18 @@ See pigpen.core and pigpen.exec
 
 ;; **********
 
+(defn ^:private extract-*
+  "Extract something from commands and create new commands at
+   the head of the list."
+  [extract create commands]
+  {:pre [(ifn? extract) (ifn? create) (sequential? commands)]}
+  (concat
+    (->> commands
+      (mapcat extract)
+      (distinct)
+      (map create))
+    commands))
+
 (defn ^:private command->references
   "Gets any references required for a command"
   [command]
@@ -129,6 +141,23 @@ See pigpen.core and pigpen.exec
     (:projection-func filter) (command->references (:code command))
     :generate (->> command :projections (mapcat command->references))
     nil))
+
+(defn ^:private command->options
+  "Gets any options required for a command"
+  [command]
+  (-> command :opts :pig-options))
+
+(defn ^:private extract-references
+  "Extract all references from commands and create new reference commands at
+   the head of the list."
+  [commands]
+  (extract-* command->references raw/register$ commands))
+
+(defn ^:private extract-options
+  "Extract all options from commands and create new option commands at
+   the head of the list."
+  [commands]
+  (extract-* command->options (fn [[o v]] (raw/option$ o v)) commands))
 
 ;; **********
 
@@ -147,19 +176,6 @@ See pigpen.core and pigpen.exec
     (ancestors)
     (map tree->command)
     (reverse)))
-
-;; **********
-
-(defn ^:private extract-references
-  "Extract all references from commands and create new reference commands at
-   the head of the list."
-  [commands]
-  (concat 
-    (->> commands
-      (mapcat command->references)
-      (distinct)
-      (map raw/register$))
-    commands))
 
 ;; **********
 
@@ -369,7 +385,7 @@ See pigpen.core and pigpen.exec
 (defn ^:private clean
   "Some optimizations produce unused commands. This prunes them from the graph."
   [commands]
-  (let [register-commands (filter #(-> % :type (= :register)) commands)
+  (let [register-commands (filter #(-> % :type #{:register :option}) commands)
         referenced-commands (->> commands
                               (mapcat :ancestors) ;; Get all referenced commands
                               (concat register-commands) ;; Add register commands
@@ -391,6 +407,7 @@ See pigpen.core and pigpen.exec
     (:debug opts) (debug (:debug opts))
     true braise
     true merge-order-rank
+    true extract-options
     true extract-references
     (not= false (:dedupe opts)) dedupe
     (not= false (:prune opts)) trim-fat

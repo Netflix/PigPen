@@ -104,6 +104,11 @@ See pigpen.core and pigpen.exec
   {:pre [(string? jar) (not-empty jar)]}
   (str "REGISTER " jar ";\n\n"))
 
+(defmethod command->script :option
+  [{:keys [option value]}]
+  {:pre [(string? option) value]}
+  (str "SET " option " " value ";\n\n"))
+
 ;; ********** IO **********
 
 (defmethod command->script :storage
@@ -111,11 +116,6 @@ See pigpen.core and pigpen.exec
   {:pre [func args]}
   (let [pig-args (->> args (map #(str "'" % "'")) (join ", "))]
     (str "\n    USING " func "(" pig-args ")")))
-
-(defmethod command->script :load-opts
-  [{:keys [maxCombinedSplitSize]}]
-  (if maxCombinedSplitSize
-    (str "SET pig.maxCombinedSplitSize " maxCombinedSplitSize ";\n\n")))
 
 (defmethod command->script :load
   [{:keys [id location storage fields opts]}]
@@ -125,9 +125,8 @@ See pigpen.core and pigpen.exec
                      (map (if-let [cast (:cast opts)] #(str % ":" cast) identity))
                      (join ", "))
         pig-storage (command->script storage)
-        pig-schema (if-not (:implicit-schema opts) (str "\n    AS (" pig-fields ")"))
-        pig-opts (command->script opts)]
-    (str pig-opts pig-id " = LOAD '" location "'" pig-storage pig-schema ";\n\n")))
+        pig-schema (if-not (:implicit-schema opts) (str "\n    AS (" pig-fields ")"))]
+    (str pig-id " = LOAD '" location "'" pig-storage pig-schema ";\n\n")))
 
 (defmethod command->script :store
   [{:keys [id ancestors location storage opts]}]

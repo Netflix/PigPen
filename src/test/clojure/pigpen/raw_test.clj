@@ -44,6 +44,14 @@
   (is (thrown? AssertionError (register$ 'foo)))
   (is (thrown? AssertionError (register$ :foo))))
 
+(deftest test-option$
+
+  (test-diff
+    (option$ "foo" 123)
+    '{:type :option
+      :option "foo"
+      :value 123}))
+
 (deftest test-code$
   (test-diff
     (code$ String ["a" 'b '[c d]]

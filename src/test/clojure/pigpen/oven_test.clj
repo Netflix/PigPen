@@ -119,22 +119,42 @@
 (deftest test-extract-references
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-  (let [test-storage (pig-raw/storage$ ["ref"] "TestStorage" [])]
+    (let [test-storage (pig-raw/storage$ ["ref"] "TestStorage" [])]
+      (test-diff
+        (as-> nil %
+          (pig-raw/load$ "foo" '[foo] test-storage {})
+          (pig-raw/store$ % "bar" test-storage {})
+          (#'pigpen.oven/braise %)
+          (#'pigpen.oven/extract-references %)
+          (map #(select-keys % [:type :id :ancestors :references :jar]) %))
+        '[{:type :register
+           :jar "ref"}
+          {:ancestors []
+           :type :load
+           :id load1}
+          {:type :store
+           :id store2
+           :ancestors [load1]}]))))
+
+(deftest test-extract-options
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+
     (test-diff
       (as-> nil %
-        (pig-raw/load$ "foo" '[foo] test-storage {})
-        (pig-raw/store$ % "bar" test-storage {})
+        (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {:pig-options {"pig.maxCombinedSplitSize" 1000000}})
+        (pig-raw/store$ % "bar" pig-raw/default-storage {})
         (#'pigpen.oven/braise %)
-        (#'pigpen.oven/extract-references %)
-        (map #(select-keys % [:type :id :ancestors :references :jar]) %))
-      '[{:type :register
-         :jar "ref"}
-        {:ancestors []
-         :type :load
-         :id load1}
+        (#'pigpen.oven/extract-options %)
+        (map #(select-keys % [:type :id :ancestors :references :option :value]) %))
+      '[{:type :option
+         :option "pig.maxCombinedSplitSize"
+         :value 1000000}
+        {:type :load
+         :id load1
+         :ancestors []}
         {:type :store
          :id store2
-         :ancestors [load1]}]))))
+         :ancestors [load1]}])))
 
 (deftest test-next-match
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

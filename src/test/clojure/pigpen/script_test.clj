@@ -51,6 +51,12 @@
          (command->script '{:type :register
                             :jar "foo.jar"}))))
 
+(deftest test-option
+  (is (= "SET pig.maxCombinedSplitSize 1000000;\n\n"
+         (command->script '{:type :option
+                            :option "pig.maxCombinedSplitSize"
+                            :value 1000000}))))
+
 ;; ********** IO **********
 
 (deftest test-storage
