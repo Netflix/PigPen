@@ -492,9 +492,10 @@ returns the single value in the result channel."
   "Cleans up any accumulator state by closing the result channel. Returns nil
 as the initial state for the next accumulation."
   [[input-bags result]]
-  {:pre [(util/channel? result)]}
+  {:post [(nil? %)]}
   (try
-    (a/close! result)
+    (when result
+      (a/close! result))
     (catch Throwable z (throw (RuntimeException. z)))))
 
 ;; **********
