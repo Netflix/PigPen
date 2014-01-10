@@ -124,6 +124,8 @@ Useful for unit tests."
 
 ;; core.async wrappers
 
+(defrecord ChannelException [z])
+
 (defn channel? [ch]
   (instance? Channel ch))
 
@@ -142,7 +144,7 @@ into the channel.
        (a/>! ~chan val#)
        (a/>! ~chan ::nil))
      (catch Throwable z#
-       (a/>! ~chan (with-meta [z#] {::exception true})))))
+       (a/>! ~chan (->ChannelException z#)))))
 
 (defmacro safe->!!
   "A safe version of clojure.core.async/>!!
@@ -159,7 +161,7 @@ into the channel.
        (do (a/>!! ~chan val#))
        (do (a/>!! ~chan ::nil)))
      (catch Throwable z#
-       (a/>!! ~chan (with-meta [z#] {::exception true})))))
+       (a/>!! ~chan (ChannelException. z#)))))
 
 (defmacro safe-<!
   "A safe version of clojure.core.async/<!
@@ -174,7 +176,7 @@ Use with safe->!, safe->!!, and safe-go
   `(let [val# (a/<! ~chan)]
      (cond
        (= val# ::nil) nil
-       (-> val# meta ::exception) (throw (first val#))
+       (instance? ChannelException val#) (throw (:z val#))
        (nil? val#) ::complete
        :else val#)))
 
@@ -191,7 +193,7 @@ Use with safe->!, safe->!!, and safe-go
   `(let [val# (a/<!! ~chan)]
      (cond
        (= val# ::nil) nil
-       (-> val# meta ::exception) (throw (first val#))
+       (instance? ChannelException val#) (throw (:z val#))
        (nil? val#) ::complete
        :else val#)))
 
@@ -210,7 +212,7 @@ into the channel.
        (if-let [result (do ~@body)]
          result
          ::nil)
-     (catch Throwable z# (with-meta [z#] {::exception true})))))
+     (catch Throwable z# (ChannelException. z#)))))
 
 (defn chan->lazy-seq
   "Pulls values from a channel until the channel is closed.
