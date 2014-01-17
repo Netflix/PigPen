@@ -481,12 +481,14 @@ the bag values are pushed into their respective channels."
 returns the single value in the result channel."
   [[input-bags result]]
   {:pre [(util/channel? result)]}
-  (try
-    (doseq [b input-bags]
+  (doseq [b input-bags]
        (when b
          (a/close! b)))
     (util/safe-<!! result)
-    (catch Throwable z (throw (RuntimeException. z)))))
+    ;; TODO this is eating stack traces
+  #_(try
+    
+     (catch Throwable z (throw (RuntimeException. z)))))
 
 (defn udf-cleanup
   "Cleans up any accumulator state by closing the result channel. Returns nil
