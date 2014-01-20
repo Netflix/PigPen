@@ -34,14 +34,9 @@
           :id bind1
           :description "(fn [v] v)\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/map->bind
-                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
-                    (clojure.core/eval
-                      (quote
-                        (clojure.core/let [bar (quote 2)]
-                          (fn [v] v))))))
+          :func (pigpen.pig/map->bind (clojure.core/let [bar (quote 2)] (fn [v] v)))
           :args [value]
-          :requires [pigpen.pig pigpen.map-test]
+          :requires []
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
@@ -65,11 +60,9 @@
           :id bind1
           :description "(fn [v] [v])\n"
           :ancestors [{:fields [value]}]
-          :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
-                  (clojure.core/eval
-                    (quote (fn [v] [v]))))
+          :func (pigpen.pig/mapcat->bind (fn [v] [v]))
           :args [value]
-          :requires [pigpen.pig pigpen.map-test]
+          :requires []
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
@@ -83,12 +76,9 @@
         '{:type :bind
           :id bind2
           :description nil
-          :func (pigpen.pig/map->bind
-                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
-                    (clojure.core/eval
-                      (quote vector))))
+          :func (pigpen.pig/map->bind vector)
           :args [$0 value]
-          :requires [pigpen.pig pigpen.map-test]
+          :requires []
           :fields [value]
           :field-type-out :frozen
           :field-type-in :frozen
@@ -112,8 +102,7 @@
           :description nil
           :fields [value]
           :field-type :frozen
-          :opts {:type :order-opts
-                 :requires [pigpen.pig]}
+          :opts {:type :order-opts}
           :sort-keys [key :asc]
           :ancestors [{:type :generate
                        :id generate1
@@ -124,8 +113,10 @@
                        :opts {:type :generate-opts}
                        :projections [{:type :projection-flat
                                       :code {:type :code
-                                             :expr {:init (clojure.core/require (quote pigpen.pig))
-                                                    :func (pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind clojure.core/identity)])}
+                                             :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                                                    :func (pigpen.pig/exec-multi [(pigpen.pig/pre-process :frozen)
+                                                                                  (pigpen.pig/map->bind clojure.core/identity)
+                                                                                  (pigpen.pig/post-process :native)])}
                                              :return "DataBag"
                                              :args [value]}
                                       :alias key}
@@ -144,8 +135,7 @@
           :description ":a\n"
           :fields [value]
           :field-type :frozen
-          :opts {:type :order-opts
-                 :requires [pigpen.pig pigpen.map-test]}
+          :opts {:type :order-opts}
           :sort-keys [key :asc]
           :ancestors [{:type :generate
                        :id generate1
@@ -156,11 +146,10 @@
                        :opts {:type :generate-opts}
                        :projections [{:type :projection-flat
                                       :code {:type :code
-                                             :expr {:init (clojure.core/require (quote pigpen.pig) (quote pigpen.map-test))
-                                                    :func (pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind
-                                                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
-                                                                                                      (clojure.core/eval
-                                                                                                        (quote :a))))])}
+                                             :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                                                    :func (pigpen.pig/exec-multi [(pigpen.pig/pre-process :frozen)
+                                                                                  (pigpen.pig/map->bind :a)
+                                                                                  (pigpen.pig/post-process :native)])}
                                              :return "DataBag"
                                              :args [value]}
                                       :alias key}

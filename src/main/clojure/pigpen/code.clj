@@ -26,12 +26,6 @@ or reduce."
 
 (set! *warn-on-reflection* true)
 
-(defn object-projection [alias args f]
-  (raw/projection-flat$ alias
-    (raw/code$ DataBag args
-      (raw/expr$ `(require '[pigpen.pig])
-                 `(pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind ~f)])))))
-
 (defn arity
   "Returns the arities of the invoke methods for f.
    Also returns the minimum varargs arity"

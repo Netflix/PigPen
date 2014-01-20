@@ -96,9 +96,8 @@ combine them. Optionally takes a map of options.
 
 (defn debug-script-raw [script]
   (->> script
-    (script->observable)
-    (BlockingObservable/toIterable)
-    (mapv pig/thaw-anything)))
+    script->observable
+    local/observable->raw-data))
 
 (defn debug-script [script]
   (map 'value (debug-script-raw script)))
@@ -132,23 +131,21 @@ sequence. This command is very useful for unit tests.
 "
   [script]
   (->> script
-    (script->observable)
-    (BlockingObservable/toIterable)
-    (mapv (comp 'value pig/thaw-values))))
+    script->observable
+    local/observable->data))
 
 (defn dump-async
   "Executes a script asynchronously and prints the results to the console."
   [script]
   (-> script
-    (script->observable)
-    (.map (comp 'value pig/thaw-values))
+    script->observable
+    local/observable->data
     (.subscribe prn prn prn)))
 
 (defn dump-debug [location script]
   (->> script
     (script->observable {:debug location})
-    (BlockingObservable/toIterable)
-    (mapv (comp 'value pig/thaw-values))))
+    local/observable->data))
 
 (defn show
   "Generates a graph image for a PigPen query. This allows you to see what steps
@@ -186,9 +183,8 @@ This command uses a verbose description for each operation, including user code.
   (let [g (oven/bake script {})]
     (viz/view-graph g command->description)
     (->> g
-      (local/graph->observable)
-      (BlockingObservable/toIterable)
-      (mapv (comp 'value pig/thaw-values)))))
+      local/graph->observable
+      local/observable->data)))
 
 (def ^{:arglists '([script])} dump&show
   "Combines pig/show and pig/dump. This is useful so that the graph & resulting

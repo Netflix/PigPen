@@ -324,11 +324,13 @@ See pigpen.core and pigpen.exec
             [[] [] []] commands)))
 
 (defn ^:private bind->generate [commands]
+  ;; TODO make sure all inner field types are :frozen
   (let [first-relation   (-> commands first :ancestors first)
         first-args       (-> commands first :args)
         first-field-type (-> commands first :field-type-in)
         last-field       (-> commands last :fields first)
         last-field-type  (-> commands last :field-type-out)
+        implicit-schema  (some (comp :implicit-schema :opts) commands)
         
         requires (->> commands
                    (mapcat :requires)
@@ -338,8 +340,10 @@ See pigpen.core and pigpen.exec
                    (map (fn [r] `'[~r]))
                    (cons 'clojure.core/require))
         
-        func `(pigpen.pig/exec-multi ~first-field-type ~last-field-type
-                                     ~(mapv :func commands))
+        func `(pigpen.pig/exec-multi
+                [(pigpen.pig/pre-process ~first-field-type)
+                 ~@(mapv :func commands)
+                 (pigpen.pig/post-process ~last-field-type)])
         
         projection (raw/projection-flat$ last-field
                      (raw/code$ DataBag first-args
@@ -348,7 +352,8 @@ See pigpen.core and pigpen.exec
         description (->> commands (map :description) (clojure.string/join))]
   
     (raw/generate$* first-relation [projection] {:field-type last-field-type
-                                                 :description description})))
+                                                 :description description
+                                                 :implicit-schema implicit-schema})))
 
 (defn ^:private optimize-binds [commands]
   (if (= 1 (count commands))

@@ -504,13 +504,21 @@ as the initial state for the next accumulation."
 
 (defn map->bind [f]
   (fn [& args]
-    [(apply f args)]))
+    [[(apply f args)]])) ;; wrap twice - single value, single arg to next fn
+
+(defn mapcat->bind [f]
+  (fn [& args]
+    (map vector (apply f args)))) ;; wrap each value as arg to next fn
 
 (defn filter->bind [f]
   (fn [& args]
     (if-let [result (apply f args)]
-      args
+      [args] ;; wrap as arg to next fn
       [])))
+
+(defn key-selector->bind [f]
+  (fn [& args]
+    [[(apply f args) (first args)]])) ;; wrap twice - single value, two args to next fn
 
 (defn args->map
   "Returns a fn that converts a list of args into a map of named parameter
@@ -529,44 +537,33 @@ as the initial state for the next accumulation."
   (if value
     (pig-freeze value)))
 
-(defn ^:private pre-process [type value]
-  (case type
-    :frozen (hybrid->clojure value)
-    :native value))
+(defn pre-process [type]
+  (fn [& args]
+    [(for [value args]
+       (case type
+         :frozen (hybrid->clojure value)
+         :native value))]))
 
-(defn ^:private post-process [type value]
-  (case type
-    :frozen (pig-freeze value)
-    :frozen-with-nils (pig-freeze-with-nils value)
-    :native value))
-
-(defn exec
-  "Optionally thaws args, applies f, and optionally freezes the result."
-  [field-type-in field-type-out f]
-  (fn [args]
-    (->> args
-      (map (partial pre-process field-type-in))
-      (apply f)
-      (post-process field-type-out))))
+(defn post-process [type]
+  (fn [& args]
+    [(for [value args]
+       (case type
+         :frozen (pig-freeze value)
+         :frozen-with-nils (pig-freeze-with-nils value)
+         :native value))]))
 
 (defn exec-multi
   "Optionally thaws args, applies the composition of fs, flattening
    intermediate results, and optionally freezes the result. Each f must
    produce a seq-able output that is flattened as input to the next command."
-  [field-type-in field-type-out fs]
+  [fs]
   (fn [args]
-    (let [args' (mapv (partial pre-process field-type-in) args)]
-      (->>
-        (reduce (fn [vs f]
-                  (apply concat
-                         (for [v vs]
-                           (map vector (apply f v))))) [args'] fs)
-        ;; TODO why not just call tuple here?
-        (map (comp (partial apply tuple)
-                   vector
-                   (partial post-process field-type-out)
-                   first))
-        (apply bag)))))
+    (->>
+      (reduce (fn [vs f]
+                (mapcat #(apply f %) vs)) ;; apply f, flatten results
+              [args] fs)
+      (map (partial apply tuple)) ;; push the result into a tuple
+      (apply bag))))
 
 (defn debug [& args]
   "Creates a debug string for the tuple"

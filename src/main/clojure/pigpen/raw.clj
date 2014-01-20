@@ -30,8 +30,9 @@ building blocks for more complex operations.")
 (defn ^:private field?
   "Determines if a symbol is a valid pig identifier"
   [id]
-  (boolean (and (symbol? id)
-                (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))))
+  (boolean (or (and (symbol? id)
+                    (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))
+               (number? id))))
 
 ;; **********
 
