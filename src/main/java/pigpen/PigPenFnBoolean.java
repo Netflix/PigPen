@@ -18,10 +18,6 @@
 
 package pigpen;
 
-import java.io.IOException;
-
-import org.apache.pig.AccumulatorEvalFunc;
-import org.apache.pig.data.Tuple;
 
 /**
  * A user function that returns a Boolean.
@@ -29,22 +25,5 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnBoolean extends AccumulatorEvalFunc<Boolean> {
-
-    private Object state = null;
-
-    @Override
-    public void accumulate(Tuple input) throws IOException {
-        state = ClojureForPigs.accumulate(state, input);
-    }
-
-    @Override
-    public Boolean getValue() {
-        return (Boolean) ClojureForPigs.getValue(state);
-    }
-
-    @Override
-    public void cleanup() {
-        state = ClojureForPigs.cleanup(state);
-    }
+public class PigPenFnBoolean extends PigPenFn<Boolean> {
 }

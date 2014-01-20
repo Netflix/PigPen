@@ -18,11 +18,7 @@
 
 package pigpen;
 
-import java.io.IOException;
-
-import org.apache.pig.AccumulatorEvalFunc;
 import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.Tuple;
 
 /**
  * A user function that returns a DataByteArray.
@@ -30,22 +26,5 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnDataByteArray extends AccumulatorEvalFunc<DataByteArray> {
-
-    private Object state = null;
-
-    @Override
-    public void accumulate(Tuple input) throws IOException {
-        state = ClojureForPigs.accumulate(state, input);
-    }
-
-    @Override
-    public DataByteArray getValue() {
-        return (DataByteArray) ClojureForPigs.getValue(state);
-    }
-
-    @Override
-    public void cleanup() {
-        state = ClojureForPigs.cleanup(state);
-    }
+public class PigPenFnDataByteArray extends PigPenFn<DataByteArray> {
 }

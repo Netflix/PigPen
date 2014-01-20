@@ -20,6 +20,8 @@ package pigpen;
 
 import java.io.IOException;
 
+import org.apache.pig.Accumulator;
+import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 
 import clojure.lang.IFn;
@@ -30,10 +32,12 @@ import clojure.lang.Var;
 /**
  * Used to execute Clojure code from within a Pig UDF. Passes the tuple directly to pigpen.pig/eval-udf
  *
+ * @param <T> The return type
+ *
  * @author mbossenbroek
  *
  */
-public final class ClojureForPigs {
+public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
 
     private static final IFn EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
 
@@ -46,54 +50,27 @@ public final class ClojureForPigs {
         CLEANUP = RT.var("pigpen.pig", "udf-cleanup");
     }
 
-    /**
-     * Invokes the Clojure code specified by the tuple.
-     *
-     * @param tuple
-     *            The tuple passed to the Pig UDF
-     * @return The result
-     * @throws IOException
-     */
-    public static Object invoke(Tuple tuple) throws IOException {
-        return EVAL.invoke(tuple);
+    @SuppressWarnings("unchecked")
+    @Override
+    public T exec(Tuple input) throws IOException {
+        return (T) EVAL.invoke(input);
     }
 
-    /**
-     * Invokes the Clojure code specified by the tuple.
-     *
-     * @param state
-     *            The existing state
-     * @param value
-     *            The tuple passed to the Pig UDF
-     * @return The new state
-     * @throws IOException
-     */
-    public static Object accumulate(Object state, Tuple value) throws IOException {
-        return ACCUMULATE.invoke(state, value);
+    private Object state = null;
+
+    @Override
+    public void accumulate(Tuple input) throws IOException {
+        state = ACCUMULATE.invoke(state, input);
     }
 
-    /**
-     * Invokes the Clojure code specified by the tuple.
-     *
-     * @param state
-     *            The existing state
-     * @return The result
-     */
-    public static Object getValue(Object state) {
-        return GET_VALUE.invoke(state);
+    @SuppressWarnings("unchecked")
+    @Override
+    public T getValue() {
+        return (T) GET_VALUE.invoke(state);
     }
 
-    /**
-     * Invokes the Clojure code specified by the tuple.
-     *s
-     * @param state
-     *            The existing state
-     * @return The new state
-     */
-    public static Object cleanup(Object state) {
-        return CLEANUP.invoke(state);
-    }
-
-    private ClojureForPigs() {
+    @Override
+    public void cleanup() {
+        state = CLEANUP.invoke(state);
     }
 }
