@@ -340,7 +340,7 @@ See pigpen.core and pigpen.exec
                    (map (fn [r] `'[~r]))
                    (cons 'clojure.core/require))
         
-        func `(pigpen.pig/exec-multi
+        func `(pigpen.pig/exec
                 [(pigpen.pig/pre-process ~first-field-type)
                  ~@(mapv :func commands)
                  (pigpen.pig/post-process ~last-field-type)])

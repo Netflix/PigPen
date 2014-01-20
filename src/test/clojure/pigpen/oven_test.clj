@@ -497,13 +497,13 @@
                        :projections [{:type :projection-flat
                                       :code {:type :code
                                              :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]))
-                                                    :func (pigpen.pig/exec-multi [(pigpen.pig/pre-process :native)
-                                                                                  (pigpen.pig/map->bind clojure.edn/read-string)
-                                                                                  (pigpen.pig/map->bind identity)
-                                                                                  (pigpen.pig/filter->bind (constantly true))
-                                                                                  (pigpen.pig/mapcat->bind vector)
-                                                                                  (pigpen.pig/map->bind clojure.core/pr-str)
-                                                                                  (pigpen.pig/post-process :native)])}
+                                                    :func (pigpen.pig/exec [(pigpen.pig/pre-process :native)
+                                                                            (pigpen.pig/map->bind clojure.edn/read-string)
+                                                                            (pigpen.pig/map->bind identity)
+                                                                            (pigpen.pig/filter->bind (constantly true))
+                                                                            (pigpen.pig/mapcat->bind vector)
+                                                                            (pigpen.pig/map->bind clojure.core/pr-str)
+                                                                            (pigpen.pig/post-process :native)])}
                                              :return "DataBag"
                                              :args [value]}
                                       :alias value}]

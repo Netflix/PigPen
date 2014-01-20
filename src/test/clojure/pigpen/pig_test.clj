@@ -447,26 +447,55 @@
 
 ; *****************
 
-(deftest test-map->bind
-  (let [f (map->bind +)]
-    (is (= (f 1 2 3) [[6]]))
-    (is (= (f 2 4 6) [[12]]))))
-
-(deftest test-filter->bind
-  (let [f (filter->bind even?)]
-    (is (= (f 1) []))
-    (is (= (f 2) [[2]]))
-    (is (= (f 3) []))
-    (is (= (f 4) [[4]]))))
+;; TODO test serialization equivalency
+;; TODO test serialization round-trip
 
 (deftest test-args->map
   (let [f (args->map #(* 2 %))]
     (is (= (f "a" 2 "b" 3)
            {:a 4 :b 6}))))
 
-(deftest test-exec-multi
+(deftest test-debug
+  (is (= "class java.lang.Long\t2\tclass org.apache.pig.data.DefaultDataBag\t{(foo,bar)}"
+         (debug 2 (bag (tuple "foo" "bar"))))))
+
+; *****************
+
+(deftest test-map->bind
+  (let [f (map->bind +)]
+    (is (= (f [1 2 3]) [[6]]))
+    (is (= (f [2 4 6]) [[12]]))))
+
+(deftest test-mapcat->bind
+  (let [f (mapcat->bind identity)]
+    (is (= (f [[1 2 3]]) [[1] [2] [3]]))
+    (is (= (f [[2 4 6]]) [[2] [4] [6]]))))
+
+(deftest test-filter->bind
+  (let [f (filter->bind even?)]
+    (is (= (f [1]) []))
+    (is (= (f [2]) [[2]]))
+    (is (= (f [3]) []))
+    (is (= (f [4]) [[4]]))))
+
+(deftest test-key-selector->bind
+  (let [f (key-selector->bind first)]
+    (is (= (f [[1 2 3]]) [[1 [1 2 3]]]))
+    (is (= (f [[2 4 6]]) [[2 [2 4 6]]])))
+  (let [f (key-selector->bind :foo)]
+    (is (= (f [{:foo 1, :bar 2}]) [[1 {:foo 1, :bar 2}]]))))
+
+(deftest test-keyword-field-selector->bind
+  (let [f (keyword-field-selector->bind [:foo :bar :baz])]
+    (is (= (f [{:foo 1, :bar 2, :baz 3}]) [[1 2 3]]))))
+
+(deftest test-indexed-field-selector->bind
+  (let [f (indexed-field-selector->bind 2 clojure.string/join)]
+    (is (= (f [[1 2 3 4]]) [[1 2 "34"]]))))
+
+(deftest test-exec
   
-  (let [command (pigpen.pig/exec-multi
+  (let [command (pigpen.pig/exec
                   [(pigpen.pig/pre-process :native)
                    (pigpen.pig/map->bind vector)
                    (pigpen.pig/map->bind identity)
@@ -475,7 +504,7 @@
     (is (= (thaw-anything (command [1 2]))
            '(bag (tuple [1 2])))))
   
-  (let [command (pigpen.pig/exec-multi
+  (let [command (pigpen.pig/exec
                   [(pigpen.pig/pre-process :native)
                    (pigpen.pig/map->bind clojure.edn/read-string)
                    (pigpen.pig/map->bind identity)
@@ -487,7 +516,7 @@
     (is (= (thaw-anything (command ["1"]))
            '(bag (tuple "1")))))
   
-  (let [command (pigpen.pig/exec-multi
+  (let [command (pigpen.pig/exec
                  [(pigpen.pig/pre-process :native)
                   (pigpen.pig/map->bind clojure.edn/read-string)
                   (pigpen.pig/mapcat->bind (fn [x] [x (+ x 1) (+ x 2)]))
@@ -497,7 +526,7 @@
    (is (= (thaw-anything (command ["1"]))
           '(bag (tuple "1") (tuple "2") (tuple "3")))))
   
-  (let [command (pigpen.pig/exec-multi
+  (let [command (pigpen.pig/exec
                  [(pigpen.pig/pre-process :native)
                   (pigpen.pig/map->bind clojure.edn/read-string)
                   (pigpen.pig/mapcat->bind (fn [x] [x (* x 2)]))
@@ -508,7 +537,3 @@
   
     (is (= (thaw-anything (command ["1"]))
            '(bag (tuple "1") (tuple "2") (tuple "2") (tuple "4") (tuple "2") (tuple "4") (tuple "4") (tuple "8"))))))
-
-(deftest test-debug
-  (is (= "class java.lang.Long\t2\tclass org.apache.pig.data.DefaultDataBag\t{(foo,bar)}"
-         (debug 2 (bag (tuple "foo" "bar"))))))

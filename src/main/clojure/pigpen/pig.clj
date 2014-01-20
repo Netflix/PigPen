@@ -487,7 +487,6 @@ returns the single value in the result channel."
     (util/safe-<!! result)
     ;; TODO this is eating stack traces
   #_(try
-    
      (catch Throwable z (throw (RuntimeException. z)))))
 
 (defn udf-cleanup
@@ -502,42 +501,12 @@ as the initial state for the next accumulation."
 
 ;; **********
 
-(defn map->bind [f]
-  (fn [& args]
-    [[(apply f args)]])) ;; wrap twice - single value, single arg to next fn
+(defn ^:private pig-freeze [value]
+  (DataByteArray. (freeze value {:legacy-mode true})))
 
-(defn mapcat->bind [f]
-  (fn [& args]
-    (map vector (apply f args)))) ;; wrap each value as arg to next fn
-
-(defn filter->bind [f]
-  (fn [& args]
-    (if-let [result (apply f args)]
-      [args] ;; wrap as arg to next fn
-      [])))
-
-(defn key-selector->bind [f]
-  (fn [& args]
-    [[(apply f args) (first args)]])) ;; wrap twice - single value, two args to next fn
-
-(defn keyword-field-selector->bind
-  "Selects a set of fields from a map and projects them as Pig fields. Takes a
-single arg, which is a map with keyword keys."
-  [fields]
-  (fn [& args]
-    (let [values (first args)]
-      [(for [field fields]
-         ((keyword field) values))])))
-
-(defn indexed-field-selector->bind
-  "Selects the first n fields and projects them as Pig fields. Takes a
-single arg, which is sequential. Applies f to the remaining args."
-  [n f]
-  (fn [& args]
-    (let [values (first args)]
-      [(concat
-         (take n values)
-         [(f (drop n values))])])))
+(defn ^:private pig-freeze-with-nils [value]
+  (if value
+    (pig-freeze value)))
 
 (defn args->map
   "Returns a fn that converts a list of args into a map of named parameter
@@ -549,22 +518,71 @@ single arg, which is sequential. Applies f to the remaining args."
       (map (fn [[k v]] [(keyword k) (f v)]))
       (into {}))))
 
-(defn ^:private pig-freeze [value]
-  (DataByteArray. (freeze value {:legacy-mode true})))
+(defn debug [& args]
+  "Creates a debug string for the tuple"
+  (try
+    (->> args (mapcat (juxt type str)) (string/join "\t"))
+    (catch Exception z (str "Error getting value: " z))))
 
-(defn ^:private pig-freeze-with-nils [value]
-  (if value
-    (pig-freeze value)))
+;; **********
 
-(defn pre-process [type]
-  (fn [& args]
+(defn map->bind
+  "Wraps a map function so that it can be consumed by PigPen"
+  [f]
+  (fn [args]
+    [[(apply f args)]])) ;; wrap twice - single value, single arg to next fn
+
+(defn mapcat->bind
+  "Wraps a mapcat function so that it can be consumed by PigPen"
+  [f]
+  (fn [args]
+    (map vector (apply f args)))) ;; wrap each value as arg to next fn
+
+(defn filter->bind
+  "Wraps a filter function so that it can be consumed by PigPen"
+  [f]
+  (fn [args]
+    (if-let [result (apply f args)]
+      [args] ;; wrap as arg to next fn
+      [])))
+
+(defn key-selector->bind
+  "Returns a tuple of applying f to args and the first arg."
+  [f]
+  (fn [args]
+    [[(apply f args) (first args)]])) ;; wrap twice - single value, two args to next fn
+
+(defn keyword-field-selector->bind
+  "Selects a set of fields from a map and projects them as Pig fields. Takes a
+single arg, which is a map with keyword keys."
+  [fields]
+  (fn [args]
+    (let [values (first args)]
+      [(map values fields)])))
+
+(defn indexed-field-selector->bind
+  "Selects the first n fields and projects them as Pig fields. Takes a
+single arg, which is sequential. Applies f to the remaining args."
+  [n f]
+  (fn [args]
+    (let [values (first args)]
+      [(concat
+         (take n values)
+         [(f (drop n values))])])))
+
+(defn pre-process
+  "Optionally deserializes incoming data"
+  [type]
+  (fn [args]
     [(for [value args]
        (case type
          :frozen (hybrid->clojure value)
          :native value))]))
 
-(defn post-process [type]
-  (fn [& args]
+(defn post-process
+  "Serializes outgoing data"
+  [type]
+  (fn [args]
     (if (= type :sort)
       (let [[key value] args]
         [[key (pig-freeze value)]])
@@ -574,21 +592,13 @@ single arg, which is sequential. Applies f to the remaining args."
            :frozen-with-nils (pig-freeze-with-nils value)
            :native value))])))
 
-(defn exec-multi
-  "Optionally thaws args, applies the composition of fs, flattening
-   intermediate results, and optionally freezes the result. Each f must
-   produce a seq-able output that is flattened as input to the next command."
+(defn exec
+  "Applies the composition of fs, flattening intermediate results. Each f must
+produce a seq-able output that is flattened as input to the next command. The
+result is wrapped in a tuple and bag."
   [fs]
   (fn [args]
     (->>
-      (reduce (fn [vs f]
-                (mapcat #(apply f %) vs)) ;; apply f, flatten results
-              [args] fs)
-      (map (partial apply tuple)) ;; push the result into a tuple
+      (reduce (fn [vs f] (mapcat f vs)) [args] fs)
+      (map (partial apply tuple))
       (apply bag))))
-
-(defn debug [& args]
-  "Creates a debug string for the tuple"
-  (try
-    (->> args (mapcat (juxt type str)) (string/join "\t"))
-    (catch Exception z (str "Error getting value: " z))))

@@ -39,7 +39,7 @@
   
   (let [code (raw/code$ DataBag '[x y]
                (raw/expr$ '(require (quote [pigpen.pig]))
-                          '(pigpen.pig/exec-multi 
+                          '(pigpen.pig/exec
                              [(pigpen.pig/pre-process :frozen)
                               (pigpen.pig/map->bind (fn [x y] (+ x y)))
                               (pigpen.pig/post-process :frozen)])))
