@@ -546,11 +546,14 @@ as the initial state for the next accumulation."
 
 (defn post-process [type]
   (fn [& args]
-    [(for [value args]
-       (case type
-         :frozen (pig-freeze value)
-         :frozen-with-nils (pig-freeze-with-nils value)
-         :native value))]))
+    (if (= type :sort)
+      (let [[key value] args]
+        [[key (pig-freeze value)]])
+      [(for [value args]
+         (case type
+           :frozen (pig-freeze value)
+           :frozen-with-nils (pig-freeze-with-nils value)
+           :native value))])))
 
 (defn exec-multi
   "Optionally thaws args, applies the composition of fs, flattening

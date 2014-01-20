@@ -112,18 +112,15 @@ and the value. If you require sequential ids, use option {:dense true}.
 
 (defn sort*
   "See pigpen.core/sort, pigpen.core/sort-by"
-  [key-fn comp opts relation]
+  [key-selector comp opts relation]
   {:pre [(map? relation) (#{:asc :desc} comp)]}
-  (let [projections [(raw/projection-flat$ 'key
-                       (raw/code$ DataBag ['value]
-                         (raw/expr$ `(require '[pigpen.pig])
-                                    `(pigpen.pig/exec-multi [(pigpen.pig/pre-process :frozen)
-                                                             (pigpen.pig/map->bind ~key-fn)
-                                                             (pigpen.pig/post-process :native)]))))
-                     (raw/projection-field$ 'value)]]
-    (-> relation
-      (raw/generate$ projections {})
-      (raw/order$ ['key comp] opts))))
+  (-> relation
+    (raw/bind$ `(pigpen.pig/key-selector->bind ~key-selector)
+               {:field-type-out :sort
+                :implicit-schema true})
+    (raw/generate$ [(raw/projection-field$ 0 'key)
+                    (raw/projection-field$ 1 'value)] {})
+    (raw/order$ ['key comp] opts)))
 
 (defmacro sort
   "Sorts the data with an optional comparator. Takes an optional map of options.

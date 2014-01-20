@@ -98,61 +98,62 @@
       (test-diff
         (pig/sort r)
         '{:type :order
-          :id order2
+          :id order3
           :description nil
           :fields [value]
           :field-type :frozen
           :opts {:type :order-opts}
           :sort-keys [key :asc]
           :ancestors [{:type :generate
-                       :id generate1
+                       :id generate2
                        :description nil
-                       :ancestors [{:fields [value]}]
                        :fields [key value]
                        :field-type :frozen
                        :opts {:type :generate-opts}
-                       :projections [{:type :projection-flat
-                                      :code {:type :code
-                                             :expr {:init (clojure.core/require (quote [pigpen.pig]))
-                                                    :func (pigpen.pig/exec-multi [(pigpen.pig/pre-process :frozen)
-                                                                                  (pigpen.pig/map->bind clojure.core/identity)
-                                                                                  (pigpen.pig/post-process :native)])}
-                                             :return "DataBag"
-                                             :args [value]}
-                                      :alias key}
-                                     {:type :projection-field
-                                      :field value
-                                      :alias value}]}]}))))
+                       :projections [{:type :projection-field, :field 0, :alias key}
+                                     {:type :projection-field, :field 1, :alias value}]
+                       :ancestors [{:type :bind
+                                    :id bind1
+                                    :description nil
+                                    :func (pigpen.pig/key-selector->bind clojure.core/identity)
+                                    :args [value]
+                                    :requires []
+                                    :fields [value]
+                                    :field-type-in :frozen
+                                    :field-type-out :sort
+                                    :ancestors [{:fields [value]}]
+                                    :opts {:type :bind-opts
+                                           :implicit-schema true}}]}]}))))
 
 (deftest test-sort-by
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [^:local r {:fields '[value]}]
       (test-diff
         (pig/sort-by :a r)
-        '{
-          :type :order
-          :id order2
+        '{:type :order
+          :id order3
           :description ":a\n"
           :fields [value]
           :field-type :frozen
           :opts {:type :order-opts}
           :sort-keys [key :asc]
           :ancestors [{:type :generate
-                       :id generate1
+                       :id generate2
                        :description nil
-                       :ancestors [{:fields [value]}]
                        :fields [key value]
                        :field-type :frozen
                        :opts {:type :generate-opts}
-                       :projections [{:type :projection-flat
-                                      :code {:type :code
-                                             :expr {:init (clojure.core/require (quote [pigpen.pig]))
-                                                    :func (pigpen.pig/exec-multi [(pigpen.pig/pre-process :frozen)
-                                                                                  (pigpen.pig/map->bind :a)
-                                                                                  (pigpen.pig/post-process :native)])}
-                                             :return "DataBag"
-                                             :args [value]}
-                                      :alias key}
-                                     {:type :projection-field
-                                      :field value
-                                      :alias value}]}]}))))
+                       :projections [{:type :projection-field, :field 0, :alias key}
+                                     {:type :projection-field, :field 1, :alias value}]
+                       :ancestors [{:type :bind
+                                    :id bind1
+                                    :description nil
+                                    :func (pigpen.pig/key-selector->bind :a)
+                                    :args [value]
+                                    :requires []
+                                    :fields [value]
+                                    :field-type-in :frozen
+                                    :field-type-out :sort
+                                    :ancestors [{:fields [value]}]
+                                    :opts {:type :bind-opts
+                                           :implicit-schema true}}]}]}))))

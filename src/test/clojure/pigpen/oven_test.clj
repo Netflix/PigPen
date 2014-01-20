@@ -291,10 +291,11 @@
           (#'pigpen.oven/merge-order-rank)
           (map #(select-keys % [:type :id :ancestors :sort-keys])))
         '[{:type :return,   :id return1,   :ancestors []}
-          {:type :generate, :id generate2, :ancestors [return1]}
-          {:type :order,    :id order3,    :ancestors [generate2], :sort-keys [key :asc]}
-          {:type :rank,     :id rank4,     :ancestors [generate2], :sort-keys [key :asc]}
-          {:type :bind,     :id bind5,     :ancestors [rank4]}]))))
+          {:type :bind,     :id bind2,     :ancestors [return1]}
+          {:type :generate, :id generate3, :ancestors [bind2]}
+          {:type :order,    :id order4,    :ancestors [generate3], :sort-keys [key :asc]}
+          {:type :rank,     :id rank5,     :ancestors [generate3], :sort-keys [key :asc]}
+          {:type :bind,     :id bind6,     :ancestors [rank5]}]))))
 
 
 ;; Column pruning really doesn't matter anymore. Considering removing it.
@@ -594,9 +595,10 @@
           (#'pigpen.oven/clean)
           (map #(select-keys % [:type :id :ancestors :sort-keys])))
         '[{:type :return,   :id return1,   :ancestors []}
-          {:type :generate, :id generate2, :ancestors [return1]}
-          {:type :rank,     :id rank4,     :ancestors [generate2], :sort-keys [key :asc]}
-          {:type :bind,     :id bind5,     :ancestors [rank4]}]))))
+          {:type :bind,     :id bind2,     :ancestors [return1]}
+          {:type :generate, :id generate3, :ancestors [bind2]}
+          {:type :rank,     :id rank5,     :ancestors [generate3], :sort-keys [key :asc]}
+          {:type :bind,     :id bind6,     :ancestors [rank5]}]))))
 
 (deftest test-bake
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
