@@ -520,6 +520,25 @@ as the initial state for the next accumulation."
   (fn [& args]
     [[(apply f args) (first args)]])) ;; wrap twice - single value, two args to next fn
 
+(defn keyword-field-selector->bind
+  "Selects a set of fields from a map and projects them as Pig fields. Takes a
+single arg, which is a map with keyword keys."
+  [fields]
+  (fn [& args]
+    (let [values (first args)]
+      [(for [field fields]
+         ((keyword field) values))])))
+
+(defn indexed-field-selector->bind
+  "Selects the first n fields and projects them as Pig fields. Takes a
+single arg, which is sequential. Applies f to the remaining args."
+  [n f]
+  (fn [& args]
+    (let [values (first args)]
+      [(concat
+         (take n values)
+         [(f (drop n values))])])))
+
 (defn args->map
   "Returns a fn that converts a list of args into a map of named parameter
    values. Applies f to all the values."
