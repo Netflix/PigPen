@@ -418,6 +418,7 @@ args."
   [args]
   (->> args
     (map (fn [a] (if (instance? DataBag a)
+                   ;; TODO tune this
                    (let [c (a/chan java.lang.Long/MAX_VALUE)]
                      [(util/safe-go (util/chan->lazy-seq c)) c])
                    [a nil])))
