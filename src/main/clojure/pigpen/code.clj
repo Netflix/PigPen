@@ -78,11 +78,20 @@ or reduce."
       :else [k `(quote ~v)])))
 
 (defn trap-locals* [keys values f]
-  (let [args (vec (mapcat make-binding keys values))]
-    (if (empty? args)
-      f
-      `(let ~args ~f))))
+ (let [args (vec (mapcat make-binding keys values))]
+   (if (empty? args)
+     f
+     `(let ~args ~f))))
 
 (defmacro trap-locals [f]
+ (let [keys# (vec (keys &env))]
+   `(trap-locals* '~keys# ~keys# '~f)))
+
+(defn trap* [keys values n f]
+  (let [args (vec (mapcat make-binding keys values))]
+    `(binding [*ns* (find-ns ~n)]
+       (eval '(let ~args ~f)))))
+
+(defmacro trap [n f]
   (let [keys# (vec (keys &env))]
-    `(trap-locals* '~keys# ~keys# '~f)))
+    `(trap* '~keys# ~keys# '~n '~f)))

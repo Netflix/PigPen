@@ -201,7 +201,7 @@
            :projections [{:type :projection-func
                           :code {:type :code
                                  :return "DataByteArray"
-                                 :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                                 :expr {:init (clojure.core/require (quote pigpen.pig))
                                         :func (pigpen.pig/exec :frozen :frozen-with-nils identity)}
                                  :args [value]}
                           :alias key}
@@ -218,7 +218,7 @@
            :projections [{:type :projection-func
                           :code {:type :code
                                  :return "DataByteArray"
-                                 :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                                 :expr {:init (clojure.core/require (quote pigpen.pig))
                                         :func (pigpen.pig/exec :frozen :frozen-with-nils identity)}
                                  :args [value]}
                           :alias key}
@@ -477,13 +477,17 @@
                        :ancestors [load1]
                        :projections [{:type :projection-flat
                                       :code {:type :code
-                                             :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]))
-                                                    :func (pigpen.pig/exec-multi :native :native 
-                                                                                 [(pigpen.pig/map->bind clojure.edn/read-string)
-                                                                                  (pigpen.pig/map->bind identity)
-                                                                                  (pigpen.pig/filter->bind (constantly true))
-                                                                                  vector
-                                                                                  (pigpen.pig/map->bind clojure.core/pr-str)])}
+                                             :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]) (quote [pigpen.oven-test]))
+                                                    :func (pigpen.pig/exec-multi :native :native [(pigpen.pig/map->bind clojure.edn/read-string)
+                                                                                                  (pigpen.pig/map->bind
+                                                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                                      (clojure.core/eval (quote (clojure.core/let [] identity)))))
+                                                                                                  (pigpen.pig/filter->bind
+                                                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                                      (clojure.core/eval (quote (clojure.core/let [] (constantly true))))))
+                                                                                                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                                    (clojure.core/eval (quote (clojure.core/let [] vector))))
+                                                                                                  (pigpen.pig/map->bind clojure.core/pr-str)])}
                                              :return "DataBag"
                                              :args [value]}
                                       :alias value}]

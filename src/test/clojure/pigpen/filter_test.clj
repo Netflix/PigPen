@@ -32,9 +32,15 @@
           :id bind0
           :description "(fn [{:keys [foo bar]}] (= foo bar))\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/filter->bind (fn [{:keys [foo bar]}] (= foo bar)))
+          :func (pigpen.pig/filter->bind
+                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.filter-test))]
+                    (clojure.core/eval
+                      (quote
+                        (clojure.core/let []
+                          (fn [{:keys [foo bar]}]
+                            (= foo bar)))))))
           :args [value]
-          :requires []
+          :requires [pigpen.pig pigpen.filter-test]
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
@@ -53,9 +59,16 @@
           :id bind0
           :description "(clojure.core/complement (fn [{:keys [foo bar]}] (= foo bar)))\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/filter->bind (clojure.core/complement (fn [{:keys [foo bar]}] (= foo bar))))
+          :func (pigpen.pig/filter->bind
+                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.filter-test))]
+                    (clojure.core/eval
+                      (quote
+                        (clojure.core/let []
+                          (clojure.core/complement
+                            (fn [{:keys [foo bar]}]
+                              (= foo bar))))))))
           :args [value]
-          :requires []
+          :requires [pigpen.pig pigpen.filter-test]
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
