@@ -25,7 +25,8 @@ Nothing in here will be used directly with normal PigPen usage.
 See pigpen.core and pigpen.exec
 "
   (:refer-clojure :exclude [ancestors])
-  (:require [pigpen.raw :as raw]
+  (:require [clojure.set]
+            [pigpen.raw :as raw]
             [pigpen.code :as code])
   (:import [org.apache.pig.data DataBag]))
 
