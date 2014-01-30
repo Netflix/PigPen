@@ -481,12 +481,12 @@
                                                     :func (pigpen.pig/exec-multi :native :native [(pigpen.pig/map->bind clojure.edn/read-string)
                                                                                                   (pigpen.pig/map->bind
                                                                                                     (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                                      (clojure.core/eval (quote (clojure.core/let [] identity)))))
+                                                                                                      (clojure.core/eval (quote identity))))
                                                                                                   (pigpen.pig/filter->bind
                                                                                                     (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                                      (clojure.core/eval (quote (clojure.core/let [] (constantly true))))))
+                                                                                                      (clojure.core/eval (quote (constantly true)))))
                                                                                                   (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                                    (clojure.core/eval (quote (clojure.core/let [] vector))))
+                                                                                                    (clojure.core/eval (quote vector)))
                                                                                                   (pigpen.pig/map->bind clojure.core/pr-str)])}
                                              :return "DataBag"
                                              :args [value]}

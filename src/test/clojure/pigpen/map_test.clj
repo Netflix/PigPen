@@ -67,9 +67,7 @@
           :ancestors [{:fields [value]}]
           :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
                   (clojure.core/eval
-                    (quote
-                      (clojure.core/let []
-                        (fn [v] [v])))))
+                    (quote (fn [v] [v]))))
           :args [value]
           :requires [pigpen.pig pigpen.map-test]
           :fields [value]
@@ -88,9 +86,7 @@
           :func (pigpen.pig/map->bind
                   (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
                     (clojure.core/eval
-                      (quote
-                        (clojure.core/let []
-                          vector)))))
+                      (quote vector))))
           :args [$0 value]
           :requires [pigpen.pig pigpen.map-test]
           :fields [value]
@@ -164,9 +160,7 @@
                                                     :func (pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind
                                                                                                     (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
                                                                                                       (clojure.core/eval
-                                                                                                        (quote
-                                                                                                          (clojure.core/let []
-                                                                                                            :a)))))])}
+                                                                                                        (quote :a))))])}
                                              :return "DataBag"
                                              :args [value]}
                                       :alias key}

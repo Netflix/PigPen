@@ -59,7 +59,7 @@ pig/cogroup, and pig/union for combining sets of data.
   [f relation]
   `(map* (code/trap '~(ns-name *ns*) ~f)
          {:description ~(util/pp-str f)
-          :requires ['pigpen.pig '~(ns-name *ns*)]}
+          :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]}
          ~relation))
 
 (defn mapcat*
@@ -82,7 +82,7 @@ f to each item in relation. Thus f should return a collection.
   [f relation]
   `(mapcat* (code/trap '~(ns-name *ns*) ~f)
             {:description ~(util/pp-str f)
-             :requires ['pigpen.pig '~(ns-name *ns*)]}
+             :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]}
             ~relation))
 
 (defn map-indexed*
@@ -116,7 +116,7 @@ and the value. If you require sequential ids, use option {:dense true}.
   ([f opts relation]
     `(map-indexed* (code/trap '~(ns-name *ns*) ~f)
                    (assoc ~opts :description ~(util/pp-str f))
-                   {:requires ['pigpen.pig '~(ns-name *ns*)]}
+                   {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]}
                    ~relation)))
 
 (defn sort*
@@ -125,7 +125,7 @@ and the value. If you require sequential ids, use option {:dense true}.
   {:pre [(map? relation) (#{:asc :desc} comp)]}
   (let [projections [(raw/projection-flat$ 'key
                        (raw/code$ DataBag ['value]
-                         (raw/expr$ `(require ~@(clojure.core/map (fn [r] `(quote ~r)) (:requires opts)))
+                         (raw/expr$ `(require ~@(clojure.core/map (fn [r] `(quote ~r)) (filter identity (:requires opts))))
                                     `(pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind ~key-fn)]))))
                      (raw/projection-field$ 'value)]]
     (-> relation
@@ -188,5 +188,5 @@ optional map of options.
     `(sort* (code/trap '~(ns-name *ns*) ~key-fn)
             '~comp
             (assoc ~opts :description ~(util/pp-str key-fn)
-                         :requires ['pigpen.pig '~(ns-name *ns*)])
+                         :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))])
             ~relation)))

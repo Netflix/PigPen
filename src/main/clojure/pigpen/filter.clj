@@ -49,7 +49,7 @@ returns true.
   [pred relation]
   `(filter* (code/trap '~(ns-name *ns*) ~pred)
             {:description ~(util/pp-str pred)
-             :requires ['pigpen.pig '~(ns-name *ns*)]} ~relation))
+             :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]} ~relation))
 
 (defmacro remove
   "Returns a relation without items for which (pred item) returns true.

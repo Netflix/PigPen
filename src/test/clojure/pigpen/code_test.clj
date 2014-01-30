@@ -59,10 +59,22 @@
     (is (thrown? clojure.lang.Compiler$CompilerException (pig/assert-arity 'f 0)))
     (is (thrown? java.lang.AssertionError (pig/assert-arity nil 2)))))
 
-(deftest test-trap-locals
+(defn test-fn [& args]
+  (apply + args))  
+
+(deftest test-trap
   (let [^:local local 2
         foo (fn foo [x]
               (let [y (+ x 1)]
-                (pig/trap-locals (fn [z] (+ x y z)))))]
-    (is (= (foo 1)
-           '(clojure.core/let [y '2 x '1] (fn [z] (+ x y z)))))))
+                (pig/trap 'pigpen.code-test (fn [z] (test-fn x y z)))))
+        expr (foo 1)
+        expr-fn (eval expr)]
+    (is (= expr
+           '(clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.code-test))]
+              (clojure.core/eval
+                (quote
+                  (clojure.core/let [y (quote 2)
+                                     x (quote 1)]
+                    (fn [z] (test-fn x y z))))))))
+    (is (= (expr-fn 3)
+           6))))

@@ -314,6 +314,7 @@ See pigpen.core and pigpen.exec
         
         requires (->> commands
                    (mapcat :requires)
+                   (filter identity)
                    (cons 'pigpen.pig)
                    (distinct)
                    (map (fn [r] `'[~r]))

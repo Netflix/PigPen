@@ -36,9 +36,8 @@
                   (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.filter-test))]
                     (clojure.core/eval
                       (quote
-                        (clojure.core/let []
-                          (fn [{:keys [foo bar]}]
-                            (= foo bar)))))))
+                        (fn [{:keys [foo bar]}]
+                            (= foo bar))))))
           :args [value]
           :requires [pigpen.pig pigpen.filter-test]
           :fields [value]
@@ -63,10 +62,9 @@
                   (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.filter-test))]
                     (clojure.core/eval
                       (quote
-                        (clojure.core/let []
-                          (clojure.core/complement
+                        (clojure.core/complement
                             (fn [{:keys [foo bar]}]
-                              (= foo bar))))))))
+                              (= foo bar)))))))
           :args [value]
           :requires [pigpen.pig pigpen.filter-test]
           :fields [value]

@@ -60,7 +60,7 @@
   [join-nils? [relation key-selector] requires]
   (let [value (first (:fields relation))
         code (raw/code$ DataByteArray [value]
-                        (raw/expr$ `(require ~@(clojure.core/map (fn [r] `(quote ~r)) requires))
+                        (raw/expr$ `(require ~@(clojure.core/map (fn [r] `(quote ~r)) (filter identity requires)))
                                    `(pigpen.pig/exec :frozen ~(if join-nils? :frozen :frozen-with-nils) ~key-selector)))
         projections [(raw/projection-func$ 'key code)
                      (raw/projection-field$ 'value)]]
@@ -123,7 +123,7 @@ Optionally takes a map of options.
     `(group* [[~relation (code/trap '~(ns-name *ns*) ~key-selector) :optional]]
              '(fn [~'k ~'v] (clojure.lang.MapEntry. ~'k ~'v))
              (assoc ~opts :description ~(util/pp-str key-selector))
-             {:requires ['pigpen.pig '~(ns-name *ns*)]})))
+             {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]})))
 
 (defmacro into
   "Returns a new relation with all values from relation conjoined onto to.
@@ -154,12 +154,12 @@ for further processing.
     `(group-all* ~relation
                  (code/trap '~(ns-name *ns*) (partial clojure.core/reduce ~f))
                  {:description ~(util/pp-str f)}
-                 {:requires ['pigpen.pig '~(ns-name *ns*)]}))
+                 {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]}))
   ([f val relation]
     `(group-all* ~relation
                  (code/trap '~(ns-name *ns*) (partial clojure.core/reduce ~f ~val))
                  {:description ~(util/pp-str f)}
-                 {:requires ['pigpen.pig '~(ns-name *ns*)]})))
+                 {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]})))
 
 ;; TODO trap locals in key selectors
 
@@ -200,7 +200,7 @@ collections. The last argument is an optional map of options.
         selects# (mapv (fn [[r _ k t]] `[~r '~k ~(keyword t)]) selects#)]
     `(group* ~selects# (code/trap '~(ns-name *ns*) ~f#)
              (assoc ~opts# :description ~(util/pp-str f#))
-             {:requires ['pigpen.pig '~(ns-name *ns*)]})))
+             {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]})))
 
 ;; TODO group strategies
 
@@ -243,7 +243,7 @@ options.
     `(join* ~selects#
             (code/trap '~(ns-name *ns*) ~f#)
             (assoc ~opts# :description ~(util/pp-str f#))
-            {:requires ['pigpen.pig '~(ns-name *ns*)]})))
+            {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]})))
 
 ;; TODO join strategies
 ;; TODO semi-join

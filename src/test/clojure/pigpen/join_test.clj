@@ -151,9 +151,7 @@
                                                                :func (pigpen.pig/exec :frozen :frozen-with-nils
                                                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
                                                                                         (clojure.core/eval
-                                                                                          (quote
-                                                                                            (clojure.core/let []
-                                                                                              (fn [v] (:foo v)))))))}
+                                                                                          (quote (fn [v] (:foo v))))))}
                                                         :return "DataByteArray"
                                                         :args [value]}
                                                  :alias key}
@@ -196,9 +194,7 @@
         :func (pigpen.pig/map->bind
                 (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
                   (clojure.core/eval
-                    (quote
-                      (clojure.core/let []
-                        (clojure.core/partial clojure.core/reduce conj []))))))
+                    (quote (clojure.core/partial clojure.core/reduce conj [])))))
         :args [[[r0] value]]
         :requires [pigpen.pig pigpen.join-test]
         :fields [value]
@@ -228,9 +224,7 @@
         :func (pigpen.pig/map->bind
                 (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
                   (clojure.core/eval
-                    (quote
-                      (clojure.core/let []
-                        (fn [_ x y] (* x y)))))))
+                    (quote (fn [_ x y] (* x y))))))
         :args [group [[generate1] value] [[generate2] value]]
         :requires [pigpen.pig pigpen.join-test]
         :fields [value]
@@ -293,9 +287,7 @@
         :func (pigpen.pig/map->bind
                 (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
                   (clojure.core/eval
-                    (quote
-                      (clojure.core/let []
-                        (fn [x y] (merge x y)))))))
+                    (quote (fn [x y] (merge x y))))))
         :args [[[generate1 value]] [[generate2 value]]]
         :requires [pigpen.pig pigpen.join-test]
         :fields [value]
