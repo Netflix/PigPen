@@ -47,7 +47,9 @@ returns true.
   See also: pigpen.core/remove, pigpen.core/take, pigpen.core/sample, pigpen.core/distinct
 "
   [pred relation]
-  `(filter* (code/trap-locals ~pred) {:description ~(util/pp-str pred)} ~relation))
+  `(filter* (code/trap '~(ns-name *ns*) ~pred)
+            {:description ~(util/pp-str pred)
+             :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]} ~relation))
 
 (defmacro remove
   "Returns a relation without items for which (pred item) returns true.

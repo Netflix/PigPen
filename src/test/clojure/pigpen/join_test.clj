@@ -35,14 +35,14 @@
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
 
     (test-diff
-      (#'pigpen.join/select->generate true '[{:fields [value]} (fn [x] x)])
+      (#'pigpen.join/select->generate true '[{:fields [value]} (fn [x] x)] '[pigpen.pig])
       '{:type :generate
         :id generate0
         :description nil
         :projections [{:type :projection-func
                        :code {:type :code
                               :return "DataByteArray"
-                              :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                              :expr {:init (clojure.core/require (quote pigpen.pig))
                                      :func (pigpen.pig/exec :frozen :frozen (fn [x] x))}
                               :args [value]}
                        :alias key}
@@ -55,14 +55,14 @@
         :ancestors [{:fields [value]}]})
     
     (test-diff
-      (#'pigpen.join/select->generate false '[{:fields [value]} (fn [x] x)])
+      (#'pigpen.join/select->generate false '[{:fields [value]} (fn [x] x)] '[pigpen.pig])
       '{:type :generate
         :id generate0
         :description nil
         :projections [{:type :projection-func
                        :code {:type :code
                               :return "DataByteArray"
-                              :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                              :expr {:init (clojure.core/require (quote pigpen.pig))
                                      :func (pigpen.pig/exec :frozen :frozen-with-nils (fn [x] x))}
                               :args [value]}
                        :alias key}
@@ -124,7 +124,7 @@
         :description nil
         :func (pigpen.pig/map->bind (clojure.core/fn [k v] (clojure.lang.MapEntry. k v)))
         :args [group [[generate1] value]]
-        :requires []
+        :requires [pigpen.pig pigpen.join-test]
         :fields [value]
         :field-type-out :frozen
         :field-type-in :frozen
@@ -147,8 +147,11 @@
                                   :opts {:type :generate-opts}
                                   :projections [{:type :projection-func
                                                  :code {:type :code
-                                                        :expr {:init (clojure.core/require (quote [pigpen.pig]))
-                                                               :func (pigpen.pig/exec :frozen :frozen-with-nils (fn [v] (:foo v)))}
+                                                        :expr {:init (clojure.core/require (quote pigpen.pig) (quote pigpen.join-test))
+                                                               :func (pigpen.pig/exec :frozen :frozen-with-nils
+                                                                                      (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                                                        (clojure.core/eval
+                                                                                          (quote (fn [v] (:foo v))))))}
                                                         :return "DataByteArray"
                                                         :args [value]}
                                                  :alias key}
@@ -188,9 +191,12 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind (clojure.core/partial clojure.core/reduce conj []))
+        :func (pigpen.pig/map->bind
+                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                  (clojure.core/eval
+                    (quote (clojure.core/partial clojure.core/reduce conj [])))))
         :args [[[r0] value]]
-        :requires []
+        :requires [pigpen.pig pigpen.join-test]
         :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen
@@ -215,9 +221,12 @@
       '{:type :bind
         :id bind4
         :description nil
-        :func (pigpen.pig/map->bind (fn [_ x y] (* x y)))
+        :func (pigpen.pig/map->bind
+                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                  (clojure.core/eval
+                    (quote (fn [_ x y] (* x y))))))
         :args [group [[generate1] value] [[generate2] value]]
-        :requires []
+        :requires [pigpen.pig pigpen.join-test]
         :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen
@@ -240,7 +249,7 @@
                                   :opts {:type :generate-opts}
                                   :projections [{:type :projection-func
                                                  :code {:type :code
-                                                        :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                                                        :expr {:init (clojure.core/require (quote pigpen.pig) (quote pigpen.join-test))
                                                                :func (pigpen.pig/exec :frozen :frozen-with-nils (fn [x] x))}
                                                         :return "DataByteArray"
                                                         :args [value]}
@@ -257,7 +266,7 @@
                                   :opts {:type :generate-opts}
                                   :projections [{:type :projection-func
                                                  :code {:type :code
-                                                        :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                                                        :expr {:init (clojure.core/require (quote pigpen.pig) (quote pigpen.join-test))
                                                                :func (pigpen.pig/exec :frozen :frozen-with-nils (fn [y] y))}
                                                         :return "DataByteArray"
                                                         :args [value]}
@@ -275,9 +284,12 @@
       '{:type :bind
         :id bind4
         :description nil
-        :func (pigpen.pig/map->bind (fn [x y] (merge x y)))
+        :func (pigpen.pig/map->bind
+                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                  (clojure.core/eval
+                    (quote (fn [x y] (merge x y))))))
         :args [[[generate1 value]] [[generate2 value]]]
-        :requires []
+        :requires [pigpen.pig pigpen.join-test]
         :fields [value]
         :field-type-out :frozen
         :field-type-in :frozen
@@ -301,7 +313,7 @@
                                   :opts {:type :generate-opts}
                                   :projections [{:type :projection-func
                                                  :code {:type :code
-                                                        :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                                                        :expr {:init (clojure.core/require (quote pigpen.pig))
                                                                :func (pigpen.pig/exec :frozen :frozen-with-nils (fn [x] x))}
                                                         :return "DataByteArray"
                                                         :args [value]}
@@ -318,7 +330,7 @@
                                   :opts {:type :generate-opts}
                                   :projections [{:type :projection-func
                                                  :code {:type :code
-                                                        :expr {:init (clojure.core/require (quote [pigpen.pig]))
+                                                        :expr {:init (clojure.core/require (quote pigpen.pig))
                                                                :func (pigpen.pig/exec :frozen :frozen-with-nils (fn [y] y))}
                                                         :return "DataByteArray"
                                                         :args [value]}

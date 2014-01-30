@@ -391,7 +391,7 @@ serialization info."
    Any remaining args are passed to the function as a collection."
   (try
     (let [[init func & args] (.getAll t)]
-      (if (not-empty init) (eval-string init))
+      (when (not-empty init) (eval-string init))
       ((eval-string func) args))
     ;; Errors (like AssertionError) hang the interop layer.
     ;; This allows any problem with user code to pass through.

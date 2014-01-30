@@ -57,7 +57,10 @@ pig/cogroup, and pig/union for combining sets of data.
             pigpen.core/cogroup, pigpen.core/union
 "
   [f relation]
-  `(map* (code/trap-locals ~f) {:description ~(util/pp-str f)} ~relation))
+  `(map* (code/trap '~(ns-name *ns*) ~f)
+         {:description ~(util/pp-str f)
+          :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]}
+         ~relation))
 
 (defn mapcat*
   "See pigpen.core/mapcat"
@@ -77,15 +80,18 @@ f to each item in relation. Thus f should return a collection.
   See also: pigpen.core/map, pigpen.core/map-indexed
 "
   [f relation]
-  `(mapcat* (code/trap-locals ~f) {:description ~(util/pp-str f)} ~relation))
+  `(mapcat* (code/trap '~(ns-name *ns*) ~f)
+            {:description ~(util/pp-str f)
+             :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]}
+            ~relation))
 
 (defn map-indexed*
-  [f opts relation]
+  [f rank-opts bind-opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f 2)
   (-> relation
-    (raw/rank$ [] opts)
-    (raw/bind$ `(pigpen.pig/map->bind ~f) {:args ['$0 'value]})))
+    (raw/rank$ [] rank-opts)
+    (raw/bind$ `(pigpen.pig/map->bind ~f) (assoc bind-opts :args ['$0 'value]))))
 
 (defmacro map-indexed
   "Returns a relation of applying f to the the index and value of every item in
@@ -108,7 +114,10 @@ and the value. If you require sequential ids, use option {:dense true}.
 "
   ([f relation] `(map-indexed ~f {} ~relation))
   ([f opts relation]
-    `(map-indexed* (code/trap-locals ~f) (assoc ~opts :description ~(util/pp-str f)) ~relation)))
+    `(map-indexed* (code/trap '~(ns-name *ns*) ~f)
+                   (assoc ~opts :description ~(util/pp-str f))
+                   {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]}
+                   ~relation)))
 
 (defn sort*
   "See pigpen.core/sort, pigpen.core/sort-by"
@@ -116,7 +125,7 @@ and the value. If you require sequential ids, use option {:dense true}.
   {:pre [(map? relation) (#{:asc :desc} comp)]}
   (let [projections [(raw/projection-flat$ 'key
                        (raw/code$ DataBag ['value]
-                         (raw/expr$ `(require '[pigpen.pig])
+                         (raw/expr$ `(require ~@(clojure.core/map (fn [r] `(quote ~r)) (filter identity (:requires opts))))
                                     `(pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind ~key-fn)]))))
                      (raw/projection-field$ 'value)]]
     (-> relation
@@ -147,7 +156,9 @@ and the value. If you require sequential ids, use option {:dense true}.
   ([relation] `(sort :asc {} ~relation))
   ([comp relation] `(sort ~comp {} ~relation))
   ([comp opts relation]
-    `(sort* `identity '~comp ~opts ~relation)))
+    `(sort* `identity '~comp
+            (assoc ~opts :requires ['pigpen.pig])
+            ~relation)))
 
 (defmacro sort-by
   "Sorts the data by the specified key-fn with an optional comparator. Takes an
@@ -174,4 +185,8 @@ optional map of options.
   ([key-fn relation] `(sort-by ~key-fn :asc {} ~relation))
   ([key-fn comp relation] `(sort-by ~key-fn ~comp {} ~relation))
   ([key-fn comp opts relation]
-    `(sort* (code/trap-locals ~key-fn) '~comp (assoc ~opts :description ~(util/pp-str key-fn)) ~relation)))
+    `(sort* (code/trap '~(ns-name *ns*) ~key-fn)
+            '~comp
+            (assoc ~opts :description ~(util/pp-str key-fn)
+                         :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))])
+            ~relation)))

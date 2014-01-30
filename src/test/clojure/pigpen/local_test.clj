@@ -220,7 +220,7 @@
 (deftest test-map
   
   (let [data (io/return [{:x 1, :y 2}
-                           {:x 2, :y 4}])
+                         {:x 2, :y 4}])
         command (pig-map/map (fn [{:keys [x y]}] (+ x y)) data)]
     (test-diff
       (exec/debug-script command)
@@ -229,6 +229,21 @@
   (let [data (io/return [1 2 3])
         command (pig-map/map (fn [x] (throw (java.lang.Exception.))) data)]
     (is (thrown? Exception (exec/debug-script command)))))
+
+(defn test-fn [x]
+  (* x x))
+
+(defn test-param [y data]
+  (let [z 42]
+    (->> data
+      (pig-map/map (fn [x] (+ (test-fn x) y z))))))
+
+(deftest test-closure
+  (let [data (io/return [1 2 3])
+        command (test-param 37 data)]
+    (test-diff
+      (exec/debug-script command)
+      '[(freeze 80) (freeze 83) (freeze 88)])))
 
 (deftest test-mapcat
   
