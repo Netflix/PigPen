@@ -4,7 +4,15 @@ Getting started with Clojure and PigPen is really easy. Just follow the steps be
 
   1. Install [Leiningen](https://github.com/technomancy/leiningen#leiningen)
   2. Create a new leiningen project with `lein new pigpen-demo`. This will create a pigpen-demo folder for your project.
-  3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1.2"]` into your project's `project.clj` file.
+  3. Add PigPen as a dependency by changing the dependencies in your project's `project.clj` file to look like this:
+
+    ``` clj
+      :dependencies [[org.clojure/clojure "1.5.1"]
+                     [com.netflix.pigpen/pigpen "0.1.3"]]
+      :profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
+                                      [org.apache.hadoop/hadoop-core "1.1.2"]]}}
+    ``` clj
+
   4. Run `lein repl` to start a REPL for your new project.
   5. Try some samples below...
 
@@ -12,7 +20,7 @@ If you have any questions, or if something doesn't look quite right, contact us 
 
 _Note: If you are not familiar at all with [Clojure](http://clojure.org/), I strongly recommend that you try a tutorial [here](http://tryclj.com/), [here](http://java.ociweb.com/mark/clojure/article.html), or [here](http://learn-clojure.com/) to understand some of the [basics](http://clojure.org/cheatsheet)._
 
-_Note: Make sure you're using Clojure 1.5.1 or greater_
+_Note: PigPen requires Clojure 1.5.1 or greater. The Leiningen example uses Leiningen 2.0 or greater._
 
 To get started, we import the pigpen.core namespace:
 
@@ -118,7 +126,7 @@ If we want to generate a script, that's easy too:
 (pig/write-script "my-script.pig" (my-query "input.tsv" "output.clj"))
 ```
 
-We can optionally run our script in Pig (if you have it installed, which is a not a requirement of PigPen). The easiest way to get the pigpen jar is to build an uberjar for our project. From the command line:
+We can optionally run our script locally in Pig (if you have it installed, which is a not a requirement of PigPen). The easiest way to build the pigpen jar is to build an uberjar for our project. From the command line:
 
 ```
 $ lein uberjar

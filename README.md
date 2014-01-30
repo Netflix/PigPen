@@ -70,15 +70,20 @@ The [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) oper
 
 ## Closures (yes, the kind with an S)
 
-Parameterizing your query is trivial. Any in-scope function parameters or let bindings are available to use in functions.
+Parameterizing your query is trivial. Any available functions, in-scope function parameters, or let bindings are available to use in functions.
 
 ``` clj
+(defn inc-two [x]
+  (+ x 2))
+
 (defn reusable-fn [lower-bound data]
   (let [upper-bound (+ lower-bound 10)]
-    (pig/filter (fn [x] (< lower-bound x upper-bound)) data)))
+    (->> data
+      (pig/filter (fn [x] (< lower-bound x upper-bound)))
+      (pig/map inc-two))))
 ```
 
-Note that `lower-bound` and `upper-bound` are present when we generate the script, and are made available when the function is executed within the cluster.
+Note that `inc-two`, `lower-bound`, and `upper-bound` are present when we generate the script, and are made available when the function is executed within the cluster.
 
 _Note: To exclude a local variable, add the metadata ^:local to the declaration._
 
@@ -90,7 +95,7 @@ Just tell PigPen where to write the query as a Pig script:
 (pig/write-script "word-count.pig" (word-count-query "input.tsv" "output.tsv"))
 ```
 
-And then you have a Pig script which you can submit to your cluster. The script uses `pigpen.jar`, an uberjar with all of the dependencies, so make sure that is submitted with it. Another option is to build an uberjar for your project and submit that instead. Just rename it prior to submission. Check out the tutorial for how to build an uberjar.
+And now you have a Pig script which you can submit to your cluster. The script uses `pigpen.jar`, an uberjar with all of the required dependencies along with your code. The easiest way to create this jar is to build an uberjar for your project. Check out the [tutorial](Tutorial.md) for how to build an uberjar and run the script in Pig.
 
 As you saw before, we can also use [`pig/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) to run the query locally and return Clojure data:
 
@@ -103,23 +108,11 @@ As you saw before, we can also use [`pig/dump`](http://netflix.github.io/PigPen/
 [["moon" 1] ["jumped" 2] ["dog" 1] ["over" 2] ["cow" 1] ["fox" 1] ["the" 4]]
 ```
 
-# Getting started
+# Getting Started, Tutorials & Documentation
 
-Getting started with Clojure and PigPen is really easy. Just follow the steps below to get up and running.
-
-  1. Install [Leiningen](https://github.com/technomancy/leiningen#leiningen)
-  2. Create a new leiningen project with `lein new pigpen-demo`
-  3. Add PigPen as a dependency by adding `[com.netflix.pigpen/pigpen "0.1.2"]` into your project's `project.clj` file.
-  4. Run `lein repl` to start a REPL for your new project.
-  5. Try some samples in the [tutorial](Tutorial.md)
+Getting started with Clojure and PigPen is really easy. The [tutorial](Tutorial.md) is the best way to get Clojure and PigPen installed and start writing queries.
 
 _Note: If you are not familiar at all with [Clojure](http://clojure.org/), I strongly recommend that you try a tutorial [here](http://tryclj.com/), [here](http://java.ociweb.com/mark/clojure/article.html), or [here](http://learn-clojure.com/) to understand some of the [basics](http://clojure.org/cheatsheet)._
-
-_Note: Make sure you're using Clojure 1.5.1 or greater_
-
-_Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand edit. While it's entirely possible, the resulting scripts are not intended for human consumption._
-
-# Tutorials & Documentation
 
 There are three distinct audiences for PigPen, so we wrote three different tutorials:
 
@@ -133,6 +126,8 @@ The full API documentation is located [here](http://netflix.github.io/PigPen/pig
 
 Questions & Complaints: pigpen-support@googlegroups.com
 
+_Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand edit. While it's entirely possible, the resulting scripts are not intended for human consumption._
+
 ## Artifacts
 
 `pigpen` is available from Maven:
@@ -140,7 +135,7 @@ Questions & Complaints: pigpen-support@googlegroups.com
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.1.2"]
+[com.netflix.pigpen/pigpen "0.1.3"]
 ```
 
 With Maven:
@@ -149,8 +144,14 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.1.2</version>
+  <version>0.1.3</version>
 </dependency>
 ```
 
-_Note: Make sure you're using Clojure 1.5.1 or greater_
+_Note: PigPen requires Clojure 1.5.1 or greater_
+
+### Release Notes
+
+  * 0.1.3 - Change Pig & Hadoop to be transitive dependencies. Add support for consuming user code via closure.
+  * 0.1.2 - Upgrade instaparse to 1.2.14
+  * 0.1.1 - Initial Release

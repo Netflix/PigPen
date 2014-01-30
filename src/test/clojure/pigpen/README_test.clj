@@ -43,16 +43,21 @@
     (is (= (set (pig/dump (word-count data)))
            #{["moon" 1] ["jumped" 2] ["dog" 1] ["over" 2] ["cow" 1] ["fox" 1] ["the" 4]}))))
 
+(defn inc-two [x]
+  (+ x 2))
+
 (defn reusable-fn [lower-bound data]
   (let [upper-bound (+ lower-bound 10)]
-    (pig/filter (fn [x] (< lower-bound x upper-bound)) data)))
+    (->> data
+      (pig/filter (fn [x] (< lower-bound x upper-bound)))
+      (pig/map inc-two))))
 
 (deftest test-reusable-fn
   (let [command (->>
                   (pig/return [2 10 20])
                   (reusable-fn 5))]
     (is (= (pig/dump command)
-           [10]))))
+           [12]))))
 
 (deftest test-write-script
   (pig/write-script "build/readme-test/word-count.pig" (word-count-query "input.tsv" "output.tsv")))
@@ -114,32 +119,6 @@
 
 (deftest test-write-script2
   (pig/write-script "build/readme-test/my-script.pig" (my-query "build/readme-test/input.tsv" "build/readme-test/output.clj")))
-
-(deftest test-join
-  (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
-        right (pig/return [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
-
-        command (pig/join (left on :a)
-                          (right on :c)
-                          (fn [l r] [(:b l) (:d r)]))]
-
-    (is (= (pig/dump command)
-           [[2 "foo"]
-            [3 "foo"]
-            [4 "bar"]
-            [4 "baz"]]))))
-
-(deftest test-cogroup
-  (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
-        right (pig/return [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
-
-        command (pig/cogroup (left on :a)
-                             (right on :c)
-                             (fn [k l r] [k (map :b l) (map :d r)]))]
-
-    (is (= (pig/dump command)
-           [[1 [2 3] ["foo"]]
-            [2 [4]   ["bar" "baz"]]]))))
 
 (spit "build/readme-test/numbers0.tsv" "1\t1\n2\t5")
 (spit "build/readme-test/numbers1.tsv" "1\t2\n2\t6")
