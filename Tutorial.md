@@ -11,7 +11,7 @@ Getting started with Clojure and PigPen is really easy. Just follow the steps be
                      [com.netflix.pigpen/pigpen "0.1.3"]]
       :profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
                                       [org.apache.hadoop/hadoop-core "1.1.2"]]}}
-    ``` clj
+    ```
 
   4. Run `lein repl` to start a REPL for your new project.
   5. Try some samples below...
