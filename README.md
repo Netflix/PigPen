@@ -152,6 +152,7 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 
 ### Release Notes
 
+  * 0.1.4 - Fix sort bug in local mode
   * 0.1.3 - Change Pig & Hadoop to be transitive dependencies. Add support for consuming user code via closure.
   * 0.1.2 - Upgrade instaparse to 1.2.14
   * 0.1.1 - Initial Release
