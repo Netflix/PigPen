@@ -304,7 +304,12 @@
        command (pig-map/sort-by :a :desc data)]
    (test-diff
      (exec/debug-script command)
-     '[(freeze {:a 3}) (freeze {:a 2}) (freeze {:a 1})])))
+     '[(freeze {:a 3}) (freeze {:a 2}) (freeze {:a 1})]))
+  
+  (let [data (io/return [1 2 3 1 2 3 1 2 3])
+        command (pig-map/sort-by identity data)]
+    (is (= (exec/dump command)
+           [1 1 1 2 2 2 3 3 3]))))
 
 ;; ********** Filter **********
 

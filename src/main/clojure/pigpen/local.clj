@@ -204,7 +204,7 @@ See pigpen.core and pigpen.exec
     (if (= r 0)
       (if sort-keys
         (recur sort-keys x y)
-        0)
+        (int 0))
       (case order
         :asc r
         :desc (int (- r))))))
