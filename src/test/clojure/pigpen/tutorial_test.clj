@@ -14,7 +14,7 @@
 
 (defn my-data []
   (->>
-    (pig/load-tsv "input.tsv")
+    (pig/load-tsv "build/tutorial-test/input.tsv")
     (pig/map (fn [[a b c]]
                {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
                 :name c}))))
@@ -23,7 +23,7 @@
 
 (defn my-data []
   (->>
-    (pig/load-tsv "input.tsv")
+    (pig/load-tsv "build/tutorial-test/input.tsv")
     (pig/map (fn [[a b c]]
                {:sum (+ (Integer/valueOf a) (Integer/valueOf b))
                 :name c}))
@@ -56,7 +56,7 @@
     (is (= (pig/dump (my-func data))
            [{:sum 3, :name "foo"}]))))
 
-(pig/write-script "build/tutorial-test/my-script.pig" (my-query "input.tsv" "output.clj"))
+(pig/write-script "build/tutorial-test/my-script.pig" (my-query "build/tutorial-test/input.tsv" "build/tutorial-test/output.clj"))
 
 (deftest test-join
   (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
