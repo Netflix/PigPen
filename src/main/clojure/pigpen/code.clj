@@ -70,13 +70,12 @@ or reduce."
            (pr-str (format-arity fixed varargs))))))
 
 (defn ^:private make-binding [k v]
-  (let [{:keys [local]} (meta k)
-        {:keys [pig]} (meta v)]
-    (cond
-      (fn? v) nil
-      pig nil
-      local nil
-      :else [k `(quote ~v)])))
+  (cond
+    (fn? v) nil
+    (:pig (meta v)) nil
+    (:local (meta v)) nil
+    (:local (meta k)) nil
+    :else [k `(quote ~v)]))
 
 (defn ns-exists
   "Returns the ns if it exists as a resource"
