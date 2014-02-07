@@ -261,6 +261,7 @@ building blocks for more complex operations.")
 
 ;; ********** Set **********
 
+;; TODO single union -> first relation
 (defn union$
   [ancestors opts]
   (command :union ancestors (-> ancestors first :fields) opts))
