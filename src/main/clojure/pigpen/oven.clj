@@ -193,7 +193,7 @@ See pigpen.core and pigpen.exec
    distinct commands, find the first two that can be merged, and merge them to
    produce graph'. Rinse & repeat until there are no more duplicate commands."
   [commands]
-  (let [distinct-commands (distinct commands)
+  (let [distinct-commands (vec (distinct commands))
         next-merge (next-match distinct-commands)]
     (if next-merge
       (recur (merge-command distinct-commands next-merge))
