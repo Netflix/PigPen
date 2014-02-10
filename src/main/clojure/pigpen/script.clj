@@ -86,6 +86,7 @@ See pigpen.core and pigpen.exec
      
      :else (throw (IllegalArgumentException. (str "Unknown expression:" (type expr) " " expr))))))
 
+;; TODO add descriptive comment before each command
 (defmulti command->script
   "Converts an individual command into the equivalent Pig script"
   :type)
