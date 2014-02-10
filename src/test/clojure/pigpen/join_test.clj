@@ -35,7 +35,7 @@
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
 
     (test-diff
-      (#'pigpen.join/select->generate true '[{:fields [value]} (fn [x] x)])
+      (#'pigpen.join/select->generate true '[pigpen.join-test] '[{:fields [value]} (fn [x] x)])
       '{:type :generate
         :id generate0
         :description nil
@@ -53,7 +53,7 @@
                      :description nil
                      :func (pigpen.pig/key-selector->bind (fn [x] x))
                      :args [value]
-                     :requires []
+                     :requires [pigpen.join-test]
                      :fields [value]
                      :field-type-in :frozen
                      :field-type-out :frozen
@@ -62,7 +62,7 @@
                             :implicit-schema true}}]})
     
     (test-diff
-      (#'pigpen.join/select->generate false '[{:fields [value]} (fn [x] x)])
+      (#'pigpen.join/select->generate false '[pigpen.join-test] '[{:fields [value]} (fn [x] x)])
       '{:type :generate
         :id generate0
         :description nil
@@ -80,7 +80,7 @@
                      :description nil
                      :func (pigpen.pig/key-selector->bind (fn [x] x))
                      :args [value]
-                     :requires []
+                     :requires [pigpen.join-test]
                      :fields [value]
                      :field-type-in :frozen
                      :field-type-out :frozen-with-nils
@@ -138,7 +138,7 @@
         :description nil
         :func (pigpen.pig/map->bind (clojure.core/fn [k v] (clojure.lang.MapEntry. k v)))
         :args [group [[generate2] value]]
-        :requires []
+        :requires [pigpen.join-test]
         :fields [value]
         :field-type-out :frozen
         :field-type-in :frozen
@@ -163,9 +163,12 @@
                                   :ancestors [{:type :bind
                                                :id bind1
                                                :description nil
-                                               :func (pigpen.pig/key-selector->bind (fn [v] (:foo v)))
+                                               :func (pigpen.pig/key-selector->bind
+                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                         (clojure.core/eval
+                                                           (quote (fn [v] (:foo v))))))
                                                :args [value]
-                                               :requires []
+                                               :requires [pigpen.join-test]
                                                :fields [value]
                                                :field-type-in :frozen
                                                :field-type-out :frozen-with-nils
@@ -204,9 +207,12 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind (clojure.core/partial clojure.core/reduce conj []))
+        :func (pigpen.pig/map->bind
+                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                  (clojure.core/eval
+                    (quote (clojure.core/partial clojure.core/reduce conj [])))))
         :args [[[r0] value]]
-        :requires []
+        :requires [pigpen.join-test]
         :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen
@@ -231,9 +237,11 @@
       '{:type :bind
         :id bind6
         :description nil
-        :func (pigpen.pig/map->bind (fn [_ x y] (* x y)))
+        :func (pigpen.pig/map->bind
+                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                  (clojure.core/eval (quote (fn [_ x y] (* x y))))))
         :args [group [[generate2] value] [[generate4] value]]
-        :requires []
+        :requires [pigpen.join-test]
         :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen
@@ -260,7 +268,7 @@
                                                :description nil
                                                :func (pigpen.pig/key-selector->bind (fn [x] x))
                                                :args [value]
-                                               :requires []
+                                               :requires [pigpen.join-test]
                                                :fields [value]
                                                :field-type-in :frozen
                                                :field-type-out :frozen-with-nils
@@ -280,7 +288,7 @@
                                                :description nil
                                                :func (pigpen.pig/key-selector->bind (fn [y] y))
                                                :args [value]
-                                               :requires []
+                                               :requires [pigpen.join-test]
                                                :fields [value]
                                                :field-type-in :frozen
                                                :field-type-out :frozen-with-nils
@@ -298,9 +306,12 @@
       '{:type :bind
         :id bind6
         :description nil
-        :func (pigpen.pig/map->bind (fn [x y] (merge x y)))
+        :func (pigpen.pig/map->bind
+                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                  (clojure.core/eval
+                    (quote (fn [x y] (merge x y))))))
         :args [[[generate2 value]] [[generate4 value]]]
-        :requires []
+        :requires [pigpen.join-test]
         :fields [value]
         :field-type-out :frozen
         :field-type-in :frozen
@@ -328,7 +339,7 @@
                                                :description nil
                                                :func (pigpen.pig/key-selector->bind (fn [x] x))
                                                :args [value]
-                                               :requires []
+                                               :requires [pigpen.join-test]
                                                :fields [value]
                                                :field-type-in :frozen
                                                :field-type-out :frozen-with-nils
@@ -348,7 +359,7 @@
                                                :description nil
                                                :func (pigpen.pig/key-selector->bind (fn [y] y))
                                                :args [value]
-                                               :requires []
+                                               :requires [pigpen.join-test]
                                                :fields [value]
                                                :field-type-in :frozen
                                                :field-type-out :frozen-with-nils

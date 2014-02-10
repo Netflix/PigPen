@@ -197,14 +197,14 @@ building blocks for more complex operations.")
            :fields (mapv :alias projections))))
 
 (defn bind$
-  [relation func opts]
+  [relation requires func opts]
   {:pre [func]}
   (->
     (command :bind relation (dissoc opts :args :requires :alias :field-type-in :field-type-out))
     (dissoc :field-type)
     (assoc :func func
            :args (vec (get opts :args ['value]))
-           :requires (vec (get opts :requires []))
+           :requires (vec requires)
            :fields [(get opts :alias 'value)]
            :field-type-in (get opts :field-type-in :frozen)
            :field-type-out (get opts :field-type-out :frozen))))

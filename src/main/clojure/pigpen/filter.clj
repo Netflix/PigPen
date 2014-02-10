@@ -30,10 +30,10 @@
 
 (defn filter*
   "See #'pigpen.core/filter"
-  [pred opts relation]
+  [requires pred opts relation]
   {:pre [(map? relation) pred]}
   (code/assert-arity pred (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/filter->bind ~pred) opts))
+  (raw/bind$ relation requires `(pigpen.pig/filter->bind ~pred) opts))
 
 (defmacro filter
   "Returns a relation that only contains the items for which (pred item)
@@ -47,9 +47,7 @@ returns true.
   See also: pigpen.core/remove, pigpen.core/take, pigpen.core/sample, pigpen.core/distinct
 "
   [pred relation]
-  `(filter* (code/trap '~(ns-name *ns*) ~pred)
-            {:description ~(util/pp-str pred)
-             :requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]} ~relation))
+  `(filter* ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) ~pred) {:description ~(util/pp-str pred)} ~relation))
 
 (defmacro remove
   "Returns a relation without items for which (pred item) returns true.

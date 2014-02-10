@@ -35,10 +35,10 @@
 
 (defn map*
   "See pigpen.core/map"
-  [f opts relation]
+  [requires f opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/map->bind ~f) opts))
+  (raw/bind$ relation requires `(pigpen.pig/map->bind ~f) opts))
 
 (defmacro map
   "Returns a relation of f applied to every item in the source relation.
@@ -57,14 +57,14 @@ pig/cogroup, and pig/union for combining sets of data.
             pigpen.core/cogroup, pigpen.core/union
 "
   [f relation]
-  `(map* (code/trap-locals ~f) {:description ~(util/pp-str f)} ~relation))
+  `(map* ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) ~f) {:description ~(util/pp-str f)} ~relation))
 
 (defn mapcat*
   "See pigpen.core/mapcat"
-  [f opts relation]
+  [requires f opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/mapcat->bind ~f) opts))
+  (raw/bind$ relation requires `(pigpen.pig/mapcat->bind ~f) opts))
 
 (defmacro mapcat
   "Returns the result of applying concat, or flattening, the result of applying
@@ -77,15 +77,15 @@ f to each item in relation. Thus f should return a collection.
   See also: pigpen.core/map, pigpen.core/map-indexed
 "
   [f relation]
-  `(mapcat* (code/trap-locals ~f) {:description ~(util/pp-str f)} ~relation))
+  `(mapcat* ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) ~f) {:description ~(util/pp-str f)} ~relation))
 
 (defn map-indexed*
-  [f opts relation]
+  [requires f opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f 2)
   (-> relation
     (raw/rank$ [] opts)
-    (raw/bind$ `(pigpen.pig/map->bind ~f) {:args ['$0 'value]})))
+    (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:args ['$0 'value]})))
 
 (defmacro map-indexed
   "Returns a relation of applying f to the the index and value of every item in
@@ -108,14 +108,14 @@ and the value. If you require sequential ids, use option {:dense true}.
 "
   ([f relation] `(map-indexed ~f {} ~relation))
   ([f opts relation]
-    `(map-indexed* (code/trap-locals ~f) (assoc ~opts :description ~(util/pp-str f)) ~relation)))
+    `(map-indexed* ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) ~f) (assoc ~opts :description ~(util/pp-str f)) ~relation)))
 
 (defn sort*
   "See pigpen.core/sort, pigpen.core/sort-by"
-  [key-selector comp opts relation]
+  [requires key-selector comp opts relation]
   {:pre [(map? relation) (#{:asc :desc} comp)]}
   (-> relation
-    (raw/bind$ `(pigpen.pig/key-selector->bind ~key-selector)
+    (raw/bind$ requires `(pigpen.pig/key-selector->bind ~key-selector)
                {:field-type-out :sort
                 :implicit-schema true})
     (raw/generate$ [(raw/projection-field$ 0 'key)
@@ -146,7 +146,7 @@ and the value. If you require sequential ids, use option {:dense true}.
   ([relation] `(sort :asc {} ~relation))
   ([comp relation] `(sort ~comp {} ~relation))
   ([comp opts relation]
-    `(sort* `identity '~comp ~opts ~relation)))
+    `(sort* [] `identity '~comp ~opts ~relation)))
 
 (defmacro sort-by
   "Sorts the data by the specified key-fn with an optional comparator. Takes an
@@ -173,4 +173,4 @@ optional map of options.
   ([key-fn relation] `(sort-by ~key-fn :asc {} ~relation))
   ([key-fn comp relation] `(sort-by ~key-fn ~comp {} ~relation))
   ([key-fn comp opts relation]
-    `(sort* (code/trap-locals ~key-fn) '~comp (assoc ~opts :description ~(util/pp-str key-fn)) ~relation)))
+    `(sort* ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) ~key-fn) '~comp (assoc ~opts :description ~(util/pp-str key-fn)) ~relation)))

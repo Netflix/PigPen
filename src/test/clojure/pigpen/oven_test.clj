@@ -496,12 +496,18 @@
                        :ancestors [load1]
                        :projections [{:type :projection-flat
                                       :code {:type :code
-                                             :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]))
+                                             :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]) (quote [pigpen.oven-test]))
                                                     :func (pigpen.pig/exec [(pigpen.pig/pre-process :native)
                                                                             (pigpen.pig/map->bind clojure.edn/read-string)
-                                                                            (pigpen.pig/map->bind identity)
-                                                                            (pigpen.pig/filter->bind (constantly true))
-                                                                            (pigpen.pig/mapcat->bind vector)
+                                                                            (pigpen.pig/map->bind
+                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                (clojure.core/eval (quote identity))))
+                                                                            (pigpen.pig/filter->bind
+                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                (clojure.core/eval (quote (constantly true)))))
+                                                                            (pigpen.pig/mapcat->bind
+                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                (clojure.core/eval (quote vector))))
                                                                             (pigpen.pig/map->bind clojure.core/pr-str)
                                                                             (pigpen.pig/post-process :native)])}
                                              :return "DataBag"

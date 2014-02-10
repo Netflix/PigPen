@@ -287,7 +287,7 @@ See pigpen.core and pigpen.exec
   [command location]
   (when-let [field-type (or (:field-type command) (:field-type-out command))]
     (-> command
-      (raw/bind$ `(pigpen.pig/map->bind pigpen.pig/debug)
+      (raw/bind$ [] `(pigpen.pig/map->bind pigpen.pig/debug)
                  {:args (:fields command), :field-type-in field-type, :field-type-out :native})
       ;; TODO Fix the location of store commands to match generates instead of binds
       (raw/store$ (str location (:id command)) raw/default-storage {}))))
@@ -334,7 +334,7 @@ See pigpen.core and pigpen.exec
         
         requires (->> commands
                    (mapcat :requires)
-                   (filter identity)
+                   (filter code/ns-exists)
                    (cons 'pigpen.pig)
                    (distinct)
                    (map (fn [r] `'[~r]))
@@ -409,7 +409,7 @@ See pigpen.core and pigpen.exec
   [script opts]
   {:pre [(map? script) (map? opts)]}
   (cond-> script
-    (:debug opts) (debug (:debug opts))
+    (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
     true braise
     true merge-order-rank
     true extract-options

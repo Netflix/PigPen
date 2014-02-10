@@ -485,10 +485,7 @@ returns the single value in the result channel."
   (doseq [b input-bags]
        (when b
          (a/close! b)))
-    (util/safe-<!! result)
-    ;; TODO this is eating stack traces
-  #_(try
-     (catch Throwable z (throw (RuntimeException. z)))))
+    (util/safe-<!! result))
 
 (defn udf-cleanup
   "Cleans up any accumulator state by closing the result channel. Returns nil

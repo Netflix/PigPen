@@ -34,9 +34,14 @@
           :id bind1
           :description "(fn [v] v)\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/map->bind (clojure.core/let [bar (quote 2)] (fn [v] v)))
+          :func (pigpen.pig/map->bind
+                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
+                    (clojure.core/eval
+                      (quote
+                        (clojure.core/let [bar (quote 2)]
+                          (fn [v] v))))))
           :args [value]
-          :requires []
+          :requires [pigpen.map-test]
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
@@ -60,9 +65,12 @@
           :id bind1
           :description "(fn [v] [v])\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/mapcat->bind (fn [v] [v]))
+          :func (pigpen.pig/mapcat->bind
+                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
+                    (clojure.core/eval
+                      (quote (fn [v] [v])))))
           :args [value]
-          :requires []
+          :requires [pigpen.map-test]
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
@@ -76,9 +84,11 @@
         '{:type :bind
           :id bind2
           :description nil
-          :func (pigpen.pig/map->bind vector)
+          :func (pigpen.pig/map->bind
+                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
+                    (clojure.core/eval (quote vector))))
           :args [$0 value]
-          :requires []
+          :requires [pigpen.map-test]
           :fields [value]
           :field-type-out :frozen
           :field-type-in :frozen
@@ -148,9 +158,11 @@
                        :ancestors [{:type :bind
                                     :id bind1
                                     :description nil
-                                    :func (pigpen.pig/key-selector->bind :a)
+                                    :func (pigpen.pig/key-selector->bind
+                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
+                                              (clojure.core/eval (quote :a))))
                                     :args [value]
-                                    :requires []
+                                    :requires [pigpen.map-test]
                                     :fields [value]
                                     :field-type-in :frozen
                                     :field-type-out :sort
