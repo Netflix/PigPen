@@ -273,7 +273,9 @@ building blocks for more complex operations.")
 ;; TODO single union -> first relation
 (defn union$
   [ancestors opts]
-  (command :union ancestors (-> ancestors first :fields) opts))
+  (if (= 1 (count ancestors))
+    (first ancestors)
+    (command :union ancestors (-> ancestors first :fields) opts)))
 
 ;; ********** Join **********
 
