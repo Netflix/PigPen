@@ -197,17 +197,18 @@ building blocks for more complex operations.")
            :fields (mapv :alias projections))))
 
 (defn bind$
-  [relation requires func opts]
-  {:pre [func]}
-  (->
-    (command :bind relation (dissoc opts :args :requires :alias :field-type-in :field-type-out))
-    (dissoc :field-type)
-    (assoc :func func
-           :args (vec (get opts :args ['value]))
-           :requires (vec requires)
-           :fields [(get opts :alias 'value)]
-           :field-type-in (get opts :field-type-in :frozen)
-           :field-type-out (get opts :field-type-out :frozen))))
+  ([relation func opts] (bind$ relation [] func opts))
+  ([relation requires func opts]
+    {:pre [func]}
+    (->
+      (command :bind relation (dissoc opts :args :requires :alias :field-type-in :field-type-out))
+      (dissoc :field-type)
+      (assoc :func func
+             :args (vec (get opts :args ['value]))
+             :requires (vec (concat requires (:requires opts)))
+             :fields [(get opts :alias 'value)]
+             :field-type-in (get opts :field-type-in :frozen)
+             :field-type-out (get opts :field-type-out :frozen)))))
 
 (defn order$
   [relation sort-keys opts]
