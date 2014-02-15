@@ -202,8 +202,8 @@
     
     (let [r ^:pig {:id 'r :fields '[value]}
           s ^:pig {:id 's :fields '[value]}
-          c (pig/join (r on identity)
-                      (s on identity)
+          c (pig/join [(r :on identity)
+                       (s :on identity)]
                       merge)
           mapping '{r r0, s s0, generate1 g1, generate2 g2, join3 j3, generate4 g4}
           commands (#'pigpen.oven/braise c)]
@@ -449,8 +449,8 @@
                               (pig/load-clj "in1")
                               (pig/map dec))]
                      (->>
-                       (pig/join (p0 on identity)
-                                 (p1 on identity)
+                       (pig/join [(p0 :on identity)
+                                  (p1 :on identity)]
                                  merge)
                        (pig/filter (constantly true))
                        (pig/store-clj "out")

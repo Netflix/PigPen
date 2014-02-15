@@ -147,8 +147,8 @@ Take a look at `command`:
   (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
         right (pig/return [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
 
-        command (pig/join (left on :a)
-                          (right on :c)
+        command (pig/join [(left :on :a)
+                           (right :on :c)]
                           (fn [l r] [(:b l) (:d r)]))]
 
     (is (= (pig/dump command)
@@ -169,8 +169,8 @@ Next is a common map-reduce pattern - co-group:
   (let [left  (pig/return [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
         right (pig/return [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
 
-        command (pig/cogroup (left on :a)
-                             (right on :c)
+        command (pig/cogroup [(left :on :a)
+                              (right :on :c)]
                              (fn [k l r] [k (map :b l) (map :d r)]))]
 
     (is (= (pig/dump command)

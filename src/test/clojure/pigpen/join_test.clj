@@ -21,21 +21,21 @@
   (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.join :as pig]))
 
-(deftest test-select?
-  (is (#'pigpen.join/select? '({} on (fn [x] x))))
-  (is (#'pigpen.join/select? '({} by (fn [x] x))))
-  (is (#'pigpen.join/select? '(relation on (fn [x] x))))
-  (is (#'pigpen.join/select? '(relation on f)))
-  (is (not (#'pigpen.join/select? nil)))
-  (is (not (#'pigpen.join/select? '[a on c])))
-  (is (not (#'pigpen.join/select? (fn [x] x))))
-  (is (not (#'pigpen.join/select? '({} foo (fn [x] x))))))
+(deftest test-quote-select-clause
+  (test-diff
+    (#'pigpen.join/quote-select-clause #{:on :by :key-selector :reducef :combinef}
+                                       '(:from r0 :on (fn [x] x) :reducef + :type :required))
+    {:from 'r0
+     :key-selector `(pigpen.code/trap (quote ~(ns-name *ns*)) (~'fn [~'x] ~'x))
+     :reducef `(pigpen.code/trap (quote ~(ns-name *ns*)) ~'+)
+     :type :required}))
 
 (deftest test-select->generate
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
 
     (test-diff
-      (#'pigpen.join/select->generate true '[pigpen.join-test] '[{:fields [value]} (fn [x] x)])
+      (#'pigpen.join/select->generate true '[pigpen.join-test]
+                                      '{:from {:fields [value]} :key-selector (fn [x] x)})
       '{:type :generate
         :id generate0
         :description nil
@@ -62,7 +62,8 @@
                             :implicit-schema true}}]})
     
     (test-diff
-      (#'pigpen.join/select->generate false '[pigpen.join-test] '[{:fields [value]} (fn [x] x)])
+      (#'pigpen.join/select->generate false '[pigpen.join-test]
+                                      '{:from {:fields [value]} :key-selector (fn [x] x)})
       '{:type :generate
         :id generate0
         :description nil
@@ -87,47 +88,6 @@
                      :ancestors [{:fields [value]}]
                      :opts {:type :bind-opts
                             :implicit-schema true}}]})))
-
-(deftest test-split-selects
-  
-  (test-diff
-    (#'pigpen.join/split-selects ['({:fields [value]} on (fn [x] x))
-                                  '({:fields [value]} on (fn [y] y))
-                                  'merge
-                                  {:parallel 2}])
-    '[[({:fields [value]} on (fn [x] x))
-       ({:fields [value]} on (fn [y] y))]
-      merge
-      {:parallel 2}])
-  
-  (test-diff
-    (#'pigpen.join/split-selects ['({:fields [value]} on (fn [x] x))
-                                  '({:fields [value]} on (fn [y] y))
-                                  'merge])
-    '[[({:fields [value]} on (fn [x] x))
-       ({:fields [value]} on (fn [y] y))]
-      merge
-      {}])
-  
-  (test-diff
-    (#'pigpen.join/split-selects ['({:fields [value]} on (fn [x] x))
-                                  '({:fields [value]} on (fn [y] y))
-                                  {:a :b}
-                                  {:parallel 2}])
-    '[[({:fields [value]} on (fn [x] x))
-       ({:fields [value]} on (fn [y] y))]
-      {:a :b}
-      {:parallel 2}])
-  
-  (test-diff
-    (#'pigpen.join/split-selects ['({:fields [value]} on (fn [x] x))
-                                  '({:fields [value]} on (fn [y] y))
-                                  '(fn [x y] (* x y))
-                                  {:parallel 2}])
-    '[[({:fields [value]} on (fn [x] x))
-       ({:fields [value]} on (fn [y] y))]
-      (fn [x y] (* x y))
-      {:parallel 2}]))
 
 (deftest test-group-by
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -164,9 +124,9 @@
                                                :id bind1
                                                :description nil
                                                :func (pigpen.pig/key-selector->bind
-                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                         (clojure.core/eval
-                                                           (quote (fn [v] (:foo v))))))
+                                                      (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                        (clojure.core/eval
+                                                          (quote (fn [v] (:foo v))))))
                                                :args [value]
                                                :requires [pigpen.join-test]
                                                :fields [value]
@@ -230,8 +190,8 @@
 (deftest test-cogroup
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (pigpen.join/cogroup ({:fields ['value]} by (fn [x] x))
-                           ({:fields ['value]} by (fn [y] y) required)
+      (pigpen.join/cogroup [({:fields ['value]} :by (fn [x] x))
+                            ({:fields ['value]} :by (fn [y] y) :type :required)]
                            (fn [_ x y] (* x y))
                            {:parallel 2})
       '{:type :bind
@@ -266,7 +226,9 @@
                                   :ancestors [{:type :bind
                                                :id bind1
                                                :description nil
-                                               :func (pigpen.pig/key-selector->bind (fn [x] x))
+                                               :func (pigpen.pig/key-selector->bind
+                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                         (clojure.core/eval (quote (fn [x] x)))))
                                                :args [value]
                                                :requires [pigpen.join-test]
                                                :fields [value]
@@ -286,7 +248,9 @@
                                   :ancestors [{:type :bind
                                                :id bind3
                                                :description nil
-                                               :func (pigpen.pig/key-selector->bind (fn [y] y))
+                                               :func (pigpen.pig/key-selector->bind
+                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                         (clojure.core/eval (quote (fn [y] y)))))
                                                :args [value]
                                                :requires [pigpen.join-test]
                                                :fields [value]
@@ -299,8 +263,8 @@
 (deftest test-join
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (pigpen.join/join ({:fields ['value]} on (fn [x] x))
-                        ({:fields ['value]} on (fn [y] y) optional)
+      (pigpen.join/join [({:fields ['value]} :on (fn [x] x))
+                         ({:fields ['value]} :on (fn [y] y) :type :optional)]
                         (fn [x y] (merge x y))
                         {:parallel 2})
       '{:type :bind
@@ -337,7 +301,9 @@
                                   :ancestors [{:type :bind
                                                :id bind1
                                                :description nil
-                                               :func (pigpen.pig/key-selector->bind (fn [x] x))
+                                               :func (pigpen.pig/key-selector->bind
+                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                         (clojure.core/eval (quote (fn [x] x)))))
                                                :args [value]
                                                :requires [pigpen.join-test]
                                                :fields [value]
@@ -357,7 +323,9 @@
                                   :ancestors [{:type :bind
                                                :id bind3
                                                :description nil
-                                               :func (pigpen.pig/key-selector->bind (fn [y] y))
+                                               :func (pigpen.pig/key-selector->bind
+                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                         (clojure.core/eval (quote (fn [y] y)))))
                                                :args [value]
                                                :requires [pigpen.join-test]
                                                :fields [value]
