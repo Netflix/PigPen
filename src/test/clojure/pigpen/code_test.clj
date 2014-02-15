@@ -59,6 +59,16 @@
     (is (thrown? clojure.lang.Compiler$CompilerException (pig/assert-arity 'f 0)))
     (is (thrown? java.lang.AssertionError (pig/assert-arity nil 2)))))
 
+(deftest test-build-requires
+  (is (= (pig/build-requires [])
+         '(clojure.core/require (quote [pigpen.pig]))))
+  (is (= (pig/build-requires '[foo])
+         '(clojure.core/require (quote [pigpen.pig]))))
+  (is (= (pig/build-requires '[pigpen.code])
+         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code]))))
+  (is (= (pig/build-requires '[pigpen.code pigpen.code-test])
+         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code]) (quote [pigpen.code-test])))))
+
 (defn test-fn [& args]
   (apply + args))  
 

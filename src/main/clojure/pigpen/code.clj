@@ -83,6 +83,14 @@ or reduce."
                  (clojure.java.io/resource %)))
     ns))
 
+(defn build-requires [nss]
+  (->> nss
+    (filter ns-exists)
+    (cons 'pigpen.pig)
+    (distinct)
+    (map (fn [r] `'[~r]))
+    (cons 'clojure.core/require)))
+
 (defn trap* [keys values ns f]
   (let [args (vec (mapcat make-binding keys values))]
     (if (ns-exists (second ns)) ; ns is (quote foo)

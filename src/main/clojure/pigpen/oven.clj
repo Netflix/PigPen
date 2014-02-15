@@ -332,13 +332,7 @@ See pigpen.core and pigpen.exec
         last-field-type  (-> commands last :field-type-out)
         implicit-schema  (some (comp :implicit-schema :opts) commands)
         
-        requires (->> commands
-                   (mapcat :requires)
-                   (filter code/ns-exists)
-                   (cons 'pigpen.pig)
-                   (distinct)
-                   (map (fn [r] `'[~r]))
-                   (cons 'clojure.core/require))
+        requires (code/build-requires (mapcat :requires commands))
         
         func `(pigpen.pig/exec
                 [(pigpen.pig/pre-process ~first-field-type)
