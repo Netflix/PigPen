@@ -31,6 +31,9 @@
 (set! *warn-on-reflection* true)
 
 (defn ^:private quote-select-clause
+  "Takes a sequence of options for a join or group command, converts them into
+a map, and optionally traps specific values. The parameter quotable determines
+which ones should be quoted and trapped."
   [quotable select]
   (->> select
     (partition 2)
@@ -53,17 +56,38 @@
     (raw/generate$ [(raw/projection-field$ 0 'key)
                     (raw/projection-field$ 1 'value)] {})))
 
+(defn fold? [value]
+  (and (-> value meta :pig) (-> value :type #{:fold})))
+
+(defn fold-fn*
+  "See pigpen.core/fold-fn"
+  [requires combinef reducef]
+  (code/assert-arity combinef 0)
+  (code/assert-arity combinef 2)
+  (code/assert-arity reducef 2)
+  (raw/fold$ (code/build-requires requires)
+             `(pig/exec-combinef ~combinef)
+             `(pig/exec-reducef ~((eval combinef)) ~reducef)))
+
+(defn ^:private projection-fold [fold field alias]
+  {:pre [(or (nil? fold) (fold? fold))]}
+  (if fold
+    (raw/projection-func$ alias (raw/code$ "Algebraic" [field] fold))
+    (raw/projection-field$ field alias)))
+
 (defn group*
   "See pigpen.core/group-by, pigpen.core/cogroup"
   [selects requires f opts]
   (let [relations  (mapv (partial select->generate (:join-nils opts) requires) selects)
         keys       (for [r relations] ['key])
         values     (cons 'group (for [r relations] [[(:id r)] 'value]))
+        folds      (mapv projection-fold (cons nil (map :fold selects)) values (repeatedly #(raw/pigsym "field")))
         join-types (mapv #(get % :type :optional) selects)]
     (code/assert-arity f (count values))
     (-> relations
-      (raw/group$ keys join-types opts)
-      (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:args values}))))
+      (raw/group$ keys join-types (dissoc opts :fold))
+      (raw/generate$ folds {})
+      (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:args (mapv :alias folds)}))))
 
 (defn group-all*
   "See pigpen.core/into, pigpen.core/reduce"
@@ -75,6 +99,18 @@
     (-> [relation]
       (raw/group$ keys join-types opts)
       (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:args values}))))
+
+(defn fold*
+  "See pigpen.core/fold"
+  ([relation requires combinef reducef opts]
+    (fold* relation (fold-fn* requires combinef reducef) opts))
+  ([relation fold opts]
+  (let [keys       [raw/group-all$]
+        values     [[[(:id relation)] 'value]]
+        join-types [:optional]]
+    (-> [relation]
+      (raw/group$ keys join-types opts)
+      (raw/generate$ [(projection-fold fold (first values) 'value)] {})))))
 
 (defn join*
   "See pigpen.core/join"
@@ -111,7 +147,7 @@ Optionally takes a map of options.
                 {:from ~relation
                   :key-selector (code/trap '~(ns-name *ns*) ~key-selector)
                   :type :optional}
-                ~(quote-select-clause #{:on :by :key-selector :reducef :combinef}
+                ~(quote-select-clause #{:on :by :key-selector}
                                       (mapcat identity opts)))]
              ['~(ns-name *ns*)]
              '(fn [~'k ~'v] (clojure.lang.MapEntry. ~'k ~'v))
@@ -140,14 +176,60 @@ for further processing.
 
   Note: This operation uses a single reducer and won't work for large datasets.
 
-  See also: pigpen.core/into
+  See also: pigpen.core/fold, pigpen.core/into
 "
   ([f relation]
     `(group-all* ~relation ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) (partial clojure.core/reduce ~f)) {:description ~(util/pp-str f)}))
   ([f val relation]
     `(group-all* ~relation ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) (partial clojure.core/reduce ~f ~val)) {:description ~(util/pp-str f)})))
 
-;; TODO trap locals in key selectors
+(defmacro fold-fn
+  "Creates a pre-defined fold operation. Can be used with cogroup and group-by
+to aggregate large groupings in parallel. See pigpen.core/fold for usage of
+reducef and combinef.
+
+  Example:
+
+    (def count
+      (pig/fold-fn + (fn [acc _] (inc acc))))
+
+    (def sum
+      (pig/fold-fn +))
+
+    (defn sum-by [f]
+      (pig/fold-fn + (fn [acc value] (+ acc (f value)))))
+"
+  ([reducef] `(fold-fn ~reducef ~reducef))
+  ([combinef reducef]
+    `(fold-fn*
+       ['~(ns-name *ns*)]
+       (code/trap '~(ns-name *ns*) ~combinef)
+       (code/trap '~(ns-name *ns*) ~reducef))))
+
+(defmacro fold
+  "Computes a parallel reduce of the relation. This is done in multiple stages
+using reducef and combinef. First, combinef is called with no args to produce a
+seed value. Then, reducef reduces portions of the data using that seed value.
+Finally, combinef is used to reduce each of the intermediate values. If combinef
+is not specified, reducef is used for both. Fold functions defined using fold-fn
+can also be used.
+
+  Example:
+
+    (pig/fold + foo)
+    (pig/fold + (fn [acc _] (inc acc)) foo)
+    (pig/fold (pig/fold-fn + (fn [acc _] (inc acc))) foo)
+"
+  ([reducef relation]
+    `(if (fold? ~reducef)
+       (fold* ~relation ~reducef {})
+       (fold ~reducef ~reducef ~relation)))
+  ([combinef reducef relation]
+    `(fold* ~relation
+            ['~(ns-name *ns*)]
+            (code/trap '~(ns-name *ns*) ~combinef)
+            (code/trap '~(ns-name *ns*) ~reducef)
+            {})))
 
 (defmacro cogroup
   "Joins many relations together by a common key. Each relation specifies a
@@ -181,7 +263,7 @@ collections. The last argument is an optional map of options.
 "
   ([selects f] `(cogroup ~selects ~f {}))
   ([selects f opts]
-    (let [selects# (mapv #(quote-select-clause #{:on :by :key-selector :reducef :combinef} (cons :from %)) selects)]
+    (let [selects# (mapv #(quote-select-clause #{:on :by :key-selector} (cons :from %)) selects)]
       `(group* ~selects# ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) ~f) (assoc ~opts :description ~(util/pp-str f))))))
 
 (defmacro join

@@ -491,6 +491,65 @@
       (exec/debug-script command)
       '[(freeze 12)])))
 
+(deftest test-fold
+  (let [data (io/return [{:k :foo, :v 1}
+                         {:k :foo, :v 2}
+                         {:k :foo, :v 3}
+                         {:k :bar, :v 4}
+                         {:k :bar, :v 5}])]
+    (let [command (->> data
+                    (pig-join/group-by :k
+                                       {:fold (pig-join/fold-fn + (fn [acc value] (+ acc (:v value))))}))]
+      (is (= (set (exec/debug-script command))
+             '#{(freeze [:foo 6])
+                (freeze [:bar 9])})))
+    
+    (let [command (->> data
+                    (pig-join/group-by :k
+                                       {:fold (pig-join/fold-fn (fn ([] 0)
+                                                                  ([a b] (+ a b)))
+                                                                (fn [acc _] (inc acc)))}))]
+      (is (= (set (exec/debug-script command))
+             '#{(freeze [:bar 2])
+                (freeze [:foo 3])})))
+    
+    (let [pig-count (pig-join/fold-fn + (fn [acc _] (inc acc)))
+          command (->> data
+                    (pig-join/group-by :k
+                                       {:fold pig-count}))]
+      (is (= (set (exec/debug-script command))
+             '#{(freeze [:bar 2])
+                (freeze [:foo 3])}))))
+  
+  (let [pig-sum (fn [val-fn] (pig-join/fold-fn + (fn [acc value] (+ acc (val-fn value)))))
+        data0 (io/return [{:k :foo, :a 1}
+                          {:k :foo, :a 2}
+                          {:k :foo, :a 3}
+                          {:k :bar, :a 4}
+                          {:k :bar, :a 5}])
+        data1 (io/return [{:k :foo, :b 1}
+                          {:k :foo, :b 2}
+                          {:k :bar, :b 3}
+                          {:k :bar, :b 4}
+                          {:k :bar, :b 5}])
+        command (pig-join/cogroup [(data0 :on :k, :required true, :fold (pig-sum :a))
+                                   (data1 :on :k, :required true, :fold (pig-sum :b))]
+                                  vector)]
+    (is (= (set (exec/debug-script command))
+           '#{(freeze [:foo 6 3])
+              (freeze [:bar 9 12])})))
+  
+  (let [data (io/return [1 2 3 4])
+        command (pig-join/fold + data)]
+    (is (= (exec/debug-script command)
+           '[(freeze 10)])))
+  
+  (let [pig-count (pig-join/fold-fn + (fn [acc _] (inc acc)))
+        data (io/return [1 2 3 4])
+        command (pig-join/fold pig-count data)]
+    (is (= (exec/debug-script command)
+           '[(freeze 4)]))))
+
 (deftest test-cogroup
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [data1 (io/return-raw

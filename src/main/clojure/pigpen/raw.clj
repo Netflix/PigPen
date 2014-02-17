@@ -86,6 +86,15 @@ building blocks for more complex operations.")
          :init init
          :func func})
 
+(defn fold$
+  "Code for a fold operation"
+  [init combinef reducef]
+  {:pre [combinef reducef]}
+  ^:pig {:type :fold
+         :init init
+         :combinef combinef
+         :reducef reducef})
+
 (defn code$
   "Execute custom code in a script."
   [^Class return args expr]
