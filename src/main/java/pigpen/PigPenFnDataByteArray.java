@@ -18,11 +18,7 @@
 
 package pigpen;
 
-import java.io.IOException;
-
-import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.Tuple;
 
 /**
  * A user function that returns a DataByteArray.
@@ -30,11 +26,5 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnDataByteArray extends EvalFunc<DataByteArray> {
-
-    @Override
-    public DataByteArray exec(final Tuple input) throws IOException {
-
-        return (DataByteArray) ClojureForPigs.invoke(input);
-    }
+public class PigPenFnDataByteArray extends PigPenFn<DataByteArray> {
 }

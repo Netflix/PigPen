@@ -29,10 +29,10 @@ See pigpen.core and pigpen.exec
             [pigpen.pig :as pig])
   (:import [pigpen PigPenException]
            [org.apache.pig EvalFunc]
-           [org.apache.pig.data Tuple DataBag]
+           [org.apache.pig.data Tuple DataBag DataByteArray]
            [rx Observable Observer Subscription]
            [rx.concurrency Schedulers]
-           [rx.observables GroupedObservable]
+           [rx.observables GroupedObservable BlockingObservable]
            [rx.util.functions Action0]
            [java.util.regex Pattern]
            [java.io Writer]
@@ -40,11 +40,20 @@ See pigpen.core and pigpen.exec
 
 (set! *warn-on-reflection* true)
 
+(defn dereference
+  "Pig handles tuples implicitly. This gets the first value if the field is a tuple."
+  ([value] (dereference value 0))
+  ([value index]
+    (if (instance? Tuple value)
+      (.get ^Tuple value index)
+      value)))
+
+;; TODO add option to skip this for faster execution
 (defn ^:private eval-code [{:keys [return expr args]} values]
   (let [{:keys [init func]} expr
         ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.PigPenFn" return))))
         ^Tuple tuple (->> args
-                       (mapv #(if ((some-fn symbol? vector?) %) (values %) %))
+                       (map #(if ((some-fn symbol? vector?) %) (dereference (values %)) %))
                        (concat [(str init) (str func)])
                        (apply pig/tuple))]
     (try
@@ -99,9 +108,35 @@ See pigpen.core and pigpen.exec
       (let [[id _ :as o] (some (find-next-o (into {} observables)) (vals command-lookup))]
         (recur (dissoc command-lookup id) (conj observables o))))))
 
+(defn ^Observable dereference-all [^Observable o]
+  (.map o #(->> %
+             (map (fn [[k v]] [k (dereference v)]))
+             (into {}))))
+
+(defn observable->clj [^Observable o]
+  (-> o
+    BlockingObservable/toIterable
+    seq
+    vec))
+
+(defn ^Observable observable->data [^Observable o]
+  (-> o
+    (dereference-all)
+    (.map (comp 'value pig/thaw-values))
+    observable->clj))
+
+(defn ^Observable observable->raw-data [^Observable o]
+  (-> o
+    (dereference-all)
+    (.map pig/thaw-anything)
+    observable->clj))
+
 ;; ********** Util **********
 
 (defmethod graph->local :register [_ _]
+  (Observable/just nil))
+
+(defmethod graph->local :option [_ _]
   (Observable/just nil))
 
 ;; ********** IO **********
@@ -148,10 +183,11 @@ See pigpen.core and pigpen.exec
                  (println "Start writing to PigStorage:" location)
                  (io/writer location))]
     (-> data
+      (dereference-all)
       (.filter
         (fn [value]
           (let [line (str (clojure.string/join "\t" (for [f fields] (str (f value)))) "\n")]
-            (.write ^Writer @writer line)) 
+            (.write ^Writer @writer line))
           false))
       (.finallyDo
         (reify Action0
@@ -171,7 +207,10 @@ See pigpen.core and pigpen.exec
 ;; ********** Map **********
 
 (defmethod graph->local :projection-field [{:keys [field alias]} values]
-  [{alias (field values)}])
+  (cond
+    (symbol? field) [{alias (field values)}]
+    (number? field) [{alias (dereference (first (vals values)) field)}]
+    :else (throw (IllegalStateException. (str "Unknown field " field)))))
 
 (defmethod graph->local :projection-func [{:keys [code alias]} values]
   [{alias (eval-code code values)}])
@@ -181,7 +220,7 @@ See pigpen.core and pigpen.exec
     (cond
       ;; Following Pig logic, Bags are actually flattened
       (instance? DataBag result) (for [v' result]
-                                   {alias (.get ^Tuple v' 0)})
+                                   {alias v'})
       ;; While Tuples just expand their elements
       (instance? Tuple result) (->>
                                  (.getAll ^Tuple result)

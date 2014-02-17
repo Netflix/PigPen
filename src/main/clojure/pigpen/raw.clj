@@ -30,8 +30,9 @@ building blocks for more complex operations.")
 (defn ^:private field?
   "Determines if a symbol is a valid pig identifier"
   [id]
-  (boolean (and (symbol? id)
-                (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))))
+  (boolean (or (and (symbol? id)
+                    (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))
+               (number? id))))
 
 ;; **********
 
@@ -67,6 +68,14 @@ building blocks for more complex operations.")
   {:pre [(string? jar)]}
   ^:pig {:type :register
          :jar jar})
+
+(defn option$
+  "A Pig option. Takes the name and a value. Not used locally."
+  [option value]
+  {:pre [(string? option)]}
+  ^:pig {:type :option
+         :option option
+         :value value})
 
 (defn expr$
   "Code to be passed to the UDF"
@@ -188,17 +197,18 @@ building blocks for more complex operations.")
            :fields (mapv :alias projections))))
 
 (defn bind$
-  [relation func opts]
-  {:pre [func]}
-  (->
-    (command :bind relation (dissoc opts :args :requires :alias :field-type-in :field-type-out))
-    (dissoc :field-type)
-    (assoc :func func
-           :args (vec (get opts :args ['value]))
-           :requires (vec (get opts :requires []))
-           :fields [(get opts :alias 'value)]
-           :field-type-in (get opts :field-type-in :frozen)
-           :field-type-out (get opts :field-type-out :frozen))))
+  ([relation func opts] (bind$ relation [] func opts))
+  ([relation requires func opts]
+    {:pre [func]}
+    (->
+      (command :bind relation (dissoc opts :args :requires :alias :field-type-in :field-type-out))
+      (dissoc :field-type)
+      (assoc :func func
+             :args (vec (get opts :args ['value]))
+             :requires (vec (concat requires (:requires opts)))
+             :fields [(get opts :alias 'value)]
+             :field-type-in (get opts :field-type-in :frozen)
+             :field-type-out (get opts :field-type-out :frozen)))))
 
 (defn order$
   [relation sort-keys opts]
@@ -263,7 +273,9 @@ building blocks for more complex operations.")
 
 (defn union$
   [ancestors opts]
-  (command :union ancestors (-> ancestors first :fields) opts))
+  (if-not (next ancestors)
+    (first ancestors)
+    (command :union ancestors (-> ancestors first :fields) opts)))
 
 ;; ********** Join **********
 

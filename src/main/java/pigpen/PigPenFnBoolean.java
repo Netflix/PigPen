@@ -18,10 +18,6 @@
 
 package pigpen;
 
-import java.io.IOException;
-
-import org.apache.pig.EvalFunc;
-import org.apache.pig.data.Tuple;
 
 /**
  * A user function that returns a Boolean.
@@ -29,11 +25,5 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnBoolean extends EvalFunc<Boolean> {
-
-    @Override
-    public Boolean exec(final Tuple input) throws IOException {
-
-        return (Boolean) ClojureForPigs.invoke(input);
-    }
+public class PigPenFnBoolean extends PigPenFn<Boolean> {
 }

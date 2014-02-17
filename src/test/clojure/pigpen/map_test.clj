@@ -41,7 +41,7 @@
                         (clojure.core/let [bar (quote 2)]
                           (fn [v] v))))))
           :args [value]
-          :requires [pigpen.pig pigpen.map-test]
+          :requires [pigpen.map-test]
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
@@ -65,11 +65,12 @@
           :id bind1
           :description "(fn [v] [v])\n"
           :ancestors [{:fields [value]}]
-          :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
-                  (clojure.core/eval
-                    (quote (fn [v] [v]))))
+          :func (pigpen.pig/mapcat->bind
+                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
+                    (clojure.core/eval
+                      (quote (fn [v] [v])))))
           :args [value]
-          :requires [pigpen.pig pigpen.map-test]
+          :requires [pigpen.map-test]
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
@@ -85,10 +86,9 @@
           :description nil
           :func (pigpen.pig/map->bind
                   (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
-                    (clojure.core/eval
-                      (quote vector))))
+                    (clojure.core/eval (quote vector))))
           :args [$0 value]
-          :requires [pigpen.pig pigpen.map-test]
+          :requires [pigpen.map-test]
           :fields [value]
           :field-type-out :frozen
           :field-type-in :frozen
@@ -108,62 +108,64 @@
       (test-diff
         (pig/sort r)
         '{:type :order
-          :id order2
+          :id order3
           :description nil
           :fields [value]
           :field-type :frozen
-          :opts {:type :order-opts
-                 :requires [pigpen.pig]}
+          :opts {:type :order-opts}
           :sort-keys [key :asc]
           :ancestors [{:type :generate
-                       :id generate1
+                       :id generate2
                        :description nil
-                       :ancestors [{:fields [value]}]
                        :fields [key value]
                        :field-type :frozen
                        :opts {:type :generate-opts}
-                       :projections [{:type :projection-flat
-                                      :code {:type :code
-                                             :expr {:init (clojure.core/require (quote pigpen.pig))
-                                                    :func (pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind clojure.core/identity)])}
-                                             :return "DataBag"
-                                             :args [value]}
-                                      :alias key}
-                                     {:type :projection-field
-                                      :field value
-                                      :alias value}]}]}))))
+                       :projections [{:type :projection-field, :field 0, :alias key}
+                                     {:type :projection-field, :field 1, :alias value}]
+                       :ancestors [{:type :bind
+                                    :id bind1
+                                    :description nil
+                                    :func (pigpen.pig/key-selector->bind clojure.core/identity)
+                                    :args [value]
+                                    :requires []
+                                    :fields [value]
+                                    :field-type-in :frozen
+                                    :field-type-out :sort
+                                    :ancestors [{:fields [value]}]
+                                    :opts {:type :bind-opts
+                                           :implicit-schema true}}]}]}))))
 
 (deftest test-sort-by
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [^:local r {:fields '[value]}]
       (test-diff
         (pig/sort-by :a r)
-        '{
-          :type :order
-          :id order2
+        '{:type :order
+          :id order3
           :description ":a\n"
           :fields [value]
           :field-type :frozen
-          :opts {:type :order-opts
-                 :requires [pigpen.pig pigpen.map-test]}
+          :opts {:type :order-opts}
           :sort-keys [key :asc]
           :ancestors [{:type :generate
-                       :id generate1
+                       :id generate2
                        :description nil
-                       :ancestors [{:fields [value]}]
                        :fields [key value]
                        :field-type :frozen
                        :opts {:type :generate-opts}
-                       :projections [{:type :projection-flat
-                                      :code {:type :code
-                                             :expr {:init (clojure.core/require (quote pigpen.pig) (quote pigpen.map-test))
-                                                    :func (pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind
-                                                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
-                                                                                                      (clojure.core/eval
-                                                                                                        (quote :a))))])}
-                                             :return "DataBag"
-                                             :args [value]}
-                                      :alias key}
-                                     {:type :projection-field
-                                      :field value
-                                      :alias value}]}]}))))
+                       :projections [{:type :projection-field, :field 0, :alias key}
+                                     {:type :projection-field, :field 1, :alias value}]
+                       :ancestors [{:type :bind
+                                    :id bind1
+                                    :description nil
+                                    :func (pigpen.pig/key-selector->bind
+                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.map-test))]
+                                              (clojure.core/eval (quote :a))))
+                                    :args [value]
+                                    :requires [pigpen.map-test]
+                                    :fields [value]
+                                    :field-type-in :frozen
+                                    :field-type-out :sort
+                                    :ancestors [{:fields [value]}]
+                                    :opts {:type :bind-opts
+                                           :implicit-schema true}}]}]}))))

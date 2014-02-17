@@ -26,12 +26,6 @@ or reduce."
 
 (set! *warn-on-reflection* true)
 
-(defn object-projection [alias args f]
-  (raw/projection-flat$ alias
-    (raw/code$ DataBag args
-      (raw/expr$ `(require '[pigpen.pig])
-                 `(pigpen.pig/exec-multi :frozen :native [(pigpen.pig/map->bind ~f)])))))
-
 (defn arity
   "Returns the arities of the invoke methods for f.
    Also returns the minimum varargs arity"
@@ -69,14 +63,15 @@ or reduce."
       (str "Expecting arity: " n " Found arities: "
            (pr-str (format-arity fixed varargs))))))
 
+;; TODO add an option to make the default include/exclude configurable
+
 (defn ^:private make-binding [k v]
-  (let [{:keys [local]} (meta k)
-        {:keys [pig]} (meta v)]
-    (cond
-      (fn? v) nil
-      pig nil
-      local nil
-      :else [k `(quote ~v)])))
+  (cond
+    (fn? v) nil
+    (:pig (meta v)) nil
+    (:local (meta v)) nil
+    (:local (meta k)) nil
+    :else [k `(quote ~v)]))
 
 (defn ns-exists
   "Returns the ns if it exists as a resource"

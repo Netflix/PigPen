@@ -44,6 +44,14 @@
   (is (thrown? AssertionError (register$ 'foo)))
   (is (thrown? AssertionError (register$ :foo))))
 
+(deftest test-option$
+
+  (test-diff
+    (option$ "foo" 123)
+    '{:type :option
+      :option "foo"
+      :value 123}))
+
 (deftest test-code$
   (test-diff
     (code$ String ["a" 'b '[c d]]
@@ -184,12 +192,12 @@
 (deftest test-bind$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (bind$ {:fields ['value]} `identity {})
+      (bind$ {:fields ['value]} '[pigpen.raw-test] `identity {})
       '{:type :bind
         :id bind0
         :description nil
         :ancestors [{:fields [value]}]
-        :requires []
+        :requires [pigpen.raw-test]
         :func clojure.core/identity
         :args [value]
         :fields [value]
@@ -197,9 +205,8 @@
         :field-type-out :frozen
         :opts {:type :bind-opts}})
     (test-diff
-      (bind$ {:fields ['key 'value]} `identity
+      (bind$ {:fields ['key 'value]} ['my-ns] `identity
              {:args ['key 'value]
-              :requires ['my-ns]
               :alias 'val
               :field-type-in :native
               :field-type-out :native})

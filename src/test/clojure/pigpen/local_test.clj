@@ -37,12 +37,15 @@
 
 (deftest test-eval-code
   
-  (let [code (raw/code$ DataByteArray '[x y]
+  (let [code (raw/code$ DataBag '[x y]
                (raw/expr$ '(require (quote [pigpen.pig]))
-                          '(pigpen.pig/exec :frozen :frozen (fn [x y] (+ x y)))))
+                          '(pigpen.pig/exec
+                             [(pigpen.pig/pre-process :frozen)
+                              (pigpen.pig/map->bind (fn [x y] (+ x y)))
+                              (pigpen.pig/post-process :frozen)])))
         values (freeze-vals {'x 37, 'y 42})]
     (is (= (thaw-anything (#'pigpen.local/eval-code code values))
-           '(freeze 79)))))
+           '(bag (tuple (freeze 79)))))))
 
 (deftest test-cross-product
   

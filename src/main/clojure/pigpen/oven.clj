@@ -117,10 +117,23 @@ See pigpen.core and pigpen.exec
 
 ;; **********
 
+(defn ^:private extract-*
+  "Extract something from commands and create new commands at
+   the head of the list."
+  [extract create commands]
+  {:pre [(ifn? extract) (ifn? create) (sequential? commands)]}
+  (concat
+    (->> commands
+      (mapcat extract)
+      (distinct)
+      (map create))
+    commands))
+
 (defn ^:private command->references
   "Gets any references required for a command"
   [command]
   (case (:type command)
+    ;; TODO make this name dynamic
     :code ["pigpen.jar"]
     :bind ["pigpen.jar"]
     :storage (:references command)
@@ -128,6 +141,23 @@ See pigpen.core and pigpen.exec
     (:projection-func filter) (command->references (:code command))
     :generate (->> command :projections (mapcat command->references))
     nil))
+
+(defn ^:private command->options
+  "Gets any options required for a command"
+  [command]
+  (-> command :opts :pig-options))
+
+(defn ^:private extract-references
+  "Extract all references from commands and create new reference commands at
+   the head of the list."
+  [commands]
+  (extract-* command->references raw/register$ commands))
+
+(defn ^:private extract-options
+  "Extract all options from commands and create new option commands at
+   the head of the list."
+  [commands]
+  (extract-* command->options (fn [[o v]] (raw/option$ o v)) commands))
 
 ;; **********
 
@@ -146,19 +176,6 @@ See pigpen.core and pigpen.exec
     (ancestors)
     (map tree->command)
     (reverse)))
-
-;; **********
-
-(defn ^:private extract-references
-  "Extract all references from commands and create new reference commands at
-   the head of the list."
-  [commands]
-  (concat 
-    (->> commands
-      (mapcat command->references)
-      (distinct)
-      (map raw/register$))
-    commands))
 
 ;; **********
 
@@ -193,7 +210,7 @@ See pigpen.core and pigpen.exec
    distinct commands, find the first two that can be merged, and merge them to
    produce graph'. Rinse & repeat until there are no more duplicate commands."
   [commands]
-  (let [distinct-commands (distinct commands)
+  (let [distinct-commands (vec (distinct commands))
         next-merge (next-match distinct-commands)]
     (if next-merge
       (recur (merge-command distinct-commands next-merge))
@@ -270,7 +287,7 @@ See pigpen.core and pigpen.exec
   [command location]
   (when-let [field-type (or (:field-type command) (:field-type-out command))]
     (-> command
-      (raw/bind$ `(pigpen.pig/map->bind pigpen.pig/debug)
+      (raw/bind$ [] `(pigpen.pig/map->bind pigpen.pig/debug)
                  {:args (:fields command), :field-type-in field-type, :field-type-out :native})
       ;; TODO Fix the location of store commands to match generates instead of binds
       (raw/store$ (str location (:id command)) raw/default-storage {}))))
@@ -307,22 +324,26 @@ See pigpen.core and pigpen.exec
             [[] [] []] commands)))
 
 (defn ^:private bind->generate [commands]
+  ;; TODO make sure all inner field types are :frozen
   (let [first-relation   (-> commands first :ancestors first)
         first-args       (-> commands first :args)
         first-field-type (-> commands first :field-type-in)
         last-field       (-> commands last :fields first)
         last-field-type  (-> commands last :field-type-out)
+        implicit-schema  (some (comp :implicit-schema :opts) commands)
         
         requires (->> commands
                    (mapcat :requires)
-                   (filter identity)
+                   (filter code/ns-exists)
                    (cons 'pigpen.pig)
                    (distinct)
                    (map (fn [r] `'[~r]))
                    (cons 'clojure.core/require))
         
-        func `(pigpen.pig/exec-multi ~first-field-type ~last-field-type
-                                     ~(mapv :func commands))
+        func `(pigpen.pig/exec
+                [(pigpen.pig/pre-process ~first-field-type)
+                 ~@(mapv :func commands)
+                 (pigpen.pig/post-process ~last-field-type)])
         
         projection (raw/projection-flat$ last-field
                      (raw/code$ DataBag first-args
@@ -331,7 +352,8 @@ See pigpen.core and pigpen.exec
         description (->> commands (map :description) (clojure.string/join))]
   
     (raw/generate$* first-relation [projection] {:field-type last-field-type
-                                                 :description description})))
+                                                 :description description
+                                                 :implicit-schema implicit-schema})))
 
 (defn ^:private optimize-binds [commands]
   (if (= 1 (count commands))
@@ -368,7 +390,7 @@ See pigpen.core and pigpen.exec
 (defn ^:private clean
   "Some optimizations produce unused commands. This prunes them from the graph."
   [commands]
-  (let [register-commands (filter #(-> % :type (= :register)) commands)
+  (let [register-commands (filter #(-> % :type #{:register :option}) commands)
         referenced-commands (->> commands
                               (mapcat :ancestors) ;; Get all referenced commands
                               (concat register-commands) ;; Add register commands
@@ -387,9 +409,10 @@ See pigpen.core and pigpen.exec
   [script opts]
   {:pre [(map? script) (map? opts)]}
   (cond-> script
-    (:debug opts) (debug (:debug opts))
+    (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
     true braise
     true merge-order-rank
+    true extract-options
     true extract-references
     (not= false (:dedupe opts)) dedupe
     (not= false (:prune opts)) trim-fat

@@ -18,11 +18,7 @@
 
 package pigpen;
 
-import java.io.IOException;
-
-import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Tuple;
 
 /**
  * A user function that returns a DataBag.
@@ -30,11 +26,5 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnDataBag extends EvalFunc<DataBag> {
-
-    @Override
-    public DataBag exec(final Tuple input) throws IOException {
-
-        return (DataBag) ClojureForPigs.invoke(input);
-    }
+public class PigPenFnDataBag extends PigPenFn<DataBag> {
 }

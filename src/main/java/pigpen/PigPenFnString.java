@@ -18,10 +18,6 @@
 
 package pigpen;
 
-import java.io.IOException;
-
-import org.apache.pig.EvalFunc;
-import org.apache.pig.data.Tuple;
 
 /**
  * A user function that returns a String.
@@ -29,11 +25,5 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnString extends EvalFunc<String> {
-
-    @Override
-    public String exec(final Tuple input) throws IOException {
-
-        return (String) ClojureForPigs.invoke(input);
-    }
+public class PigPenFnString extends PigPenFn<String> {
 }

@@ -24,16 +24,19 @@ possible as it's used at runtime."
   (:require [clojure.string :as string]
             [clojure.edn :as edn]
             [clojure.data.json :as json]
+            [clojure.core.async :as a]
             [clj-time.format :as time]
             [instaparse.core :as insta]
-            [taoensso.nippy :refer [freeze thaw]])
+            [taoensso.nippy :refer [freeze thaw]]
+            [pigpen.util :as util])
   (:import [pigpen PigPenException]
            [org.apache.pig.data
             DataByteArray
             Tuple TupleFactory
             DataBag BagFactory]
            [java.util List Map]
-           [clojure.lang Keyword IPersistentVector]))
+           [clojure.lang Keyword IPersistentVector]
+           [clojure.core.async.impl.protocols Channel]))
 
 (set! *warn-on-reflection* true)
 
@@ -273,6 +276,9 @@ STRING    = #'[^\\,\\)\\}\\]\\#]+'
   ;; This is flattened to help with dereferenced fields that result in a bag of a single tuple
   (->> value (.iterator) iterator-seq (mapcat hybrid->clojure)))
 
+(defmethod hybrid->clojure Channel [value]
+  (->> value util/safe-<!! (map hybrid->clojure)))
+
 ;; **********
 
 (defmulti native->clojure
@@ -371,12 +377,10 @@ serialization info."
   (thaw (.get value)))
 
 (defmethod thaw-values Tuple [^Tuple value]
-  (let [v (->> value (.getAll) (mapv thaw-values))]
-    (vec v)))
+  (->> value (.getAll) (mapv thaw-values)))
 
 (defmethod thaw-values DataBag [^DataBag value]
-  (let [v (->> value (.iterator) iterator-seq (map thaw-values))]
-    (list* v)))
+  (->> value (.iterator) iterator-seq (map thaw-values)))
 
 ;; **********
 
@@ -397,17 +401,110 @@ serialization info."
     ;; This allows any problem with user code to pass through.
     (catch Throwable z (throw (PigPenException. z)))))
 
+(defn ^:private bag->chan
+  "Takes a bag & pushes the values to a channel. Blocks until the values are consumed."
+  [ch ^DataBag bag]
+  ;; We flatten tuples in bags as they only ever have a single value
+  ;; This matches the behavior of hybrid->clojure
+  (doseq [^Tuple t (-> bag (.iterator) iterator-seq)
+          value (.getAll t)]
+    (util/safe->!! ch value)))
+
+(defn ^:private lazy-bag-args
+  "Takes a seq of args. Returns two arg vectors. The first is new arguments,
+replacing bags with channel-based lazy bags. The second is the channels
+corresponding to the new lazy bags. The second will contain nils for any non-bag
+args."
+  [args]
+  (->> args
+    (map (fn [a] (if (instance? DataBag a)
+                   ;; TODO tune this
+                   (let [c (a/chan java.lang.Long/MAX_VALUE)]
+                     [(util/safe-go (util/chan->lazy-seq c)) c])
+                   [a nil])))
+    (apply map vector)))
+
+(defn ^:private create-accumulate-state
+  "Creates a new accumulator state. This is a vector with two elements. The
+first is the channels to pass future values to. The second is a channel
+containing the singe value of the result."
+  [^Tuple tuple]
+  (let [[init func & args] (.getAll tuple)]
+    ;; Run init code if present
+    (when (not-empty init)
+      (eval-string init))
+    ;; Make new lazy bags & create a result channel
+    (let [[args* input-bags] (lazy-bag-args args)
+          ;; Start result evaluation asynchronously, it will block on lazy bags
+          result (util/safe-go ((eval-string func) args*))]      
+      [input-bags result])))
+
+(defn udf-accumulate
+  "Evaluates a pig tuple as a clojure function. The first element of the tuple
+is any initialization code. The second element is the function to be called.
+Any remaining args are passed to the function as a collection.
+
+This makes use of the Pig Accumulator interface to gradually consume bags. Each
+bag argument is converted into a lazy seq via a core.async channel. This
+function returns the state of the accumulation - a tuple of two elements. The
+first is a vector of channels corresponding to each bag argument. The second is
+a channel with the single value result.
+
+This is intended to be called multiple times. For the first call, the first arg,
+state, should be nil. On subsequent calls, pass the value returned by this
+function as the state. Each subsequent call is expected to have identical args
+except for bag, which will contain new values. Non-bag values are ignored and
+the bag values are pushed into their respective channels."
+  [[input-bags result] ^Tuple tuple]
+  (try
+    (if-not result ; have we started processing this value yet?
+
+      ;; create new channels
+      (let [state (create-accumulate-state tuple)]
+        (udf-accumulate state tuple) ;; actually push the initial values
+        state)
+
+      ;; push values to existing channels
+      (let [[_ _ & args] (.getAll tuple)]
+        (doall
+          (map (fn [input-bag arg]
+                 (when input-bag ; arg was a bag
+                   (bag->chan input-bag arg)))
+               input-bags args))
+        [input-bags result]))
+
+    ;; Errors (like AssertionError) hang the interop layer.
+    ;; This allows any problem with user code to pass through.
+    (catch Throwable z (throw (PigPenException. z)))))
+
+(defn udf-get-value
+  "Returns the result value of an accumulation. Closes each input bag and
+returns the single value in the result channel."
+  [[input-bags result]]
+  {:pre [(util/channel? result)]}
+  (doseq [b input-bags
+          :when b]
+    (a/close! b))
+  (util/safe-<!! result))
+
+(defn udf-cleanup
+  "Cleans up any accumulator state by closing the result channel. Returns nil
+as the initial state for the next accumulation."
+  [[input-bags result]]
+  {:post [(nil? %)]}
+  (try
+    (when result
+      (a/close! result))
+    (catch Throwable z (throw (RuntimeException. z)))))
+
 ;; **********
 
-(defn map->bind [f]
-  (fn [& args]
-    [(apply f args)]))
+(defn ^:private pig-freeze [value]
+  (DataByteArray. (freeze value {:legacy-mode true})))
 
-(defn filter->bind [f]
-  (fn [& args]
-    (if-let [result (apply f args)]
-      args
-      [])))
+(defn ^:private pig-freeze-with-nils [value]
+  (if value
+    (pig-freeze value)))
 
 (defn args->map
   "Returns a fn that converts a list of args into a map of named parameter
@@ -419,54 +516,87 @@ serialization info."
       (map (fn [[k v]] [(keyword k) (f v)]))
       (into {}))))
 
-(defn ^:private pig-freeze [value]
-  (DataByteArray. (freeze value)))
-
-(defn ^:private pig-freeze-with-nils [value]
-  (if value
-    (pig-freeze value)))
-
-(defn ^:private pre-process [type value]
-  (case type
-    :frozen (hybrid->clojure value)
-    :native value))
-
-(defn ^:private post-process [type value]
-  (case type
-    :frozen (pig-freeze value)
-    :frozen-with-nils (pig-freeze-with-nils value)
-    :native value))
-
-(defn exec
-  "Optionally thaws args, applies f, and optionally freezes the result."
-  [field-type-in field-type-out f]
-  (fn [args]
-    (->> args
-      (map (partial pre-process field-type-in))
-      (apply f)
-      (post-process field-type-out))))
-
-(defn exec-multi
-  "Optionally thaws args, applies the composition of fs, flattening
-   intermediate results, and optionally freezes the result. Each f must
-   produce a seq-able output that is flattened as input to the next command."
-  [field-type-in field-type-out fs]
-  (fn [args]
-    (let [args' (mapv (partial pre-process field-type-in) args)]
-      (->>
-        (reduce (fn [vs f]
-                  (apply concat
-                         (for [v vs]
-                           (map vector (apply f v))))) [args'] fs)
-        ;; TODO why not just call tuple here?
-        (map (comp (partial apply tuple)
-                   vector
-                   (partial post-process field-type-out)
-                   first))
-        (apply bag)))))
-
 (defn debug [& args]
   "Creates a debug string for the tuple"
   (try
     (->> args (mapcat (juxt type str)) (string/join "\t"))
     (catch Exception z (str "Error getting value: " z))))
+
+;; **********
+
+(defn map->bind
+  "Wraps a map function so that it can be consumed by PigPen"
+  [f]
+  (fn [args]
+    [[(apply f args)]])) ;; wrap twice - single value, single arg to next fn
+
+(defn mapcat->bind
+  "Wraps a mapcat function so that it can be consumed by PigPen"
+  [f]
+  (fn [args]
+    (map vector (apply f args)))) ;; wrap each value as arg to next fn
+
+(defn filter->bind
+  "Wraps a filter function so that it can be consumed by PigPen"
+  [f]
+  (fn [args]
+    (if-let [result (apply f args)]
+      [args] ;; wrap as arg to next fn
+      [])))
+
+(defn key-selector->bind
+  "Returns a tuple of applying f to args and the first arg."
+  [f]
+  (fn [args]
+    [[(apply f args) (first args)]])) ;; wrap twice - single value, two args to next fn
+
+(defn keyword-field-selector->bind
+  "Selects a set of fields from a map and projects them as Pig fields. Takes a
+single arg, which is a map with keyword keys."
+  [fields]
+  (fn [args]
+    (let [values (first args)]
+      [(map values fields)])))
+
+(defn indexed-field-selector->bind
+  "Selects the first n fields and projects them as Pig fields. Takes a
+single arg, which is sequential. Applies f to the remaining args."
+  [n f]
+  (fn [args]
+    (let [values (first args)]
+      [(concat
+         (take n values)
+         [(f (drop n values))])])))
+
+(defn pre-process
+  "Optionally deserializes incoming data"
+  [type]
+  (fn [args]
+    [(for [value args]
+       (case type
+         :frozen (hybrid->clojure value)
+         :native value))]))
+
+(defn post-process
+  "Serializes outgoing data"
+  [type]
+  (fn [args]
+    (if (= type :sort)
+      (let [[key value] args]
+        [[key (pig-freeze value)]])
+      [(for [value args]
+         (case type
+           :frozen (pig-freeze value)
+           :frozen-with-nils (pig-freeze-with-nils value)
+           :native value))])))
+
+(defn exec
+  "Applies the composition of fs, flattening intermediate results. Each f must
+produce a seq-able output that is flattened as input to the next command. The
+result is wrapped in a tuple and bag."
+  [fs]
+  (fn [args]
+    (->>
+      (reduce (fn [vs f] (mapcat f vs)) [args] fs)
+      (map (partial apply tuple))
+      (apply bag))))

@@ -51,7 +51,7 @@ each input field. The data is returned as a map with 'fields' as the keys.
   [location fields]
   `(->
      (raw/load$ ~location '~fields raw/default-storage {:cast "chararray"})
-     (raw/bind$ '(pigpen.pig/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
+     (raw/bind$ [] '(pigpen.pig/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
                 {:args '~(clojure.core/mapcat (juxt str identity) fields)
                  :field-type-in :native})))
 
@@ -68,8 +68,8 @@ be parsed using clojure.edn/read-string into a value.
   [location]
   `(->
      (raw/load$ ~location '~['value] raw/default-storage {:cast "chararray"})
-     (raw/bind$ '(pigpen.pig/map->bind clojure.edn/read-string)
-                {:requires '[clojure.edn], :field-type-in :native})))
+     (raw/bind$ '[clojure.edn] '(pigpen.pig/map->bind clojure.edn/read-string)
+                {:field-type-in :native})))
 
 (defn load-tsv
   "Loads data from a tsv file. Each line is returned as a vector of strings,
@@ -89,7 +89,7 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
   ([location delimiter]
     (->
       (raw/load$ location ['value] (raw/storage$ [] "PigStorage" ["\\u0000"]) {:cast "chararray"})
-      (raw/bind$ `(pigpen.pig/map->bind (fn [~'s] (if ~'s (clojure.string/split ~'s ~delimiter))))
+      (raw/bind$ [] `(pigpen.pig/map->bind (fn [~'s] (if ~'s (clojure.string/split ~'s ~delimiter))))
                  {:field-type-in :native}))))
 
 ;; TODO fix the regex inversion
@@ -110,7 +110,7 @@ the specified delimiter. The default delimiter is \\t.
     (let [delimiter (java.util.regex.Pattern/compile (str "[^" delimiter "]"))]
       (->
         (raw/load$ location ['value] (raw/storage$ [] "PigStorage" ["\\u0000"]) {:cast "chararray"})
-        (raw/bind$ `(pigpen.pig/map->bind (fn [~'s] (re-seq ~delimiter ~'s)))
+        (raw/bind$ [] `(pigpen.pig/map->bind (fn [~'s] (re-seq ~delimiter ~'s)))
                    {:field-type-in :native})))))
 
 (defn store-binary
@@ -132,7 +132,7 @@ unless debugging scripts."
 "
   [location relation]
   `(-> ~relation
-     (raw/bind$ '(pigpen.pig/map->bind (comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
+     (raw/bind$ [] '(pigpen.pig/map->bind (comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
                 {:args (:fields ~relation), :field-type-out :native})
      (raw/store$ ~location raw/default-storage {})))
 
@@ -150,7 +150,7 @@ written as a single line.
 "
   [location relation]
   `(-> ~relation
-     (raw/bind$ `(pigpen.pig/map->bind pr-str)
+     (raw/bind$ [] `(pigpen.pig/map->bind pr-str)
                 {:args (:fields ~relation), :field-type-out :native})
      (raw/store$ ~location raw/default-storage {})))
 
@@ -171,7 +171,7 @@ Single string values are not quoted. You may optionally pass a different delimit
   ([location relation] (store-tsv location "\t" relation))
   ([location delimiter relation]
     (-> relation
-      (raw/bind$ `(pigpen.pig/map->bind (fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))))
+      (raw/bind$ [] `(pigpen.pig/map->bind (fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))))
                  {:args (:fields relation), :field-type-out :native})
       (raw/store$ location raw/default-storage {}))))
 

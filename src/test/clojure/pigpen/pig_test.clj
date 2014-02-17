@@ -21,7 +21,9 @@
         pigpen.pig)
   (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
             [clj-time.format :as time]
-            [taoensso.nippy :refer [freeze thaw]])
+            [taoensso.nippy :refer [freeze thaw]]
+            [clojure.core.async :as a]
+            [pigpen.util :as util])
   (:import [org.apache.pig.data
             DataByteArray
             Tuple TupleFactory
@@ -296,79 +298,242 @@
 
 ; *****************
 
-(deftest test-map->bind
-  (let [f (map->bind +)]
-    (is (= (f 1 2 3) [6]))
-    (is (= (f 2 4 6) [12]))))
+(deftest test-bag->chan
+  (let [c (a/chan 5)
+        b (bag (tuple 1) (tuple "a"))]
+    (#'pigpen.pig/bag->chan c b)
+    (is (= (a/<!! c) 1))
+    (is (= (a/<!! c) "a"))))
 
-(deftest test-filter->bind
-  (let [f (filter->bind even?)]
-    (is (= (f 1) []))
-    (is (= (f 2) [2]))
-    (is (= (f 3) []))
-    (is (= (f 4) [4]))))
+(deftest test-lazy-bag-args
+  (let [b (bag (tuple 1) (tuple "a"))
+        args [b 2 "b"]
+        [args* input-bags] (#'pigpen.pig/lazy-bag-args args)
+        [a0 a1 a2] args*
+        [i0 i1 i2] input-bags]
+    (is (util/channel? a0))
+    (is (= a1 2))
+    (is (= a2 "b"))
+    (is (util/channel? i0))
+    (is (nil? i1))
+    (is (nil? i2))))
+
+(deftest test-create-accumulate-state
+  (let [b (bag (tuple 1) (tuple "a"))
+        t (tuple (str '(require '[clojure.core.async :as a]))
+                 (str '(fn [[x y z]] [(a/<!! x) y z])) b 2 "b")
+        [input-bags result] (#'pigpen.pig/create-accumulate-state t)
+        [i0 i1 i2] input-bags]
+    (is (util/channel? i0))
+    (is (nil? i1))
+    (is (nil? i2))
+    (is (util/channel? result))))
+
+(deftest test-accumulate
+  
+  (testing "1 bag"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (apply bag (map tuple (range 100))) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [(range 100) 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "2 bags"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (apply bag (map tuple (range 100))) 2 "b")
+          t' (tuple (str '(require '[clojure.core.async :as a]))
+                    (str '(fn [[x y z]] [(a/<!! x) y z]))
+                    (apply bag (map tuple (range 100 200))) 2 "b")
+          state (udf-accumulate nil t)
+          state (udf-accumulate state t')
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [(range 200) 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "2 bag args"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y]] [(a/<!! x) (a/<!! y)]))
+                   (bag (tuple 1) (tuple 2) (tuple 3)) (bag (tuple 4) (tuple 5) (tuple 6)))
+          t' (tuple (str '(require '[clojure.core.async :as a]))
+                    (str '(fn [[x y]] [(a/<!! x) (a/<!! y)]))
+                    (bag (tuple 7) (tuple 8) (tuple 9)) (bag (tuple 10) (tuple 11) (tuple 12)))
+          state (udf-accumulate nil t)
+          state (udf-accumulate state t')
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[1 2 3 7 8 9] [4 5 6 10 11 12]]))
+      (is (nil? state))))
+  
+  (testing "empty bag"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (bag) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[] 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "single value bag"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (bag (tuple 1)) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[1] 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "all values"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [x y z]))
+                   1 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [1 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "nil in bag"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (bag (tuple 1) (tuple nil) (tuple 3)) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[1 nil 3] 2 "b"]))
+      (is (nil? state))))
+  
+  (testing "nil value"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(a/<!! x) y z]))
+                   (bag) nil "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result [[] nil "b"]))
+      (is (nil? state))))
+  
+  (testing "nil result"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] nil))
+                   (apply bag (map tuple (range 100))) 2 "b")
+          state (udf-accumulate nil t)
+          result (udf-get-value state)
+          state (udf-cleanup state)]
+      (is (= result nil))
+      (is (nil? state))))
+  
+  (testing "throw in agg"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] [(mapv #(java.lang.Long/valueOf %) (a/<!! x)) y z]))
+                   (bag (tuple "1") (tuple "a") (tuple "3")) 2 "b")
+          state (udf-accumulate nil t)]
+      (is (thrown? RuntimeException (udf-get-value state)))
+      (is (nil? (udf-cleanup state)))))
+  
+  (testing "throw in udf"
+    (let [t (tuple (str '(require '[clojure.core.async :as a]))
+                   (str '(fn [[x y z]] (throw (Exception.))))
+                   (bag) 2 "b")
+          state (udf-accumulate nil t)]
+      (is (thrown? Exception (udf-get-value state)))
+      (is (nil? (udf-cleanup state))))))
+
+; *****************
+
+;; TODO test serialization equivalency
+;; TODO test serialization round-trip
 
 (deftest test-args->map
   (let [f (args->map #(* 2 %))]
     (is (= (f "a" 2 "b" 3)
            {:a 4 :b 6}))))
 
+(deftest test-debug
+  (is (= "class java.lang.Long\t2\tclass org.apache.pig.data.DefaultDataBag\t{(foo,bar)}"
+         (debug 2 (bag (tuple "foo" "bar"))))))
+
+; *****************
+
+(deftest test-map->bind
+  (let [f (map->bind +)]
+    (is (= (f [1 2 3]) [[6]]))
+    (is (= (f [2 4 6]) [[12]]))))
+
+(deftest test-mapcat->bind
+  (let [f (mapcat->bind identity)]
+    (is (= (f [[1 2 3]]) [[1] [2] [3]]))
+    (is (= (f [[2 4 6]]) [[2] [4] [6]]))))
+
+(deftest test-filter->bind
+  (let [f (filter->bind even?)]
+    (is (= (f [1]) []))
+    (is (= (f [2]) [[2]]))
+    (is (= (f [3]) []))
+    (is (= (f [4]) [[4]]))))
+
+(deftest test-key-selector->bind
+  (let [f (key-selector->bind first)]
+    (is (= (f [[1 2 3]]) [[1 [1 2 3]]]))
+    (is (= (f [[2 4 6]]) [[2 [2 4 6]]])))
+  (let [f (key-selector->bind :foo)]
+    (is (= (f [{:foo 1, :bar 2}]) [[1 {:foo 1, :bar 2}]]))))
+
+(deftest test-keyword-field-selector->bind
+  (let [f (keyword-field-selector->bind [:foo :bar :baz])]
+    (is (= (f [{:foo 1, :bar 2, :baz 3}]) [[1 2 3]]))))
+
+(deftest test-indexed-field-selector->bind
+  (let [f (indexed-field-selector->bind 2 clojure.string/join)]
+    (is (= (f [[1 2 3 4]]) [[1 2 "34"]]))))
+
 (deftest test-exec
-  (let [f (exec :frozen :frozen (fn [x y] (* x y)))]
-    (is (= '(freeze 6)
-           (thaw-anything
-             (f [(DataByteArray. (freeze 2))
-                 (DataByteArray. (freeze 3))])))))
   
-  (let [f (exec :frozen :frozen (fn [x] (clojure.edn/read-string x)))]
-    (is (= '(freeze {:a [1 2], :b nil})
-            (thaw-anything
-              (f [(DataByteArray. (freeze "{:a [1 2] :b nil}"))])))))
+  (let [command (pigpen.pig/exec
+                  [(pigpen.pig/pre-process :native)
+                   (pigpen.pig/map->bind vector)
+                   (pigpen.pig/map->bind identity)
+                   (pigpen.pig/post-process :native)])]
   
-  (let [f (exec :frozen :frozen identity)]
-    (is (= '(freeze nil)
-           (thaw-anything
-             (f [(DataByteArray. (freeze nil))])))))
-
-  (let [f (exec :frozen :frozen-with-nils identity)]
-    (is (= nil
-           (thaw-anything
-             (f [(DataByteArray. (freeze nil))])))))
+    (is (= (thaw-anything (command [1 2]))
+           '(bag (tuple [1 2])))))
   
-  (let [f (exec :frozen :frozen-with-nils identity)]
-    (is (= '(freeze 2)
-           (thaw-anything
-             (f [(DataByteArray. (freeze 2))]))))))
-
-(deftest test-exec-multi
-  (let [command (pigpen.pig/exec-multi :native :native 
-                  [(pigpen.pig/map->bind clojure.edn/read-string)
+  (let [command (pigpen.pig/exec
+                  [(pigpen.pig/pre-process :native)
+                   (pigpen.pig/map->bind clojure.edn/read-string)
                    (pigpen.pig/map->bind identity)
                    (pigpen.pig/filter->bind (constantly true))
-                   vector
-                   (pigpen.pig/map->bind clojure.core/pr-str)])]
+                   (pigpen.pig/mapcat->bind vector)
+                   (pigpen.pig/map->bind clojure.core/pr-str)
+                   (pigpen.pig/post-process :native)])]
   
     (is (= (thaw-anything (command ["1"]))
            '(bag (tuple "1")))))
   
-  (let [command (pigpen.pig/exec-multi :native :native 
-                  [(pigpen.pig/map->bind clojure.edn/read-string)
-                   (fn [x] [x (+ x 1) (+ x 2)])
-                   (pigpen.pig/map->bind clojure.core/pr-str)])]
+  (let [command (pigpen.pig/exec
+                 [(pigpen.pig/pre-process :native)
+                  (pigpen.pig/map->bind clojure.edn/read-string)
+                  (pigpen.pig/mapcat->bind (fn [x] [x (+ x 1) (+ x 2)]))
+                  (pigpen.pig/map->bind clojure.core/pr-str)
+                  (pigpen.pig/post-process :native)])]
+  
+   (is (= (thaw-anything (command ["1"]))
+          '(bag (tuple "1") (tuple "2") (tuple "3")))))
+  
+  (let [command (pigpen.pig/exec
+                 [(pigpen.pig/pre-process :native)
+                  (pigpen.pig/map->bind clojure.edn/read-string)
+                  (pigpen.pig/mapcat->bind (fn [x] [x (* x 2)]))
+                  (pigpen.pig/mapcat->bind (fn [x] [x (* x 2)]))
+                  (pigpen.pig/mapcat->bind (fn [x] [x (* x 2)]))
+                  (pigpen.pig/map->bind clojure.core/pr-str)
+                  (pigpen.pig/post-process :native)])]
   
     (is (= (thaw-anything (command ["1"]))
-           '(bag (tuple "1") (tuple "2") (tuple "3")))))
-  
-  (let [command (pigpen.pig/exec-multi :native :native 
-                   [(pigpen.pig/map->bind clojure.edn/read-string)
-                    (fn [x] [x (* x 2)])
-                    (fn [x] [x (* x 2)])
-                    (fn [x] [x (* x 2)])
-                    (pigpen.pig/map->bind clojure.core/pr-str)])]
-  
-     (is (= (thaw-anything (command ["1"]))
-            '(bag (tuple "1") (tuple "2") (tuple "2") (tuple "4") (tuple "2") (tuple "4") (tuple "4") (tuple "8"))))))
-
-(deftest test-debug
-  (is (= "class java.lang.Long\t2\tclass org.apache.pig.data.DefaultDataBag\t{(foo,bar)}"
-         (debug 2 (bag (tuple "foo" "bar"))))))
+           '(bag (tuple "1") (tuple "2") (tuple "2") (tuple "4") (tuple "2") (tuple "4") (tuple "4") (tuple "8"))))))

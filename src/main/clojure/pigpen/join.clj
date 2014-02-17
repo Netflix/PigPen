@@ -57,49 +57,48 @@
    as frozen nils so they appear as values. Otherwise we return a nil value as nil
    and let the join take its course."
   ;; TODO - If this is an inner join, we can filter nil keys before the join
-  [join-nils? [relation key-selector] requires]
-  (let [value (first (:fields relation))
-        code (raw/code$ DataByteArray [value]
-                        (raw/expr$ `(require ~@(clojure.core/map (fn [r] `(quote ~r)) (filter identity requires)))
-                                   `(pigpen.pig/exec :frozen ~(if join-nils? :frozen :frozen-with-nils) ~key-selector)))
-        projections [(raw/projection-func$ 'key code)
-                     (raw/projection-field$ 'value)]]
-    (raw/generate$ relation projections {})))
+  [join-nils? requires [relation key-selector]]
+  (-> relation
+    (raw/bind$ requires `(pigpen.pig/key-selector->bind ~key-selector)
+               {:field-type-out (if join-nils? :frozen :frozen-with-nils)
+                :implicit-schema true})
+    (raw/generate$ [(raw/projection-field$ 0 'key)
+                    (raw/projection-field$ 1 'value)] {})))
 
 (defn group*
   "See pigpen.core/group-by, pigpen.core/cogroup"
-  [selects f group-opts bind-opts]
-  (let [relations  (mapv #(select->generate (:join-nils group-opts) % (:requires bind-opts)) selects)
+  [selects requires f opts]
+  (let [relations  (mapv (partial select->generate (:join-nils opts) requires) selects)
         keys       (for [r relations] ['key])
         values     (cons 'group (for [r relations] [[(:id r)] 'value]))
         join-types (mapv #(or (nth % 2) :optional) selects)]
     (code/assert-arity f (count values))
     (-> relations
-      (raw/group$ keys join-types group-opts)
-      (raw/bind$ `(pigpen.pig/map->bind ~f) (assoc bind-opts :args values)))))
+      (raw/group$ keys join-types opts)
+      (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:args values}))))
 
 (defn group-all*
   "See pigpen.core/into, pigpen.core/reduce"
-  [relation f group-opts bind-opts]
+  [relation requires f opts]
   (code/assert-arity f 2)
   (let [keys       [raw/group-all$]
         values     [[[(:id relation)] 'value]]
         join-types [:optional]]
     (-> [relation]
-      (raw/group$ keys join-types group-opts)
-      (raw/bind$ `(pigpen.pig/map->bind ~f) (assoc bind-opts :args values)))))
+      (raw/group$ keys join-types opts)
+      (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:args values}))))
 
 (defn join*
   "See pigpen.core/join"
-  [selects f join-opts bind-opts]
-  (let [relations  (mapv #(select->generate (:join-nils join-opts) % '[pigpen.pig]) selects)
+  [selects requires f opts]
+  (let [relations  (mapv (partial select->generate (:join-nils opts) requires) selects)
         keys       (for [r relations] ['key])
         values     (for [r relations] [[(:id r) 'value]])
         join-types (mapv #(or (nth % 2) :required) selects)]
     (code/assert-arity f (count values))
     (-> relations
-      (raw/join$ keys join-types join-opts)
-      (raw/bind$ `(pigpen.pig/map->bind ~f) (assoc bind-opts :args values)))))
+      (raw/join$ keys join-types opts)
+      (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:args values}))))
 
 (defmacro group-by
   "Groups relation by the result of calling (key-selector item) for each item.
@@ -121,9 +120,9 @@ Optionally takes a map of options.
   ([key-selector relation] `(group-by ~key-selector {} ~relation))
   ([key-selector opts relation]
     `(group* [[~relation (code/trap '~(ns-name *ns*) ~key-selector) :optional]]
+             ['~(ns-name *ns*)]
              '(fn [~'k ~'v] (clojure.lang.MapEntry. ~'k ~'v))
-             (assoc ~opts :description ~(util/pp-str key-selector))
-             {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]})))
+             (assoc ~opts :description ~(util/pp-str key-selector)))))
 
 (defmacro into
   "Returns a new relation with all values from relation conjoined onto to.
@@ -133,7 +132,7 @@ Optionally takes a map of options.
   See also: pigpen.core/reduce
 "
   [to relation]
-  `(group-all* ~relation (quote (partial clojure.core/into ~to)) {:description (str "into " ~to)} {}))
+  `(group-all* ~relation [] (quote (partial clojure.core/into ~to)) {:description (str "into " ~to)}))
 
 ;; TODO If reduce returns a seq, should it be flattened for further processing?
 (defmacro reduce
@@ -151,15 +150,9 @@ for further processing.
   See also: pigpen.core/into
 "
   ([f relation]
-    `(group-all* ~relation
-                 (code/trap '~(ns-name *ns*) (partial clojure.core/reduce ~f))
-                 {:description ~(util/pp-str f)}
-                 {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]}))
+    `(group-all* ~relation ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) (partial clojure.core/reduce ~f)) {:description ~(util/pp-str f)}))
   ([f val relation]
-    `(group-all* ~relation
-                 (code/trap '~(ns-name *ns*) (partial clojure.core/reduce ~f ~val))
-                 {:description ~(util/pp-str f)}
-                 {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]})))
+    `(group-all* ~relation ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) (partial clojure.core/reduce ~f ~val)) {:description ~(util/pp-str f)})))
 
 ;; TODO trap locals in key selectors
 
@@ -198,9 +191,7 @@ collections. The last argument is an optional map of options.
   (let [[selects# f# opts#] (split-selects selects)
         _ (doseq [s# selects#] (assert (select? s#) (str s# " is not a valid select clause. If provided, opts should be a map.")))
         selects# (mapv (fn [[r _ k t]] `[~r '~k ~(keyword t)]) selects#)]
-    `(group* ~selects# (code/trap '~(ns-name *ns*) ~f#)
-             (assoc ~opts# :description ~(util/pp-str f#))
-             {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]})))
+    `(group* ~selects# ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) ~f#) (assoc ~opts# :description ~(util/pp-str f#)))))
 
 ;; TODO group strategies
 
@@ -240,10 +231,7 @@ options.
   (let [[selects# f# opts#] (split-selects selects)
         _ (doseq [s# selects#] (assert (select? s#) (str s# " is not a valid select clause. If provided, opts should be a map.")))
         selects# (mapv (fn [[r _ k t]] `[~r '~k ~(keyword t)]) selects#)]
-    `(join* ~selects#
-            (code/trap '~(ns-name *ns*) ~f#)
-            (assoc ~opts# :description ~(util/pp-str f#))
-            {:requires ['pigpen.pig (code/ns-exists '~(ns-name *ns*))]})))
+    `(join* ~selects# ['~(ns-name *ns*)] (code/trap '~(ns-name *ns*) ~f#) (assoc ~opts# :description ~(util/pp-str f#)))))
 
 ;; TODO join strategies
 ;; TODO semi-join

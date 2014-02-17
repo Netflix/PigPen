@@ -39,7 +39,7 @@
                         (fn [{:keys [foo bar]}]
                             (= foo bar))))))
           :args [value]
-          :requires [pigpen.pig pigpen.filter-test]
+          :requires [pigpen.filter-test]
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen
@@ -66,7 +66,7 @@
                             (fn [{:keys [foo bar]}]
                               (= foo bar)))))))
           :args [value]
-          :requires [pigpen.pig pigpen.filter-test]
+          :requires [pigpen.filter-test]
           :fields [value]
           :field-type-in :frozen
           :field-type-out :frozen

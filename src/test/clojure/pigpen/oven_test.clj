@@ -119,22 +119,42 @@
 (deftest test-extract-references
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-  (let [test-storage (pig-raw/storage$ ["ref"] "TestStorage" [])]
+    (let [test-storage (pig-raw/storage$ ["ref"] "TestStorage" [])]
+      (test-diff
+        (as-> nil %
+          (pig-raw/load$ "foo" '[foo] test-storage {})
+          (pig-raw/store$ % "bar" test-storage {})
+          (#'pigpen.oven/braise %)
+          (#'pigpen.oven/extract-references %)
+          (map #(select-keys % [:type :id :ancestors :references :jar]) %))
+        '[{:type :register
+           :jar "ref"}
+          {:ancestors []
+           :type :load
+           :id load1}
+          {:type :store
+           :id store2
+           :ancestors [load1]}]))))
+
+(deftest test-extract-options
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+
     (test-diff
       (as-> nil %
-        (pig-raw/load$ "foo" '[foo] test-storage {})
-        (pig-raw/store$ % "bar" test-storage {})
+        (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {:pig-options {"pig.maxCombinedSplitSize" 1000000}})
+        (pig-raw/store$ % "bar" pig-raw/default-storage {})
         (#'pigpen.oven/braise %)
-        (#'pigpen.oven/extract-references %)
-        (map #(select-keys % [:type :id :ancestors :references :jar]) %))
-      '[{:type :register
-         :jar "ref"}
-        {:ancestors []
-         :type :load
-         :id load1}
+        (#'pigpen.oven/extract-options %)
+        (map #(select-keys % [:type :id :ancestors :references :option :value]) %))
+      '[{:type :option
+         :option "pig.maxCombinedSplitSize"
+         :value 1000000}
+        {:type :load
+         :id load1
+         :ancestors []}
         {:type :store
          :id store2
-         :ancestors [load1]}]))))
+         :ancestors [load1]}])))
 
 (deftest test-next-match
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -192,51 +212,49 @@
         (as-> commands %
           (#'pigpen.oven/merge-command % mapping)
           (map #(select-keys % [:type :id :ancestors :keys :fields :projections :args]) %))
-        '[{:ancestors []
-           :id s0
+        '[{:id s0
+           :ancestors []
            :fields [value]
            :args []}
+          {:type :bind
+           :id bind3
+           :ancestors [s0]
+           :fields [value]
+           :args [value]}
+          {:type :generate
+           :id g4
+           :ancestors [bind3]
+           :fields [key value]
+           :projections [{:type :projection-field, :field 0, :alias key}
+                         {:type :projection-field, :field 1, :alias value}]
+           :args []}
+          {:id r0
+           :ancestors []
+           :fields [value]
+           :args []}
+          {:type :bind
+           :id bind1
+           :ancestors [r0]
+           :fields [value]
+           :args [value]}
           {:type :generate
            :id g2
-           :projections [{:type :projection-func
-                          :code {:type :code
-                                 :return "DataByteArray"
-                                 :expr {:init (clojure.core/require (quote pigpen.pig))
-                                        :func (pigpen.pig/exec :frozen :frozen-with-nils identity)}
-                                 :args [value]}
-                          :alias key}
-                         {:type :projection-field, :field value, :alias value}]
+           :ancestors [bind1]
            :fields [key value]
-           :args []
-           :ancestors [s0]}
-          {:ancestors []
-           :id r0
-           :fields [value]
+           :projections [{:type :projection-field, :field 0, :alias key}
+                         {:type :projection-field, :field 1, :alias value}]
            :args []}
-          {:type :generate
-           :id g1
-           :projections [{:type :projection-func
-                          :code {:type :code
-                                 :return "DataByteArray"
-                                 :expr {:init (clojure.core/require (quote pigpen.pig))
-                                        :func (pigpen.pig/exec :frozen :frozen-with-nils identity)}
-                                 :args [value]}
-                          :alias key}
-                         {:type :projection-field, :field value, :alias value}]
-           :fields [key value]
-           :args []
-           :ancestors [r0]}
           {:type :join
-           :id j3
+           :id join5
+           :ancestors [g2 g4]
            :keys [[key] [key]]
-           :fields [[[g1 key]] [[g1 value]] [[g2 key]] [[g2 value]]]
-           :args []
-           :ancestors [g1 g2]}
+           :fields [[[g2 key]] [[g2 value]] [[g4 key]] [[g4 value]]]
+           :args []}
           {:type :bind
-           :id bind4
+           :id bind6
+           :ancestors [join5]
            :fields [value]
-           :args [[[g1 value]] [[g2 value]]]
-           :ancestors [j3]}]))))
+           :args [[[g2 value]] [[g4 value]]]}]))))
 
 (deftest test-dedupe
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -273,10 +291,11 @@
           (#'pigpen.oven/merge-order-rank)
           (map #(select-keys % [:type :id :ancestors :sort-keys])))
         '[{:type :return,   :id return1,   :ancestors []}
-          {:type :generate, :id generate2, :ancestors [return1]}
-          {:type :order,    :id order3,    :ancestors [generate2], :sort-keys [key :asc]}
-          {:type :rank,     :id rank4,     :ancestors [generate2], :sort-keys [key :asc]}
-          {:type :bind,     :id bind5,     :ancestors [rank4]}]))))
+          {:type :bind,     :id bind2,     :ancestors [return1]}
+          {:type :generate, :id generate3, :ancestors [bind2]}
+          {:type :order,    :id order4,    :ancestors [generate3], :sort-keys [key :asc]}
+          {:type :rank,     :id rank5,     :ancestors [generate3], :sort-keys [key :asc]}
+          {:type :bind,     :id bind6,     :ancestors [rank5]}]))))
 
 
 ;; Column pruning really doesn't matter anymore. Considering removing it.
@@ -464,8 +483,8 @@
        (test-diff (clean-bind-sequence
                     (#'pigpen.oven/find-bind-sequence s3))
                   '[[[load4 "in1"]]
-                    [[bind5 nil] [bind6 "dec\n"]]
-                    [[generate8 nil] [load1 "in0"] [bind2 nil] [bind3 "inc\n"] [generate7 nil] [join9 "merge\n"] [bind10 nil] [bind11 "(constantly true)\n"] [bind17 nil] [store18 "out"]]])))
+                    [[bind5 nil] [bind6 "dec\n"] [bind9 nil]]
+                    [[generate10 nil] [load1 "in0"] [bind2 nil] [bind3 "inc\n"] [bind7 nil] [generate8 nil] [join11 "merge\n"] [bind12 nil] [bind13 "(constantly true)\n"] [bind21 nil] [store22 "out"]]])))
   
   (deftest test-bind->generate
     
@@ -478,16 +497,19 @@
                        :projections [{:type :projection-flat
                                       :code {:type :code
                                              :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]) (quote [pigpen.oven-test]))
-                                                    :func (pigpen.pig/exec-multi :native :native [(pigpen.pig/map->bind clojure.edn/read-string)
-                                                                                                  (pigpen.pig/map->bind
-                                                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                                      (clojure.core/eval (quote identity))))
-                                                                                                  (pigpen.pig/filter->bind
-                                                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                                      (clojure.core/eval (quote (constantly true)))))
-                                                                                                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                                    (clojure.core/eval (quote vector)))
-                                                                                                  (pigpen.pig/map->bind clojure.core/pr-str)])}
+                                                    :func (pigpen.pig/exec [(pigpen.pig/pre-process :native)
+                                                                            (pigpen.pig/map->bind clojure.edn/read-string)
+                                                                            (pigpen.pig/map->bind
+                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                (clojure.core/eval (quote identity))))
+                                                                            (pigpen.pig/filter->bind
+                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                (clojure.core/eval (quote (constantly true)))))
+                                                                            (pigpen.pig/mapcat->bind
+                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
+                                                                                (clojure.core/eval (quote vector))))
+                                                                            (pigpen.pig/map->bind clojure.core/pr-str)
+                                                                            (pigpen.pig/post-process :native)])}
                                              :return "DataBag"
                                              :args [value]}
                                       :alias value}]
@@ -495,7 +517,8 @@
                        :id generate1
                        :description "identity\n(constantly true)\nvector\n"
                        :field-type :native
-                       :opts {:type :generate-opts}})))))
+                       :opts {:type :generate-opts
+                              :implicit-schema nil}})))))
   
   
   (deftest test-optimize-binds
@@ -530,13 +553,13 @@
         (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s3))
                    '[[load4 "in1"]
                      [generate1 "dec\n"]
-                     [generate8 nil]
+                     [generate10 nil]
                      [load1 "in0"]
                      [generate2 "inc\n"]
-                     [generate7 nil]
-                     [join9 "merge\n"]
+                     [generate8 nil]
+                     [join11 "merge\n"]
                      [generate3 "(constantly true)\n"]
-                     [store18 "out"]])))))
+                     [store22 "out"]])))))
 
 (deftest test-expand-load-filters
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -578,9 +601,10 @@
           (#'pigpen.oven/clean)
           (map #(select-keys % [:type :id :ancestors :sort-keys])))
         '[{:type :return,   :id return1,   :ancestors []}
-          {:type :generate, :id generate2, :ancestors [return1]}
-          {:type :rank,     :id rank4,     :ancestors [generate2], :sort-keys [key :asc]}
-          {:type :bind,     :id bind5,     :ancestors [rank4]}]))))
+          {:type :bind,     :id bind2,     :ancestors [return1]}
+          {:type :generate, :id generate3, :ancestors [bind2]}
+          {:type :rank,     :id rank5,     :ancestors [generate3], :sort-keys [key :asc]}
+          {:type :bind,     :id bind6,     :ancestors [rank5]}]))))
 
 (deftest test-bake
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

@@ -18,9 +18,6 @@
 
 package pigpen;
 
-import java.io.IOException;
-
-import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 
 /**
@@ -29,11 +26,5 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnTuple extends EvalFunc<Tuple> {
-
-    @Override
-    public Tuple exec(final Tuple input) throws IOException {
-
-        return (Tuple) ClojureForPigs.invoke(input);
-    }
+public class PigPenFnTuple extends PigPenFn<Tuple> {
 }

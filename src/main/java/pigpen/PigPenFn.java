@@ -20,6 +20,8 @@ package pigpen;
 
 import java.io.IOException;
 
+import org.apache.pig.Accumulator;
+import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 
 import clojure.lang.IFn;
@@ -30,31 +32,45 @@ import clojure.lang.Var;
 /**
  * Used to execute Clojure code from within a Pig UDF. Passes the tuple directly to pigpen.pig/eval-udf
  *
+ * @param <T> The return type
+ *
  * @author mbossenbroek
  *
  */
-public final class ClojureForPigs {
+public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
 
-    private static final IFn EVAL;
+    private static final IFn EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
 
     static {
         final Var require = RT.var("clojure.core", "require");
         require.invoke(Symbol.intern("pigpen.pig"));
         EVAL = RT.var("pigpen.pig", "eval-udf");
+        ACCUMULATE = RT.var("pigpen.pig", "udf-accumulate");
+        GET_VALUE = RT.var("pigpen.pig", "udf-get-value");
+        CLEANUP = RT.var("pigpen.pig", "udf-cleanup");
     }
 
-    /**
-     * Invokes the Clojure code specified by the tuple.
-     *
-     * @param tuple
-     *            The tuple passed to the Pig UDF
-     * @return The result
-     * @throws IOException
-     */
-    public static Object invoke(Tuple tuple) throws IOException {
-        return EVAL.invoke(tuple);
+    @SuppressWarnings("unchecked")
+    @Override
+    public T exec(Tuple input) throws IOException {
+        return (T) EVAL.invoke(input);
     }
 
-    private ClojureForPigs() {
+    private Object state = null;
+
+    @Override
+    public void accumulate(Tuple input) throws IOException {
+        state = ACCUMULATE.invoke(state, input);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public T getValue() {
+        return (T) GET_VALUE.invoke(state);
+    }
+
+    @Override
+    public void cleanup() {
+        state = CLEANUP.invoke(state);
     }
 }

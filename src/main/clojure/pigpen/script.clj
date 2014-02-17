@@ -31,6 +31,7 @@ See pigpen.core and pigpen.exec
   (cond
     (string? field) (str "'" (replace field "'" "\\'") "'")
     (symbol? field) (str field)
+    (number? field) (str "$" field)
     (sequential? field)
     (let [[relation dereference] field]
       (str (clojure.string/join "::" relation)
@@ -85,6 +86,7 @@ See pigpen.core and pigpen.exec
      
      :else (throw (IllegalArgumentException. (str "Unknown expression:" (type expr) " " expr))))))
 
+;; TODO add descriptive comment before each command
 (defmulti command->script
   "Converts an individual command into the equivalent Pig script"
   :type)
@@ -103,6 +105,11 @@ See pigpen.core and pigpen.exec
   [{:keys [jar]}]
   {:pre [(string? jar) (not-empty jar)]}
   (str "REGISTER " jar ";\n\n"))
+
+(defmethod command->script :option
+  [{:keys [option value]}]
+  {:pre [(string? option) value]}
+  (str "SET " option " " value ";\n\n"))
 
 ;; ********** IO **********
 
@@ -147,18 +154,21 @@ See pigpen.core and pigpen.exec
     (str pig-code pig-schema)))
 
 (defmethod command->script :projection-flat
-  [{:keys [code alias]}]
+  [{:keys [code alias implicit-schema]}]
   {:pre [code alias]}
   (let [pig-code (str "FLATTEN(" (command->script code) ")")
-        pig-schema (str " AS " alias)]
+        pig-schema (if-not implicit-schema (str " AS " alias))]
     (str pig-code pig-schema)))
 
 (defmethod command->script :generate
-  [{:keys [id ancestors projections]}]
+  [{:keys [id ancestors projections opts]}]
   {:pre [id ancestors (not-empty projections)]}
   (let [relation-id (escape-id (first ancestors))
         pig-id (escape-id id)
-        pig-projections (->> projections (map command->script) (join ",\n    "))]
+        pig-projections (as-> projections %
+                              (map #(assoc % :implicit-schema (:implicit-schema opts)) %)
+                              (map command->script %)
+                              (join ",\n    " %))]
     (str pig-id " = FOREACH " relation-id " GENERATE\n    " pig-projections ";\n\n")))
 
 (defmethod command->script :order-opts
