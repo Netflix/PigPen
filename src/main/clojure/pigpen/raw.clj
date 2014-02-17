@@ -273,7 +273,7 @@ building blocks for more complex operations.")
 
 (defn union$
   [ancestors opts]
-  (if (= 1 (count ancestors))
+  (if-not (next ancestors)
     (first ancestors)
     (command :union ancestors (-> ancestors first :fields) opts)))
 
