@@ -59,7 +59,8 @@
                   '(var clojure.core/prn)))
     '{:type :code
       :return "String"
-      :expr {:init (require (quote [pigpen.pig]))
+      :expr {:type :expr
+             :init (require (quote [pigpen.pig]))
              :func (var clojure.core/prn)}
       :args ["a" b [c d]]}))
 
@@ -140,7 +141,8 @@
                              (expr$ `(require '[pigpen.pig]) `identity)))
     '{:type :projection-func
       :code {:type :code
-             :expr {:init (clojure.core/require (quote [pigpen.pig]))
+             :expr {:type :expr
+                    :init (clojure.core/require (quote [pigpen.pig]))
                     :func clojure.core/identity}
              :return "String"
              :args [value]}
@@ -153,7 +155,8 @@
                              (expr$ `(require '[pigpen.pig]) `identity)))
     '{:type :projection-flat
       :code {:type :code
-             :expr {:init (clojure.core/require (quote [pigpen.pig]))
+             :expr {:type :expr
+                    :init (clojure.core/require (quote [pigpen.pig]))
                     :func clojure.core/identity}
              :return "String"
              :args [value]}
@@ -264,7 +267,8 @@
         :fields [value]
         :field-type :frozen
         :code {:type :code
-               :expr {:init (clojure.core/require (quote [pigpen.pig]))
+               :expr {:type :expr
+                      :init (clojure.core/require (quote [pigpen.pig]))
                       :func clojure.core/identity}
                :return "String"
                :args [value]}

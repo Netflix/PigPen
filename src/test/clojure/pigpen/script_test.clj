@@ -41,7 +41,8 @@
 (deftest test-code
   (is (= "pigpen.PigPenFnDataByteArray('(require (quote [pigpen.pig]))', 'identity')"
          (command->script '{:type :code
-                            :expr {:init (require '[pigpen.pig])
+                            :expr {:type :expr
+                                   :init (require '[pigpen.pig])
                                    :func identity}
                             :return DataByteArray
                             :args []}))))
@@ -125,7 +126,8 @@
   (is (= "pigpen.PigPenFnDataByteArray('', '(fn [x] (* x x))', 'a', a) AS b"
          (command->script '{:type :projection-func
                             :code {:type :code
-                                   :expr {:init nil
+                                   :expr {:type :expr
+                                          :init nil
                                           :func (fn [x] (* x x))}
                                    :return "DataByteArray"
                                    :args ["a" a]}
@@ -143,7 +145,8 @@
                                            :alias b}
                                           {:type :projection-func
                                            :code {:type :code
-                                                  :expr {:init nil
+                                                  :expr {:type :expr
+                                                         :init nil
                                                          :func (fn [x] (* x x))}
                                                   :return "DataByteArray"
                                                   :args ["a" a]}
@@ -157,7 +160,8 @@
                             :ancestors [relation0]
                             :projections [{:type :projection-flat
                                            :code {:type :code
-                                                  :expr {:init nil
+                                                  :expr {:type :expr
+                                                         :init nil
                                                          :func (fn [x] [x x])}
                                                   :return "DataBag"
                                                   :args ["a" a]}
@@ -208,7 +212,8 @@
                             :id filter0
                             :ancestors [relation0]
                             :code {:type :code
-                                   :expr {:init nil
+                                   :expr {:type :expr
+                                          :init nil
                                           :func (fn [x] (even? x))}
                                    :return "Boolean"
                                    :args ["a" a]}}))))

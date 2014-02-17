@@ -209,6 +209,7 @@ See pigpen.core and pigpen.exec
 (defmethod graph->local :projection-field [{:keys [field alias]} values]
   (cond
     (symbol? field) [{alias (field values)}]
+    (vector? field) [{alias (values field)}]
     (number? field) [{alias (dereference (first (vals values)) field)}]
     :else (throw (IllegalStateException. (str "Unknown field " field)))))
 

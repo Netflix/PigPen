@@ -452,9 +452,9 @@
           command (pig-join/group-by :a data)]
 
       (test-diff
-        (exec/debug-script command)
-        '[(freeze [1 ({:a 1, :b 2} {:a 1, :b 3})])
-          (freeze [2 ({:a 2, :b 4})])]))))
+        (set (exec/debug-script command))
+        '#{(freeze [1 ({:a 1, :b 2} {:a 1, :b 3})])
+           (freeze [2 ({:a 2, :b 4})])}))))
 
 (deftest test-into
   (let [data (io/return-raw

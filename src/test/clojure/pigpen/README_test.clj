@@ -143,9 +143,9 @@
         j2 (pig/join [(j1 :on :i)
                       (d :on :i)]
                      merge)]
-    (is (= (pig/dump j2)
-           [{:i 1, :w 1, :x 2, :y 3, :z 4}
-            {:i 2, :w 5, :x 6, :y 7, :z 8}]))))
+    (is (= (set (pig/dump j2))
+           #{{:i 1, :w 1, :x 2, :y 3, :z 4}
+             {:i 2, :w 5, :x 6, :y 7, :z 8}}))))
 
 (defn show-deduping []
   (let [even-squares (->>

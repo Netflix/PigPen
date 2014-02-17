@@ -93,12 +93,15 @@ See pigpen.core and pigpen.exec
 
 ;; ********** Util **********
 
+(defmethod command->script :expr
+  [{:keys [init func]}]
+  (->> [init func] (map escape+quote) (join ", ")))
+
 (defmethod command->script :code
   [{:keys [return expr args]}]
   {:pre [return expr args]}
-  (let [{:keys [init func]} expr
-        pig-code [(escape+quote init) (escape+quote func)]
-        pig-args (->> args (map format-field) (concat pig-code) (join ", "))]
+  (let [pig-code (command->script expr)
+        pig-args (->> args (map format-field) (cons pig-code) (join ", "))]
     (str "pigpen.PigPenFn" return "(" pig-args ")")))
 
 (defmethod command->script :register

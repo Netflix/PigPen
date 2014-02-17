@@ -496,7 +496,8 @@
                        :ancestors [load1]
                        :projections [{:type :projection-flat
                                       :code {:type :code
-                                             :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]) (quote [pigpen.oven-test]))
+                                             :expr {:type :expr
+                                                    :init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]) (quote [pigpen.oven-test]))
                                                     :func (pigpen.pig/exec [(pigpen.pig/pre-process :native)
                                                                             (pigpen.pig/map->bind clojure.edn/read-string)
                                                                             (pigpen.pig/map->bind
