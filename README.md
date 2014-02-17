@@ -135,7 +135,7 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.1.4"]
+[com.netflix.pigpen/pigpen "0.1.5"]
 ```
 
 With Maven:
@@ -144,7 +144,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.1.4</version>
+  <version>0.1.5</version>
 </dependency>
 ```
 
@@ -152,6 +152,7 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 
 ### Release Notes
 
+  * 0.1.5 - Performance improvements: implemented Pig's Accumulator interface; tuned nippy; reduced number of times data is serialized.
   * 0.1.4 - Fix sort bug in local mode
   * 0.1.3 - Change Pig & Hadoop to be transitive dependencies. Add support for consuming user code via closure.
   * 0.1.2 - Upgrade instaparse to 1.2.14

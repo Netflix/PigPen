@@ -8,7 +8,7 @@ Getting started with Clojure and PigPen is really easy. Just follow the steps be
 
     ``` clj
       :dependencies [[org.clojure/clojure "1.5.1"]
-                     [com.netflix.pigpen/pigpen "0.1.4"]]
+                     [com.netflix.pigpen/pigpen "0.1.5"]]
       :profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
                                       [org.apache.hadoop/hadoop-core "1.1.2"]]}}
     ```
