@@ -98,8 +98,8 @@ See pigpen.core and pigpen.exec
   (->> [init func] (map escape+quote) (join ", ")))
 
 (defmethod command->script :fold
-  [{:keys [init combinef reducef]}]
-  (->> [init combinef reducef] (map escape+quote) (join ", ")))
+  [{:keys [init combinef reducef finalf]}]
+  (->> [init combinef reducef finalf] (map escape+quote) (join ", ")))
 
 (defmethod command->script :code
   [{:keys [return expr args]}]

@@ -88,12 +88,13 @@ building blocks for more complex operations.")
 
 (defn fold$
   "Code for a fold operation"
-  [init combinef reducef]
-  {:pre [combinef reducef]}
+  [init combinef reducef finalf]
+  {:pre [combinef reducef finalf]}
   ^:pig {:type :fold
          :init init
          :combinef combinef
-         :reducef reducef})
+         :reducef reducef
+         :finalf finalf})
 
 (defn code$
   "Execute custom code in a script."

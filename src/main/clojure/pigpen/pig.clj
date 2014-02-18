@@ -503,22 +503,25 @@ initial reduce, a combiner, and a final stage. In PigPen, the final stage is
 equivalent to the combine stage."
   [type ^Tuple t]
   (try
-    (let [[init combinef reducef & args] (.getAll t)]
+    (let [[init combinef reducef finalf & args] (.getAll t)]
       (if (not-empty init) (eval-string init))
       (case type
         :initial
-        ((eval-string combinef) type args)
+        ((eval-string reducef) args)
 
-        (:intermed :final)
-        ((eval-string reducef) type args)
+        :intermed
+        ((eval-string combinef) args)
+    
+        :final
+        ((eval-string finalf) args)
     
         :exec
         (->> args
-          ((eval-string reducef) :initial)
+          ((eval-string reducef))
           ((comp vector bag))
-          ((eval-string combinef) :intermed)
+          ((eval-string combinef))
           ((comp vector bag))
-          ((eval-string combinef) :final))))
+          ((eval-string finalf)))))
     
     (catch Throwable z (throw (PigPenException. z)))))
 
@@ -627,9 +630,9 @@ result is wrapped in a tuple and bag."
       (apply bag))))
 
 (defn exec-reducef
-  "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value."
+  "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value in a tuple."
   [val reducef]
-  (fn [type args]
+  (fn [args]
     (->> args
       first
       hybrid->clojure
@@ -638,14 +641,23 @@ result is wrapped in a tuple and bag."
       tuple)))
 
 (defn exec-combinef
-  "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value."
+  "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value in a tuple."
   [combinef]
-  (fn [type args]
-    (let [result (->> args
-                   first
-                   hybrid->clojure
-                   (reduce combinef)
-                   pig-freeze)]
-      (case type
-        :intermed (tuple result)
-        :final result))))
+  (fn [args]
+    (->> args
+      first
+      hybrid->clojure
+      (reduce combinef)
+      pig-freeze
+      tuple)))
+
+(defn exec-finalf
+  "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value."
+  [combinef finalf]
+  (fn [args]
+    (->> args
+      first
+      hybrid->clojure
+      (reduce combinef)
+      finalf
+      pig-freeze)))

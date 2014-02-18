@@ -23,11 +23,10 @@
 
 (deftest test-quote-select-clause
   (test-diff
-    (#'pigpen.join/quote-select-clause #{:on :by :key-selector :reducef :combinef}
-                                       '(:from r0 :on (fn [x] x) :reducef + :type :required))
+    (#'pigpen.join/quote-select-clause #{:on :by :key-selector}
+                                       '(:from r0 :on (fn [x] x) :type :required))
     {:from 'r0
      :key-selector `(pigpen.code/trap (quote ~(ns-name *ns*)) (~'fn [~'x] ~'x))
-     :reducef `(pigpen.code/trap (quote ~(ns-name *ns*)) ~'+)
      :type :required}))
 
 (deftest test-select->generate
@@ -95,7 +94,7 @@
       (pig/group-by (fn [v] (:foo v)) {:parallel 10
                                        :fold (pig/fold-fn +)} {:fields '[value]})
       '{:type :bind
-        :id bind7
+        :id bind8
         :description nil
         :func (pigpen.pig/map->bind (clojure.core/fn [k v] (clojure.lang.MapEntry. k v)))
         :args [field3 field4]
@@ -105,7 +104,7 @@
         :field-type-in :frozen
         :opts {:type :bind-opts}
         :ancestors [{:type :generate
-                     :id generate6
+                     :id generate7
                      :description nil
                      :projections [{:type :projection-field, :field group, :alias field3}
                                    {:type :projection-func
@@ -117,7 +116,12 @@
                                                                 (clojure.core/eval (quote +))))
                                                   :reducef (pigpen.pig/exec-reducef 0
                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                               (clojure.core/eval (quote +))))}
+                                                               (clojure.core/eval (quote +))))
+                                                  :finalf (pigpen.pig/exec-finalf
+                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                              (clojure.core/eval (quote +)))
+                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                              (clojure.core/eval (quote clojure.core/identity))))}
                                            :return "Algebraic"
                                            :args [[[generate2] value]]}
                                     :alias field4}]
@@ -125,7 +129,7 @@
                      :field-type :frozen
                      :opts {:type :generate-opts}
                      :ancestors [{:type :group
-                                  :id group5
+                                  :id group6
                                   :description "(fn [v] (:foo v))\n"
                                   :fields [group [[generate2] key] [[generate2] value]]
                                   :field-type :frozen
@@ -220,7 +224,12 @@
       :reducef (pigpen.pig/exec-reducef 0
                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
                    (clojure.core/eval
-                     (quote +))))}))
+                     (quote +))))
+      :finalf (pigpen.pig/exec-finalf
+                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                  (clojure.core/eval (quote +)))
+                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                  (clojure.core/eval (quote clojure.core/identity))))}))
 
 (deftest test-fold
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -244,7 +253,11 @@
                                                   (clojure.core/eval (quote +))))
                                     :reducef (pigpen.pig/exec-reducef 0
                                                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                 (clojure.core/eval (quote +))))}}}]
+                                                 (clojure.core/eval (quote +))))
+                                    :finalf (pigpen.pig/exec-finalf
+                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                (clojure.core/eval (quote +)))
+                                              clojure.core/identity)}}}]
         :ancestors [{:type :group
                      :id group1
                      :description nil
@@ -263,7 +276,7 @@
                            (fn [_ x y] (* x y))
                            {:parallel 2})
       '{:type :bind
-        :id bind10
+        :id bind11
         :description nil
         :func (pigpen.pig/map->bind
                 (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
@@ -275,7 +288,7 @@
         :field-type-out :frozen
         :opts {:type :bind-opts}
         :ancestors [{:type :generate
-                     :id generate9
+                     :id generate10
                      :description nil
                      :fields [field5 field6 field7]
                      :field-type :frozen
@@ -293,7 +306,12 @@
                                                                 (clojure.core/eval (quote +))))
                                                   :reducef (pigpen.pig/exec-reducef 0
                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                               (clojure.core/eval (quote +))))}}}
+                                                               (clojure.core/eval (quote +))))
+                                                  :finalf (pigpen.pig/exec-finalf
+                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                              (clojure.core/eval (quote +)))
+                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                              (clojure.core/eval (quote clojure.core/identity))))}}}
                                    {:type :projection-func
                                     :alias field7
                                     :code {:type :code
@@ -306,9 +324,14 @@
                                                                 (clojure.core/eval (quote +))))
                                                   :reducef (pigpen.pig/exec-reducef 0
                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                               (clojure.core/eval (quote +))))}}}]
+                                                               (clojure.core/eval (quote +))))
+                                                  :finalf (pigpen.pig/exec-finalf
+                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                              (clojure.core/eval (quote +)))
+                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                              (clojure.core/eval (quote clojure.core/identity))))}}}]
                      :ancestors [{:type :group
-                                  :id group8
+                                  :id group9
                                   :description "(fn [_ x y] (* x y))\n"
                                   :fields [group [[generate2] key] [[generate2] value] [[generate4] key] [[generate4] value]]
                                   :field-type :frozen

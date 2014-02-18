@@ -61,13 +61,15 @@ which ones should be quoted and trapped."
 
 (defn fold-fn*
   "See pigpen.core/fold-fn"
-  [requires combinef reducef]
+  [requires combinef reducef finalf]
   (code/assert-arity combinef 0)
   (code/assert-arity combinef 2)
   (code/assert-arity reducef 2)
+  (code/assert-arity finalf 1)
   (raw/fold$ (code/build-requires requires)
              `(pig/exec-combinef ~combinef)
-             `(pig/exec-reducef ~((eval combinef)) ~reducef)))
+             `(pig/exec-reducef ~((eval combinef)) ~reducef)
+             `(pig/exec-finalf ~combinef ~finalf)))
 
 (defn ^:private projection-fold [fold field alias]
   {:pre [(or (nil? fold) (fold? fold))]}
@@ -102,8 +104,8 @@ which ones should be quoted and trapped."
 
 (defn fold*
   "See pigpen.core/fold"
-  ([relation requires combinef reducef opts]
-    (fold* relation (fold-fn* requires combinef reducef) opts))
+  ([relation requires combinef reducef finalf opts]
+    (fold* relation (fold-fn* requires combinef reducef finalf) opts))
   ([relation fold opts]
   (let [keys       [raw/group-all$]
         values     [[[(:id relation)] 'value]]
@@ -199,12 +201,14 @@ reducef and combinef.
     (defn sum-by [f]
       (pig/fold-fn + (fn [acc value] (+ acc (f value)))))
 "
-  ([reducef] `(fold-fn ~reducef ~reducef))
-  ([combinef reducef]
+  ([reducef] `(fold-fn ~reducef ~reducef identity))
+  ([combinef reducef] `(fold-fn ~combinef ~reducef identity))
+  ([combinef reducef finalf]
     `(fold-fn*
        ['~(ns-name *ns*)]
        (code/trap '~(ns-name *ns*) ~combinef)
-       (code/trap '~(ns-name *ns*) ~reducef))))
+       (code/trap '~(ns-name *ns*) ~reducef)
+       (code/trap '~(ns-name *ns*) ~finalf))))
 
 (defmacro fold
   "Computes a parallel reduce of the relation. This is done in multiple stages
@@ -229,6 +233,7 @@ can also be used.
             ['~(ns-name *ns*)]
             (code/trap '~(ns-name *ns*) ~combinef)
             (code/trap '~(ns-name *ns*) ~reducef)
+            'identity
             {})))
 
 (defmacro cogroup
