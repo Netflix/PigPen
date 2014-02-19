@@ -497,34 +497,6 @@ as the initial state for the next accumulation."
       (a/close! result))
     (catch Throwable z (throw (RuntimeException. z)))))
 
-(defn udf-algebraic
-  "Evaluates an algebraic function. An algebraic function has three stages: the
-initial reduce, a combiner, and a final stage. In PigPen, the final stage is
-equivalent to the combine stage."
-  [type ^Tuple t]
-  (try
-    (let [[init combinef reducef finalf & args] (.getAll t)]
-      (if (not-empty init) (eval-string init))
-      (case type
-        :initial
-        ((eval-string reducef) args)
-
-        :intermed
-        ((eval-string combinef) args)
-    
-        :final
-        ((eval-string finalf) args)
-    
-        :exec
-        (->> args
-          ((eval-string reducef))
-          ((comp vector bag))
-          ((eval-string combinef))
-          ((comp vector bag))
-          ((eval-string finalf)))))
-    
-    (catch Throwable z (throw (PigPenException. z)))))
-
 ;; **********
 
 (defn ^:private pig-freeze [value]
@@ -629,35 +601,62 @@ result is wrapped in a tuple and bag."
       (map (partial apply tuple))
       (apply bag))))
 
+;; TODO lots of duplication here
 (defn exec-reducef
   "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value in a tuple."
-  [val reducef]
-  (fn [args]
-    (->> args
-      first
-      hybrid->clojure
-      (reduce reducef val)
-      pig-freeze
-      tuple)))
+  [val reducef args]
+  (->> args
+    first
+    hybrid->clojure
+    (reduce reducef val)
+    pig-freeze
+    tuple))
 
 (defn exec-combinef
   "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value in a tuple."
-  [combinef]
-  (fn [args]
-    (->> args
-      first
-      hybrid->clojure
-      (reduce combinef)
-      pig-freeze
-      tuple)))
+  [combinef args]
+  (->> args
+    first
+    hybrid->clojure
+    (reduce combinef)
+    pig-freeze
+    tuple))
 
 (defn exec-finalf
   "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value."
-  [combinef finalf]
-  (fn [args]
-    (->> args
-      first
-      hybrid->clojure
-      (reduce combinef)
-      finalf
-      pig-freeze)))
+  [combinef finalf args]
+  (->> args
+    first
+    hybrid->clojure
+    (reduce combinef)
+    finalf
+    pig-freeze))
+
+(defn udf-algebraic
+  "Evaluates an algebraic function. An algebraic function has three stages: the
+initial reduce, a combiner, and a final stage. In PigPen, the final stage is
+equivalent to the combine stage."
+  [type ^Tuple t]
+  (try
+    (let [[init foldf & args] (.getAll t)]
+      (if (not-empty init) (eval-string init))
+      (let [{:keys [combinef reducef finalf]} (eval-string foldf)]
+        (case type
+          :initial
+          (exec-reducef (combinef) reducef args)
+
+          :intermed
+          (exec-combinef combinef args)
+    
+          :final
+          (exec-finalf combinef finalf args)
+    
+          :exec
+          (->> args
+            (exec-reducef (combinef) reducef)
+            ((comp vector bag))
+            (exec-combinef combinef)
+            ((comp vector bag))
+            (exec-finalf combinef finalf)))))
+    
+    (catch Throwable z (throw (PigPenException. z)))))

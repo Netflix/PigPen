@@ -19,7 +19,8 @@
 (ns pigpen.join-test
   (:use clojure.test)
   (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
-            [pigpen.join :as pig]))
+            [pigpen.join :as pig]
+            [pigpen.fold :as fold]))
 
 (deftest test-quote-select-clause
   (test-diff
@@ -91,8 +92,10 @@
 (deftest test-group-by
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (pig/group-by (fn [v] (:foo v)) {:parallel 10
-                                       :fold (pig/fold-fn +)} {:fields '[value]})
+      (pig/group-by (fn [v] (:foo v))
+                    {:parallel 10
+                     :fold (fold/fold-fn +)}
+                    {:fields '[value]})
       '{:type :bind
         :id bind8
         :description nil
@@ -108,23 +111,14 @@
                      :description nil
                      :projections [{:type :projection-field, :field group, :alias field3}
                                    {:type :projection-func
+                                    :alias field4
                                     :code {:type :code
-                                           :expr {:type :fold
-                                                  :init (clojure.core/require (quote [pigpen.pig]) (quote [pigpen.join-test]))
-                                                  :combinef (pigpen.pig/exec-combinef
-                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                                (clojure.core/eval (quote +))))
-                                                  :reducef (pigpen.pig/exec-reducef 0
-                                                             (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                               (clojure.core/eval (quote +))))
-                                                  :finalf (pigpen.pig/exec-finalf
-                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                              (clojure.core/eval (quote +)))
-                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                              (clojure.core/eval (quote clojure.core/identity))))}
+                                           :args [[[generate2] value]]
                                            :return "Algebraic"
-                                           :args [[[generate2] value]]}
-                                    :alias field4}]
+                                           :expr {:init ""
+                                                  :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                          (clojure.core/eval
+                                                            (quote (fold/fold-fn +))))}}}]
                      :fields [field3 field4]
                      :field-type :frozen
                      :opts {:type :generate-opts}
@@ -212,25 +206,6 @@
                      :ancestors [{:fields [value], :id r0}]
                      :opts {:type :group-opts}}]})))
 
-(deftest test-fold-fn
-  (test-diff
-    (pig/fold-fn +)
-    '{:type :fold
-      :init (clojure.core/require (quote [pigpen.pig]) (quote [pigpen.join-test]))
-      :combinef (pigpen.pig/exec-combinef
-                  (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                    (clojure.core/eval
-                      (quote +))))
-      :reducef (pigpen.pig/exec-reducef 0
-                 (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                   (clojure.core/eval
-                     (quote +))))
-      :finalf (pigpen.pig/exec-finalf
-                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                  (clojure.core/eval (quote +)))
-                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                  (clojure.core/eval (quote clojure.core/identity))))}))
-
 (deftest test-fold
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
@@ -246,18 +221,11 @@
                        :code {:type :code
                              :args [[[r0] value]]
                              :return "Algebraic"
-                             :expr {:type :fold
-                                    :init (clojure.core/require (quote [pigpen.pig]) (quote [pigpen.join-test]))
-                                    :combinef (pigpen.pig/exec-combinef
-                                                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                  (clojure.core/eval (quote +))))
-                                    :reducef (pigpen.pig/exec-reducef 0
-                                               (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                 (clojure.core/eval (quote +))))
-                                    :finalf (pigpen.pig/exec-finalf
-                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                (clojure.core/eval (quote +)))
-                                              clojure.core/identity)}}}]
+                             :expr {:init ""
+                                    :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                            (clojure.core/eval
+                                              (quote
+                                                (pigpen.join/fold-fn* + + clojure.core/identity))))}}}]
         :ancestors [{:type :group
                      :id group1
                      :description nil
@@ -299,37 +267,21 @@
                                     :code {:type :code
                                            :return "Algebraic"
                                            :args [[[generate2] value]]
-                                           :expr {:type :fold
-                                                  :init (clojure.core/require (quote [pigpen.pig]) (quote [pigpen.join-test]))
-                                                  :combinef (pigpen.pig/exec-combinef
-                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                                (clojure.core/eval (quote +))))
-                                                  :reducef (pigpen.pig/exec-reducef 0
-                                                             (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                               (clojure.core/eval (quote +))))
-                                                  :finalf (pigpen.pig/exec-finalf
-                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                              (clojure.core/eval (quote +)))
-                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                              (clojure.core/eval (quote clojure.core/identity))))}}}
+                                           :expr {:init ""
+                                                  :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                          (clojure.core/eval
+                                                            (quote
+                                                              (pig/fold-fn +))))}}}
                                    {:type :projection-func
                                     :alias field7
                                     :code {:type :code
                                            :return "Algebraic"
                                            :args [[[generate4] value]]
-                                           :expr {:type :fold
-                                                  :init (clojure.core/require (quote [pigpen.pig]) (quote [pigpen.join-test]))
-                                                  :combinef (pigpen.pig/exec-combinef
-                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                                (clojure.core/eval (quote +))))
-                                                  :reducef (pigpen.pig/exec-reducef 0
-                                                             (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                               (clojure.core/eval (quote +))))
-                                                  :finalf (pigpen.pig/exec-finalf
-                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                              (clojure.core/eval (quote +)))
-                                                            (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                              (clojure.core/eval (quote clojure.core/identity))))}}}]
+                                           :expr {:init ""
+                                                  :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
+                                                          (clojure.core/eval
+                                                            (quote
+                                                              (pig/fold-fn +))))}}}]
                      :ancestors [{:type :group
                                   :id group9
                                   :description "(fn [_ x y] (* x y))\n"

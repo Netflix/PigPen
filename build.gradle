@@ -46,6 +46,7 @@ clojureTest {
 
 clojuredoc {
     includeNamespace 'pigpen.core'
+    includeNamespace 'pigpen.fold'
     codox = [
         srcDirUri: 'https://github.com/Netflix/PigPen/blob/master/',
         srcLinenumAnchorPrefix: 'L'

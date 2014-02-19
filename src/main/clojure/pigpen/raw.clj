@@ -82,19 +82,8 @@ building blocks for more complex operations.")
   "Code to be passed to the UDF"
   [init func]
   {:pre [func]}
-  ^:pig {:type :expr
-         :init init
+  ^:pig {:init init
          :func func})
-
-(defn fold$
-  "Code for a fold operation"
-  [init combinef reducef finalf]
-  {:pre [combinef reducef finalf]}
-  ^:pig {:type :fold
-         :init init
-         :combinef combinef
-         :reducef reducef
-         :finalf finalf})
 
 (defn code$
   "Execute custom code in a script."

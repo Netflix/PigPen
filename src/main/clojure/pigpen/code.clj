@@ -54,14 +54,19 @@ or reduce."
                        '[& more]))])]
     (concat fixed varargs)))
 
-(defn assert-arity [f n]
-  {:pre [f (integer? n) (<= 0 n)]}
-  (let [f' (eval f)
-        [fixed varargs] (arity f')]
+(defn assert-arity* [f' n]
+  {:pre [f' (integer? n) (<= 0 n)]}
+  (let [[fixed varargs] (arity f')]
     (assert
       (or (fixed n) (if varargs (<= varargs n)))
       (str "Expecting arity: " n " Found arities: "
            (pr-str (format-arity fixed varargs))))))
+
+(defn assert-arity [f n]
+  {:pre [f]}
+  (let [f' (eval f)
+        [fixed varargs] (arity f')]
+    (assert-arity* f' n)))
 
 ;; TODO add an option to make the default include/exclude configurable
 
