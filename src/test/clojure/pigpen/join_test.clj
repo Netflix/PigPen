@@ -97,21 +97,21 @@
                      :fold (fold/fold-fn +)}
                     {:fields '[value]})
       '{:type :bind
-        :id bind8
+        :id bind5
         :description nil
         :func (pigpen.pig/map->bind (clojure.core/fn [k v] (clojure.lang.MapEntry. k v)))
-        :args [field3 field4]
+        :args [value0 value1]
         :requires [pigpen.join-test]
         :fields [value]
         :field-type-out :frozen
         :field-type-in :frozen
         :opts {:type :bind-opts}
         :ancestors [{:type :generate
-                     :id generate7
+                     :id generate4
                      :description nil
-                     :projections [{:type :projection-field, :field group, :alias field3}
+                     :projections [{:type :projection-field, :field group, :alias value0}
                                    {:type :projection-func
-                                    :alias field4
+                                    :alias value1
                                     :code {:type :code
                                            :args [[[generate2] value]]
                                            :return "Algebraic"
@@ -119,11 +119,11 @@
                                                   :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
                                                           (clojure.core/eval
                                                             (quote (fold/fold-fn +))))}}}]
-                     :fields [field3 field4]
+                     :fields [value0 value1]
                      :field-type :frozen
                      :opts {:type :generate-opts}
                      :ancestors [{:type :group
-                                  :id group6
+                                  :id group3
                                   :description "(fn [v] (:foo v))\n"
                                   :fields [group [[generate2] key] [[generate2] value]]
                                   :field-type :frozen
@@ -244,26 +244,26 @@
                            (fn [_ x y] (* x y))
                            {:parallel 2})
       '{:type :bind
-        :id bind11
+        :id bind7
         :description nil
         :func (pigpen.pig/map->bind
                 (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
                   (clojure.core/eval (quote (fn [_ x y] (* x y))))))
-        :args [field5 field6 field7]
+        :args [value0 value1 value2]
         :requires [pigpen.join-test]
         :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen
         :opts {:type :bind-opts}
         :ancestors [{:type :generate
-                     :id generate10
+                     :id generate6
                      :description nil
-                     :fields [field5 field6 field7]
+                     :fields [value0 value1 value2]
                      :field-type :frozen
                      :opts {:type :generate-opts}
-                     :projections [{:type :projection-field, :field group, :alias field5}
+                     :projections [{:type :projection-field, :field group, :alias value0}
                                    {:type :projection-func
-                                    :alias field6
+                                    :alias value1
                                     :code {:type :code
                                            :return "Algebraic"
                                            :args [[[generate2] value]]
@@ -273,7 +273,7 @@
                                                             (quote
                                                               (pig/fold-fn +))))}}}
                                    {:type :projection-func
-                                    :alias field7
+                                    :alias value2
                                     :code {:type :code
                                            :return "Algebraic"
                                            :args [[[generate4] value]]
@@ -283,7 +283,7 @@
                                                             (quote
                                                               (pig/fold-fn +))))}}}]
                      :ancestors [{:type :group
-                                  :id group9
+                                  :id group5
                                   :description "(fn [_ x y] (* x y))\n"
                                   :fields [group [[generate2] key] [[generate2] value] [[generate4] key] [[generate4] value]]
                                   :field-type :frozen

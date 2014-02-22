@@ -80,7 +80,7 @@ which ones should be quoted and trapped."
   (let [relations  (mapv (partial select->generate (:join-nils opts) requires) selects)
         keys       (for [r relations] ['key])
         values     (cons 'group (for [r relations] [[(:id r)] 'value]))
-        folds      (mapv projection-fold (cons nil (map :fold selects)) values (repeatedly #(raw/pigsym "field")))
+        folds      (mapv projection-fold (cons nil (map :fold selects)) values (map #(symbol (str "value" %)) (range)))
         join-types (mapv #(get % :type :optional) selects)]
     (code/assert-arity f (count values))
     (-> relations
