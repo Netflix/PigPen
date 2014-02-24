@@ -27,15 +27,14 @@
     (#'pigpen.join/quote-select-clause #{:on :by :key-selector}
                                        '(:from r0 :on (fn [x] x) :type :required))
     {:from 'r0
-     :key-selector `(pigpen.code/trap (quote ~(ns-name *ns*)) (~'fn [~'x] ~'x))
+     :key-selector `(pigpen.code/trap (~'fn [~'x] ~'x))
      :type :required}))
 
 (deftest test-select->generate
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
 
     (test-diff
-      (#'pigpen.join/select->generate true '[pigpen.join-test]
-                                      '{:from {:fields [value]} :key-selector (fn [x] x)})
+      (#'pigpen.join/select->generate true '{:from {:fields [value]} :key-selector (fn [x] x)})
       '{:type :generate
         :id generate0
         :description nil
@@ -53,7 +52,7 @@
                      :description nil
                      :func (pigpen.pig/key-selector->bind (fn [x] x))
                      :args [value]
-                     :requires [pigpen.join-test]
+                     :requires []
                      :fields [value]
                      :field-type-in :frozen
                      :field-type-out :frozen
@@ -62,8 +61,7 @@
                             :implicit-schema true}}]})
     
     (test-diff
-      (#'pigpen.join/select->generate false '[pigpen.join-test]
-                                      '{:from {:fields [value]} :key-selector (fn [x] x)})
+      (#'pigpen.join/select->generate false '{:from {:fields [value]} :key-selector (fn [x] x)})
       '{:type :generate
         :id generate0
         :description nil
@@ -81,7 +79,7 @@
                      :description nil
                      :func (pigpen.pig/key-selector->bind (fn [x] x))
                      :args [value]
-                     :requires [pigpen.join-test]
+                     :requires []
                      :fields [value]
                      :field-type-in :frozen
                      :field-type-out :frozen-with-nils
@@ -101,7 +99,7 @@
         :description nil
         :func (pigpen.pig/map->bind (clojure.core/fn [k v] (clojure.lang.MapEntry. k v)))
         :args [value0 value1]
-        :requires [pigpen.join-test]
+        :requires []
         :fields [value]
         :field-type-out :frozen
         :field-type-in :frozen
@@ -116,9 +114,8 @@
                                            :args [[[generate2] value]]
                                            :return "Algebraic"
                                            :expr {:init ""
-                                                  :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                          (clojure.core/eval
-                                                            (quote (fold/fold-fn +))))}}}]
+                                                  :func (pigpen.pig/with-ns pigpen.join-test
+                                                          (fold/fold-fn +))}}}]
                      :fields [value0 value1]
                      :field-type :frozen
                      :opts {:type :generate-opts}
@@ -143,11 +140,10 @@
                                                             :id bind1
                                                             :description nil
                                                             :func (pigpen.pig/key-selector->bind
-                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                                      (clojure.core/eval
-                                                                        (quote (fn [v] (:foo v))))))
+                                                                    (pigpen.pig/with-ns pigpen.join-test
+                                                                      (fn [v] (:foo v))))
                                                             :args [value]
-                                                            :requires [pigpen.join-test]
+                                                            :requires []
                                                             :fields [value]
                                                             :field-type-in :frozen
                                                             :field-type-out :frozen-with-nils
@@ -187,11 +183,10 @@
         :id bind2
         :description nil
         :func (pigpen.pig/map->bind
-                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                  (clojure.core/eval
-                    (quote (clojure.core/partial clojure.core/reduce conj [])))))
+                (pigpen.pig/with-ns pigpen.join-test
+                  (clojure.core/partial clojure.core/reduce conj [])))
         :args [[[r0] value]]
-        :requires [pigpen.join-test]
+        :requires []
         :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen
@@ -222,10 +217,8 @@
                              :args [[[r0] value]]
                              :return "Algebraic"
                              :expr {:init ""
-                                    :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                            (clojure.core/eval
-                                              (quote
-                                                (pigpen.join/fold-fn* + + clojure.core/identity))))}}}]
+                                    :func (pigpen.pig/with-ns pigpen.join-test
+                                            (pigpen.join/fold-fn* + + clojure.core/identity))}}}]
         :ancestors [{:type :group
                      :id group1
                      :description nil
@@ -247,10 +240,10 @@
         :id bind7
         :description nil
         :func (pigpen.pig/map->bind
-                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                  (clojure.core/eval (quote (fn [_ x y] (* x y))))))
+                (pigpen.pig/with-ns pigpen.join-test
+                  (fn [_ x y] (* x y))))
         :args [value0 value1 value2]
-        :requires [pigpen.join-test]
+        :requires []
         :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen
@@ -268,20 +261,16 @@
                                            :return "Algebraic"
                                            :args [[[generate2] value]]
                                            :expr {:init ""
-                                                  :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                          (clojure.core/eval
-                                                            (quote
-                                                              (pig/fold-fn +))))}}}
+                                                  :func (pigpen.pig/with-ns pigpen.join-test
+                                                          (pig/fold-fn +))}}}
                                    {:type :projection-func
                                     :alias value2
                                     :code {:type :code
                                            :return "Algebraic"
                                            :args [[[generate4] value]]
                                            :expr {:init ""
-                                                  :func (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                          (clojure.core/eval
-                                                            (quote
-                                                              (pig/fold-fn +))))}}}]
+                                                  :func (pigpen.pig/with-ns pigpen.join-test
+                                                          (pig/fold-fn +))}}}]
                      :ancestors [{:type :group
                                   :id group5
                                   :description "(fn [_ x y] (* x y))\n"
@@ -303,10 +292,10 @@
                                                             :id bind1
                                                             :description nil
                                                             :func (pigpen.pig/key-selector->bind
-                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                                      (clojure.core/eval (quote (fn [x] x)))))
+                                                                    (pigpen.pig/with-ns pigpen.join-test
+                                                                      (fn [x] x)))
                                                             :args [value]
-                                                            :requires [pigpen.join-test]
+                                                            :requires []
                                                             :fields [value]
                                                             :field-type-in :frozen
                                                             :field-type-out :frozen-with-nils
@@ -325,10 +314,10 @@
                                                             :id bind3
                                                             :description nil
                                                             :func (pigpen.pig/key-selector->bind
-                                                                    (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                                      (clojure.core/eval (quote (fn [y] y)))))
+                                                                    (pigpen.pig/with-ns pigpen.join-test
+                                                                      (fn [y] y)))
                                                             :args [value]
-                                                            :requires [pigpen.join-test]
+                                                            :requires []
                                                             :fields [value]
                                                             :field-type-in :frozen
                                                             :field-type-out :frozen-with-nils
@@ -347,11 +336,10 @@
         :id bind6
         :description nil
         :func (pigpen.pig/map->bind
-                (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                  (clojure.core/eval
-                    (quote (fn [x y] (merge x y))))))
+                (pigpen.pig/with-ns pigpen.join-test
+                  (fn [x y] (merge x y))))
         :args [[[generate2 value]] [[generate4 value]]]
-        :requires [pigpen.join-test]
+        :requires []
         :fields [value]
         :field-type-out :frozen
         :field-type-in :frozen
@@ -378,10 +366,10 @@
                                                :id bind1
                                                :description nil
                                                :func (pigpen.pig/key-selector->bind
-                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                         (clojure.core/eval (quote (fn [x] x)))))
+                                                       (pigpen.pig/with-ns pigpen.join-test
+                                                         (fn [x] x)))
                                                :args [value]
-                                               :requires [pigpen.join-test]
+                                               :requires []
                                                :fields [value]
                                                :field-type-in :frozen
                                                :field-type-out :frozen-with-nils
@@ -400,10 +388,10 @@
                                                :id bind3
                                                :description nil
                                                :func (pigpen.pig/key-selector->bind
-                                                       (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.join-test))]
-                                                         (clojure.core/eval (quote (fn [y] y)))))
+                                                       (pigpen.pig/with-ns pigpen.join-test
+                                                         (fn [y] y)))
                                                :args [value]
-                                               :requires [pigpen.join-test]
+                                               :requires []
                                                :fields [value]
                                                :field-type-in :frozen
                                                :field-type-out :frozen-with-nils

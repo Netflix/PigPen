@@ -19,7 +19,8 @@
 (ns pigpen.code
   "Contains functions that assist in handling user code in operations like map
 or reduce."
-  (:require [pigpen.raw :as raw]
+  (:require [pigpen.pig :as pig]
+            [pigpen.raw :as raw]
             [clojure.java.io :as io])
   (:import [org.apache.pig.data DataBag]
            [java.lang.reflect Method]))
@@ -96,21 +97,26 @@ or reduce."
     (map (fn [r] `'[~r]))
     (cons 'clojure.core/require)))
 
-(defn trap* [keys values ns f]
+(defn trap-locals [keys values f]
   (let [args (vec (mapcat make-binding keys values))]
-    (if (ns-exists (second ns)) ; ns is (quote foo)
-      (if (not-empty args)
-        `(binding [*ns* (find-ns ~ns)]
-           (eval '(let ~args ~f)))
-        `(binding [*ns* (find-ns ~ns)]
-           (eval '~f)))
-      (if (not-empty args)
-        `(let ~args ~f)
-        f))))
+    (if (not-empty args)
+      `(let ~args ~f)
+      f)))
+
+(defn trap-ns [ns f]
+  (if (ns-exists ns)
+    `(pig/with-ns ~ns ~f)
+    f))
+
+(defn trap* [keys values ns f]
+  (->> f
+    (trap-locals keys values)
+    (trap-ns ns)))
 
 (defmacro trap
   "Returns a form that, when evaluated, will reconsitiute f in namespace ns, in
 the presence of any local bindings"
-  [ns f]
-  (let [keys# (vec (keys &env))]
-    `(trap* '~keys# ~keys# '~ns '~f)))
+  ([f] `(trap '~(ns-name *ns*) ~f))
+  ([ns f]
+    (let [keys# (vec (keys &env))]
+      `(trap* '~keys# ~keys# ~ns '~f))))

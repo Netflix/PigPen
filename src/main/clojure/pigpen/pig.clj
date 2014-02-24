@@ -388,6 +388,14 @@ serialization info."
   "Reads code from a string & evaluates it"
   (memoize #(eval (read-string %))))
 
+(defmacro with-ns
+  "Evaluates f within ns. Calls (require 'ns) first."
+  [ns f]
+  `(do
+     (require '~ns)
+     (binding [*ns* (find-ns '~ns)]
+       (eval '~f))))
+
 (defn eval-udf
   [init func ^Tuple t]
   "Evaluates a pig tuple as a clojure function. The first element of the tuple

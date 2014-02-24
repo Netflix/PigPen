@@ -80,11 +80,9 @@
         expr (foo 1)
         expr-fn (eval expr)]
     (is (= expr
-           '(clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.code-test))]
-              (clojure.core/eval
-                (quote
-                  (clojure.core/let [y (quote 2)
-                                     x (quote 1)]
-                    (fn [z] (test-fn x y z))))))))
+           '(pigpen.pig/with-ns pigpen.code-test
+              (clojure.core/let [y (quote 2)
+                                 x (quote 1)]
+                (fn [z] (test-fn x y z))))))
     (is (= (expr-fn 3)
            6))))
