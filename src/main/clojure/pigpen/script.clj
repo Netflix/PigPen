@@ -23,7 +23,8 @@ Nothing in here will be used directly with normal PigPen usage.
 See pigpen.core and pigpen.exec
 "
   (:refer-clojure :exclude [replace])
-  (:require [clojure.string :refer [join replace]]))
+  (:require [clojure.string :refer [join replace]]
+            [pigpen.raw :as raw]))
 
 (set! *warn-on-reflection* true)
 
@@ -96,10 +97,11 @@ See pigpen.core and pigpen.exec
 (defmethod command->script :code
   [{:keys [return expr args]}]
   {:pre [return expr args]}
-  (let [{:keys [init func]} expr
-        pig-code [(escape+quote init) (escape+quote func)]
-        pig-args (->> args (map format-field) (concat pig-code) (join ", "))]
-    (str "pigpen.PigPenFn" return "(" pig-args ")")))
+  (let [id (raw/pigsym "udf")
+        {:keys [init func]} expr
+        pig-args (->> args (map format-field) (join ", "))]
+    [(str "DEFINE " id " pigpen.PigPenFn" return "(" (escape+quote init) "," (escape+quote func) ");\n\n")
+     (str id "(" pig-args ")")]))
 
 (defmethod command->script :register
   [{:keys [jar]}]
@@ -144,32 +146,34 @@ See pigpen.core and pigpen.exec
   {:pre [field alias]}
   (let [pig-field (format-field field)
         pig-schema (str " AS " alias)]
-    (str pig-field pig-schema)))
+    [nil (str pig-field pig-schema)]))
 
 (defmethod command->script :projection-func
   [{:keys [code alias]}]
   {:pre [code alias]}
-  (let [pig-code (command->script code)
+  (let [[pig-define pig-code] (command->script code)
         pig-schema (str " AS " alias)]
-    (str pig-code pig-schema)))
+    [pig-define (str pig-code pig-schema)]))
 
 (defmethod command->script :projection-flat
   [{:keys [code alias implicit-schema]}]
   {:pre [code alias]}
-  (let [pig-code (str "FLATTEN(" (command->script code) ")")
+  (let [[pig-define pig-code] (command->script code)
+        pig-code (str "FLATTEN(" pig-code ")")
         pig-schema (if-not implicit-schema (str " AS " alias))]
-    (str pig-code pig-schema)))
+    [pig-define (str pig-code pig-schema)]))
 
 (defmethod command->script :generate
   [{:keys [id ancestors projections opts]}]
   {:pre [id ancestors (not-empty projections)]}
   (let [relation-id (escape-id (first ancestors))
         pig-id (escape-id id)
-        pig-projections (as-> projections %
-                              (map #(assoc % :implicit-schema (:implicit-schema opts)) %)
-                              (map command->script %)
-                              (join ",\n    " %))]
-    (str pig-id " = FOREACH " relation-id " GENERATE\n    " pig-projections ";\n\n")))
+        pig-projections (->> projections
+                              (map #(assoc % :implicit-schema (:implicit-schema opts)))
+                              (mapv command->script))
+        pig-defines (->> pig-projections (map first) (join))
+        pig-projections (->> pig-projections (map second) (join ",\n    "))]
+    (str pig-defines pig-id " = FOREACH " relation-id " GENERATE\n    " pig-projections ";\n\n")))
 
 (defmethod command->script :order-opts
   [{:keys [parallel]}]
@@ -213,8 +217,8 @@ See pigpen.core and pigpen.exec
   {:pre [id ancestors code]}
   (let [relation-id (escape-id (first ancestors))
         pig-id (escape-id id)
-        pig-code (command->script code)]
-    (str pig-id " = FILTER " relation-id " BY " pig-code ";\n\n")))
+        [pig-define pig-code] (command->script code)]
+    (str pig-define pig-id " = FILTER " relation-id " BY " pig-code ";\n\n")))
 
 (defmethod command->script :filter-native
   [{:keys [id ancestors expr]}]

@@ -27,4 +27,8 @@ import org.apache.pig.data.Tuple;
  *
  */
 public class PigPenFnTuple extends PigPenFn<Tuple> {
+
+    public PigPenFnTuple(String init, String func) {
+        super(init, func);
+    }
 }

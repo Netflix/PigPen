@@ -51,10 +51,9 @@ See pigpen.core and pigpen.exec
 ;; TODO add option to skip this for faster execution
 (defn ^:private eval-code [{:keys [return expr args]} values]
   (let [{:keys [init func]} expr
-        ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.PigPenFn" return))))
+        ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.PigPenFn" return)) ~(str init) ~(str func)))
         ^Tuple tuple (->> args
                        (map #(if ((some-fn symbol? vector?) %) (dereference (values %)) %))
-                       (concat [(str init) (str func)])
                        (apply pig/tuple))]
     (try
       (.exec instance tuple)

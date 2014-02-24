@@ -26,4 +26,8 @@ package pigpen;
  *
  */
 public class PigPenFnBoolean extends PigPenFn<Boolean> {
+
+    public PigPenFnBoolean(String init, String func) {
+        super(init, func);
+    }
 }

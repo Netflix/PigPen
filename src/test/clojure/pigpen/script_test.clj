@@ -17,7 +17,8 @@
 ;;
 
 (ns pigpen.script-test
-  (:use clojure.test pigpen.script))
+  (:use clojure.test pigpen.script)
+  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]))
 
 (deftest test-format-field
   (is (= (#'pigpen.script/format-field "abc") "'abc'"))
@@ -39,12 +40,13 @@
 ;; ********** Util **********
 
 (deftest test-code
-  (is (= "pigpen.PigPenFnDataByteArray('(require (quote [pigpen.pig]))', 'identity')"
-         (command->script '{:type :code
-                            :expr {:init (require '[pigpen.pig])
-                                   :func identity}
-                            :return DataByteArray
-                            :args []}))))
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (is (= ["DEFINE udf1 pigpen.PigPenFnDataByteArray('(require (quote [pigpen.pig]))','identity');\n\n" "udf1()"]
+           (command->script '{:type :code
+                              :expr {:init (require '[pigpen.pig])
+                                     :func identity}
+                              :return DataByteArray
+                              :args []})))))
 
 (deftest test-register
   (is (= "REGISTER foo.jar;\n\n"
@@ -116,52 +118,59 @@
 ;; ********** Map **********
 
 (deftest test-projection-field
-  (is (= "a AS b"
+  (is (= [nil "a AS b"]
          (command->script '{:type :projection-field
                             :field a
                             :alias b}))))
 
 (deftest test-projection-func
-  (is (= "pigpen.PigPenFnDataByteArray('', '(fn [x] (* x x))', 'a', a) AS b"
-         (command->script '{:type :projection-func
-                            :code {:type :code
-                                   :expr {:init nil
-                                          :func (fn [x] (* x x))}
-                                   :return "DataByteArray"
-                                   :args ["a" a]}
-                            :alias b}))))
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (is (= ["DEFINE udf1 pigpen.PigPenFnDataByteArray('','(fn [x] (* x x))');\n\n" "udf1('a', a) AS b"]
+           (command->script '{:type :projection-func
+                              :code {:type :code
+                                     :expr {:init nil
+                                            :func (fn [x] (* x x))}
+                                     :return "DataByteArray"
+                                     :args ["a" a]}
+                              :alias b})))))
 
 (deftest test-generate
-  (is (= "generate0 = FOREACH relation0 GENERATE
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (is (= "DEFINE udf1 pigpen.PigPenFnDataByteArray('','(fn [x] (* x x))');
+
+generate0 = FOREACH relation0 GENERATE
     a AS b,
-    pigpen.PigPenFnDataByteArray('', '(fn [x] (* x x))', 'a', a) AS b;\n\n"
-         (command->script '{:type :generate
-                            :id generate0
-                            :ancestors [relation0]
-                            :projections [{:type :projection-field
-                                           :field a
-                                           :alias b}
-                                          {:type :projection-func
-                                           :code {:type :code
-                                                  :expr {:init nil
-                                                         :func (fn [x] (* x x))}
-                                                  :return "DataByteArray"
-                                                  :args ["a" a]}
-                                           :alias b}]}))))
+    udf1('a', a) AS b;\n\n"
+           (command->script '{:type :generate
+                              :id generate0
+                              :ancestors [relation0]
+                              :projections [{:type :projection-field
+                                             :field a
+                                             :alias b}
+                                            {:type :projection-func
+                                             :code {:type :code
+                                                    :expr {:init nil
+                                                           :func (fn [x] (* x x))}
+                                                    :return "DataByteArray"
+                                                    :args ["a" a]}
+                                             :alias b}]})))))
 
 (deftest test-generate-flatten
-  (is (= "generate0 = FOREACH relation0 GENERATE
-    FLATTEN(pigpen.PigPenFnDataBag('', '(fn [x] [x x])', 'a', a)) AS b;\n\n"
-         (command->script '{:type :generate
-                            :id generate0
-                            :ancestors [relation0]
-                            :projections [{:type :projection-flat
-                                           :code {:type :code
-                                                  :expr {:init nil
-                                                         :func (fn [x] [x x])}
-                                                  :return "DataBag"
-                                                  :args ["a" a]}
-                                           :alias b}]}))))
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (is (= "DEFINE udf1 pigpen.PigPenFnDataBag('','(fn [x] [x x])');
+
+generate0 = FOREACH relation0 GENERATE
+    FLATTEN(udf1('a', a)) AS b;\n\n"
+           (command->script '{:type :generate
+                              :id generate0
+                              :ancestors [relation0]
+                              :projections [{:type :projection-flat
+                                             :code {:type :code
+                                                    :expr {:init nil
+                                                           :func (fn [x] [x x])}
+                                                    :return "DataBag"
+                                                    :args ["a" a]}
+                                             :alias b}]})))))
 
 (deftest test-order
   (is (= "order0 = ORDER relation0 BY key1 ASC, key2 DESC PARALLEL 10;\n\n"
@@ -203,15 +212,18 @@
 ;; ********** Filter **********
 
 (deftest test-filter
-  (is (= "filter0 = FILTER relation0 BY pigpen.PigPenFnBoolean('', '(fn [x] (even? x))', 'a', a);\n\n"
-         (command->script '{:type :filter
-                            :id filter0
-                            :ancestors [relation0]
-                            :code {:type :code
-                                   :expr {:init nil
-                                          :func (fn [x] (even? x))}
-                                   :return "Boolean"
-                                   :args ["a" a]}}))))
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (is (= "DEFINE udf1 pigpen.PigPenFnBoolean('','(fn [x] (even? x))');
+
+filter0 = FILTER relation0 BY udf1('a', a);\n\n"
+           (command->script '{:type :filter
+                              :id filter0
+                              :ancestors [relation0]
+                              :code {:type :code
+                                     :expr {:init nil
+                                            :func (fn [x] (even? x))}
+                                     :return "Boolean"
+                                     :args ["a" a]}})))))
 
 (deftest test-filter-native
   (is (= "filter_native0 = FILTER relation0 BY ((foo == 1) AND (bar > 2));\n\n"

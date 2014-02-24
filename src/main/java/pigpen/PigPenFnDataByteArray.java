@@ -27,4 +27,8 @@ import org.apache.pig.data.DataByteArray;
  *
  */
 public class PigPenFnDataByteArray extends PigPenFn<DataByteArray> {
+
+    public PigPenFnDataByteArray(String init, String func) {
+        super(init, func);
+    }
 }
