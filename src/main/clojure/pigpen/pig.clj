@@ -508,7 +508,7 @@ as the initial state for the next accumulation."
 ;; **********
 
 (defn ^:private pig-freeze [value]
-  (DataByteArray. (freeze value {:legacy-mode true})))
+  (DataByteArray. (freeze value {:skip-header? true, :legacy-mode true})))
 
 (defn ^:private pig-freeze-with-nils [value]
   (if value
