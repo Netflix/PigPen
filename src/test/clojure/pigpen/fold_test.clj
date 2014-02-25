@@ -22,72 +22,74 @@
             [pigpen.core :as pig]
             [pigpen.fold :as fold]))
 
-(deftest test-seq
+(deftest test-vec
   (let [data (pig/return [1 2 3 4])
-        command (pig/fold (fold/seq) data)]
+        command (pig/fold (fold/vec) data)]
     (is (= (pig/dump command)
            [[1 2 3 4]]))))
 
 (deftest test-map
   (let [data (pig/return [1 2 3 4])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/map #(* % %))) data)]
+        command (pig/fold (fold/map #(* % %)) data)]
     (is (= (pig/dump command)
            [[1 4 9 16]]))))
 
 (deftest test-mapcat
   (let [data (pig/return [1 2 3 4])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/mapcat (fn [x] [(inc x) (dec x)]))) data)]
+        command (pig/fold (fold/mapcat (fn [x] [(inc x) (dec x)])) data)]
     (is (= (pig/dump command)
            [[2 0 3 1 4 2 5 3]]))))
 
 (deftest test-filter
   (let [data (pig/return [1 2 3 4])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/filter even?)) data)]
+        command (pig/fold (fold/filter even?) data)]
     (is (= (pig/dump command)
            [[2 4]]))))
 
+(deftest test-remove
+  (let [data (pig/return [1 2 3 4])
+        command (pig/fold (fold/remove even?) data)]
+    (is (= (pig/dump command)
+           [[1 3]]))))
+
+(deftest test-keep
+  (let [data (pig/return [1 2 nil 3 4])
+        command (pig/fold (fold/keep identity) data)]
+    (is (= (pig/dump command)
+           [[1 2 3 4]]))))
+
+(deftest test-distinct
+  (let [data (pig/return [1 2 3 4 1 2 3 4])
+        command (pig/fold (fold/distinct) data)]
+    (is (= (pig/dump command)
+           [#{1 2 3 4}]))))
+
 (deftest test-take
   (let [data (pig/return [1 2 3 4])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/take 2)) data)]
+        command (pig/fold (fold/take 2) data)]
     (is (= (pig/dump command)
            [[4 3]]))))
 
 (deftest test-first
   (let [data (pig/return [1 2 3 4])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/first)) data)]
+        command (pig/fold (fold/first) data)]
     (is (= (pig/dump command)
            [4]))))
 
 (deftest test-last
   (let [data (pig/return [1 2 3 4])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/last)) data)]
+        command (pig/fold (fold/last) data)]
     (is (= (pig/dump command)
            [1]))))
 
 (deftest test-sort
   (let [data (pig/return [2 4 1 3 2 3 5])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/sort)) data)]
+        command (pig/fold (fold/sort) data)]
     (is (= (pig/dump command)
            [[1 2 2 3 3 4 5]])))
   
   (let [data (pig/return [2 4 1 3 2 3 5])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/sort >)) data)]
+        command (pig/fold (fold/sort > (fold/vec)) data)]
     (is (= (pig/dump command)
            [[5 4 3 3 2 2 1]]))))
 
@@ -96,9 +98,7 @@
                           {:foo 2 :bar "c"}
                           {:foo 3 :bar "b"}
                           {:foo 4 :bar "a"}])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/sort-by :bar)) data)]
+        command (pig/fold (fold/sort-by :bar) data)]
     (is (= (pig/dump command)
            [[{:foo 4, :bar "a"}
              {:foo 3, :bar "b"}
@@ -109,9 +109,7 @@
                           {:foo 2 :bar "c"}
                           {:foo 3 :bar "b"}
                           {:foo 4 :bar "a"}])
-        command (pig/fold (->>
-                            (fold/seq)
-                            (fold/sort-by :bar (comp - compare))) data)]
+        command (pig/fold (fold/sort-by :bar (comp - compare) (fold/vec)) data)]
     (is (= (pig/dump command)
            [[{:foo 1, :bar "d"}
              {:foo 2, :bar "c"}

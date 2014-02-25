@@ -57,17 +57,19 @@ which ones should be quoted and trapped."
                     (raw/projection-field$ 1 'value)] {})))
 
 (defn fold-fn*
- "See pigpen.core/fold-fn"
- [combinef reducef finalf]
- {:pre [combinef reducef finalf]}
- (code/assert-arity* combinef 0)
- (code/assert-arity* combinef 2)
- (code/assert-arity* reducef 2)
- (code/assert-arity* finalf 1)
- {:type :fold
-  :combinef combinef
-  :reducef reducef
-  :finalf finalf})
+  "See pigpen.core/fold-fn"
+  [pre combinef reducef post]
+  {:pre [pre combinef reducef post]}
+  (code/assert-arity* pre 1)
+  (code/assert-arity* combinef 0)
+  (code/assert-arity* combinef 2)
+  (code/assert-arity* reducef 2)
+  (code/assert-arity* post 1)
+  {:type :fold
+   :pre pre
+   :combinef combinef
+   :reducef reducef
+   :post post})
 
 (defn ^:private projection-fold [fold field alias]
   (if fold
@@ -125,7 +127,7 @@ which ones should be quoted and trapped."
   "Groups relation by the result of calling (key-selector item) for each item.
 This produces a sequence of map entry values, similar to using seq with a
 map. Each value will be a lazy sequence of the values that match key.
-Optionally takes a map of options.
+Optionally takes a map of options, including :parallel and :fold.
 
   Example:
 
@@ -137,6 +139,8 @@ Optionally takes a map of options.
     :parallel - The degree of parallelism to use
 
   See also: pigpen.core/cogroup
+
+  See pigpen.fold for more info on :fold options.
 "
   ([key-selector relation] `(group-by ~key-selector {} ~relation))
   ([key-selector opts relation]
@@ -196,6 +200,8 @@ can also be used.
     (pig/fold + foo)
     (pig/fold + (fn [acc _] (inc acc)) foo)
     (pig/fold (pig/fold-fn + (fn [acc _] (inc acc))) foo)
+
+  See pigpen.fold for more info on fold functions.
 "
   ([reducef relation]
     `(if (-> ~reducef :type #{:fold})
@@ -205,7 +211,7 @@ can also be used.
        (fold ~reducef ~reducef ~relation)))
   ([combinef reducef relation]
     `(fold* ~relation
-            (code/trap (fold-fn* ~combinef ~reducef identity))
+            (code/trap (fold-fn* identity ~combinef ~reducef identity))
             {})))
 
 (defmacro cogroup
@@ -217,8 +223,8 @@ similar to join, without flattening the data. Optionally takes a map of options.
   Example:
 
     (pig/cogroup [(foo :on :a)
-                  (bar :on :b :type :required)]
-                 (fn [key foos bars] ...)
+                  (bar :on :b, :type :required, :fold (fold/count))]
+                 (fn [key foos bar-count] ...)
                  {:parallel 20})
 
 In this example, foo and bar are other pig queries and :a and :b are the
@@ -230,7 +236,9 @@ output. To specify a relation as required, add 'required' to the select clause.
 The third argument is a function used to consolidate matching key values. For
 each uniqe key value, this function is called with the value of the key and all
 values with that key from foo and bar. As such, foos and bars are both
-collections. The last argument is an optional map of options.
+collections. The last argument is an optional map of options. A fold function
+can be specified to aggregate groupings in parallel. See pigpen.fold for more
+info on fold functions.
 
   Options:
 

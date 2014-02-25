@@ -17,7 +17,75 @@
 ;;
 
 (ns pigpen.fold
-  (:refer-clojure :exclude [seq map mapcat filter take first last sort sort-by juxt count min min-key max max-key])
+  "Contains fold operations for use with pig/fold, pig/group-by, and pig/cogroup.
+Each fold operation consists of 3 parts: pre-processing on the input values, a
+parallel reduce, and post-processing on the output value.
+
+Use pigpen.fold/fold-fn to create a fold function. The pre function is a
+function that takes a sequence and returns a sequence. The combinef and reducef
+functions are used to aggregate the collection. Calling (combinef) with no args
+is used to produce a seed value. Then reducef is used to aggregate chunks of
+data into intermediate products in parallel. Finally, combinef is optionally
+called to combine intermediate products. An optional post function is called on
+the final result. If combinef is not specified, reducef is used for both. The
+pre and post functions default to identity.
+
+The funcitons in pigpen.fold can be composed, but they must be composed in a
+specific order. It must start with preprocessor functions, then a reducer, and
+finally post-processing. The post-processing sequence operators can only be
+used with reducer functions that produce seqs.
+
+For example, you can do this:
+
+  (->> (fold/map :foo) (fold/sort) (fold/take 40))
+
+But you cannot do this:
+
+  (->> (pig/count) (pig/map :foo))
+
+In the first example, there's an implicit (vec) operation to reduce the values
+into a vector.
+
+There are three places to use a fold operation. You can reduce the entire
+dataset using pigpen.pig/fold:
+
+  (pig/fold (fold/count) foos)
+
+Or apply a fold to the groupings produced by pigpen.pig/group-by and
+pigpen.pig/cogroup:
+
+  (->> foos
+    (pig/group-by :foo
+      {:fold (fold/count)})
+    (pig/map (fn [key f] f)))
+
+  (pig/cogroup [(foos :on :foo, :fold (fold/sum))
+                (bars :on :bar, :fold (fold/avg))]
+    (fn [key f b] [f b]))
+
+In the last examples, f and b are both numerical values instead of the usual
+sequences. If you need to perform multiple aggregations, fold/juxt is what you
+need:
+
+  (->> foos
+    (pig/group-by :foo
+      {:fold (fold/juxt (fold/count) (fold/sum) (fold/avg))})
+    (pig/map (fn [key [count sum avg]] ...)))
+
+Pre-processing operations:
+
+  map, mapcat, filter, remove, keep
+
+Reduce operations:
+
+  count, count-if, sum, sum-if, sum-by, avg, avg-if, avg-by,
+  min, min-by, max, max-by, distinct, vec
+
+Post-processing operations:
+
+  first, last, sort, sort-by, take, top, top-by
+"
+  (:refer-clojure :exclude [vec map mapcat filter remove distinct keep take first last sort sort-by juxt count min min-key max max-key])
   (:require [pigpen.join :refer [fold-fn*]]))
 
 (defn fold-fn
@@ -36,193 +104,470 @@ reducef and combinef.
     (defn sum-by [f]
       (pig/fold-fn + (fn [acc value] (+ acc (f value)))))
 "
-  ([reducef] (fold-fn reducef reducef identity))
-  ([combinef reducef] (fold-fn combinef reducef identity))
-  ([combinef reducef finalf]
-    (fold-fn* combinef reducef finalf)))
+  ([reducef] (fold-fn identity reducef reducef identity))
+  ([combinef reducef] (fold-fn identity combinef reducef identity))
+  ([combinef reducef post] (fold-fn identity combinef reducef post))
+  ([pre combinef reducef post]
+    (fold-fn* pre combinef reducef post)))
 
 ;; TODO interop
 
-(defn seq
-  "Returns the values as a sequence."
+(defn ^:private seq-fold? [fold]
+  (and
+    (-> fold :combinef meta :seq)
+    (-> fold :reducef meta :seq)))
+
+(defn ^:private comp-pre
+  [f {:keys [pre combinef reducef post] :as fold}]
+  (assert (seq-fold? fold) (str "Operator must be used before aggregation."))
+  (fold-fn (comp f pre)
+           combinef
+           reducef
+           post))
+
+(defn ^:private comp-fold
+  [f {:keys [pre combinef reducef post]}]
+  (fold-fn pre
+           (comp f combinef)
+           (comp f reducef)
+           post))
+
+(defn ^:private comp-fold-new
+  [{:keys [pre] :as fold} {:keys [combinef reducef post]}]
+  (fold-fn pre
+           combinef
+           reducef
+           post))
+
+(defn ^:private comp-post
+  [f {:keys [pre combinef reducef post]}]
+  (fold-fn pre
+           combinef
+           reducef
+           (comp f post)))
+
+(defn vec
+  "Returns all values as a vector. This is the default fold operation if none
+other is specified.
+
+  Example:
+    (fold/vec)
+
+    (->> (fold/vec)
+      (fold/take 5))
+"
   []
-  (fold-fn (fn
-             ([] [])
-             ([l r] (concat l r)))
-           (fn [acc val] (conj acc val))))
+  (fold-fn ^:seq (fn
+                   ([] [])
+                   ([l r] (concat l r)))
+           ^:seq (fn [acc val] (conj acc val))))
 
-(defn map
-  "Applies f to each input value"
-  {:arglists '([f fold])}
-  [f {:keys [combinef reducef finalf]}]
-  (fold-fn combinef
-           (fn [acc val]
-             (reducef acc (f val)))
-           finalf))
+(defn preprocess
+  "Takes a a clojure seq function, like map or filter, and returns a fold
+preprocess function. The function must take two params: a function and a seq.
 
-(defn mapcat
-  "Applies f to each input value. f must return a seq which is flattened."
-  {:arglists '([f fold])}
-  [f {:keys [combinef reducef finalf]}]
-  (fold-fn combinef
-           (fn [acc val]
-             (reduce reducef acc (f val)))
-           finalf))
+  Example:
 
-(defn filter
-  "Applies the filter fn f to each input value"
-  {:arglists '([f fold])}
-  [f {:keys [combinef reducef finalf]}]
-  (fold-fn combinef
-           (fn [acc val]
-             (if (f val)
-               (reducef acc val)
-               acc))
-           finalf))
+    (def map (preprocess clojure.core/map))
+
+    (pig/fold (map :foo))
+"
+  [f']
+  (fn
+    ([f]
+      (comp-pre (partial f' f) (vec)))
+    ([f fold]
+      (comp-pre (partial f' f) fold))))
+
+(defmacro ^:private def-preprocess
+  ""
+  [name fn]
+  `(def ~(with-meta name {:arglists ''([f] [f fold])})
+     ~(str "Pre-processes data for a fold operation. Same as " fn ".")
+     (preprocess ~fn)))
+
+(def-preprocess map clojure.core/map)
+(def-preprocess mapcat clojure.core/mapcat)
+(def-preprocess filter clojure.core/filter)
+(def-preprocess remove clojure.core/remove)
+(def-preprocess keep clojure.core/keep)
+
+(defn distinct
+  "Returns the distinct set of values.
+
+  Example:
+    (fold/distinct)
+
+    (->> (fold/map :foo)
+         (fold/keep identity)
+         (fold/distinct))
+"
+  ([]
+    (fold-fn clojure.set/union conj))
+  ([fold]
+    (comp-fold-new fold (distinct))))
 
 (defn take
-  "Returns a sequence of the first n items in coll."
-  {:arglists '([n fold])}
-  [n {:keys [combinef reducef finalf]}]
-  (fold-fn (comp (partial clojure.core/take n) combinef)
-           (comp (partial clojure.core/take n) reducef)
-           finalf))
+  "Returns a sequence of the first n items in coll. This is a post-reduce
+operation, meaning that it can only be applied after a fold operation that
+produces a sequence.
+
+  Example:
+
+    (->>
+      (fold/sort)
+      (fold/take 40))
+"
+  ([n] (take n (vec)))
+  ([n fold]
+    (comp-fold (partial clojure.core/take n) fold)))
 
 (defn first
-  "Returns the first output value."
-  {:arglists '([fold])}
-  [{:keys [combinef reducef finalf]}]
-  (fold-fn (comp (partial clojure.core/take 1) combinef)
-           (comp (partial clojure.core/take 1) reducef)
-           (comp clojure.core/first finalf)))
+  "Returns the first output value. This is a post-reduce operation, meaning that
+it can only be applied after a fold operation that produces a sequence.
+
+  Example:
+    (fold/first)
+
+    (->> (fold/map :foo)
+         (fold/sort)
+         (fold/first))
+
+  See also: pigpen.fold/last, pigpen.fold/min, pigpen.fold/max
+"
+  ([] (first (vec)))
+  ([fold]
+    (->> fold
+      (comp-fold (partial clojure.core/take 1))
+      (comp-post clojure.core/first))))
 
 (defn last
-  "Returns the last output value."
-  {:arglists '([fold])}
-  [{:keys [combinef reducef finalf]}]
-  (fold-fn (comp (partial clojure.core/take 1) reverse combinef)
-           (comp (partial clojure.core/take 1) reverse reducef)
-           (comp clojure.core/last finalf)))
+  "Returns the last output value. This is a post-reduce operation, meaning that
+it can only be applied after a fold operation that produces a sequence.
+
+  Example:
+    (fold/last)
+
+    (->> (fold/map :foo)
+         (fold/sort)
+         (fold/last))
+
+  See also: pigpen.fold/first, pigpen.fold/min, pigpen.fold/max
+"
+  ([] (last (vec)))
+  ([fold]
+    (->> fold
+      (comp-fold reverse)
+      (comp-fold (partial clojure.core/take 1))
+      (comp-post clojure.core/last))))
 
 (defn sort
-  "Sorts the data. This sorts the data after every element, so it's best to use with take or drop, which also limit the data after every value."
-  {:arglists '([fold] [comp fold])}
+  "Sorts the data. This sorts the data after every element, so it's best to use
+with take, which also limits the data after every value. If a comparator is not
+specified, clojure.core/compare is used.
+
+  Example:
+
+    (fold/sort)
+
+    (->>
+      (fold/sort)
+      (fold/take 40))
+
+    (->>
+      (fold/sort >)
+      (fold/take 40))
+
+  See also: pigpen.fold/sort-by, pigpen.fold/top
+"
+  ([] (sort compare (vec)))
   ([fold] (sort compare fold))
-  ([c {:keys [combinef reducef finalf]}]
-    (fold-fn (comp (partial clojure.core/sort c) combinef)
-             (comp (partial clojure.core/sort c) reducef)
-             finalf)))
+  ([c fold]
+    (comp-fold (partial clojure.core/sort c) fold)))
 
 (defn sort-by
-  "Sorts the data by f. This sorts the data after every element, so it's best to use with take or drop, which also limit the data after every value."
-  {:arglists '([f fold] [f comp fold])}
-  ([f fold] (sort-by f compare fold))
-  ([f c {:keys [combinef reducef finalf]}]
-    (fold-fn (comp (partial clojure.core/sort-by f c) combinef)
-             (comp (partial clojure.core/sort-by f c) reducef)
-             finalf)))
+  "Sorts the data by (keyfn value). This sorts the data after every element, so
+it's best to use with take, which also limits the data after every value. If a
+comparator is not specified, clojure.core/compare is used.
+
+  Example:
+
+    (fold/sort-by :foo)
+
+    (->> (vec)
+      (fold/sort-by :foo)
+      (fold/take 40))
+
+    (->> (vec)
+      (fold/sort-by :foo >)
+      (fold/take 40))
+
+  See also: pigpen.fold/sort, pigpen.fold/top-by
+"
+  ([keyfn] (sort-by keyfn compare (vec)))
+  ([keyfn fold] (sort-by keyfn compare fold))
+  ([keyfn c fold]
+    (comp-fold (partial clojure.core/sort-by keyfn c) fold)))
 
 (defn juxt
-  "Applies multiple fold fns to the same data."
+  "Applies multiple fold fns to the same data. Produces a vector of results.
+
+  Example:
+    (fold/juxt (fold/count) (fold/sum) (fold/avg))
+"
   [& folds]
-  (fold-fn (fn
-             ([] (mapv #((:combinef %)) folds))
-             ([l r] (mapv #((:combinef %1) %2 %3) folds l r)))
-           (fn [acc val] (mapv #((:reducef %1) %2 val) folds acc))
-           (fn [vals] (mapv #((:finalf %1) %2) folds vals))))
+  (fold-fn (fn [vals] (clojure.core/map (fn [v] (mapv (fn [{:keys [pre]}] (pre v)) folds)) vals))
+           (fn
+             ([] (mapv (fn [{:keys [combinef]}] (combinef)) folds))
+             ([l r] (mapv (fn [{:keys [combinef]} l' r'] (combinef l' r')) folds l r)))
+           (fn [acc val] (mapv (fn [{:keys [reducef]} a' v'] (reducef a' v')) folds acc val))
+           (fn [vals] (mapv (fn [{:keys [post]} v'] (post v')) folds vals))))
 
 (defn count
-  "Counts the values."
-  []
-  (fold-fn + (fn [acc _] (inc acc))))
+  "Counts the values, including nils. Optionally takes another fold operation
+to compose.
+
+  Example:
+    (fold/count)
+
+    (->>
+      (fold/map :foo)
+      (fold/keep identity)
+      (fold/count))
+
+  See also: pigpen.fold/count-if
+"
+  ([]
+    (fold-fn + (fn [acc _] (inc acc))))
+  ([fold]
+    (comp-fold-new fold (count))))
 
 (defn count-if
-  "Counts the values for which (f value) is true."
+  "Counts the values for which (f value) is true.
+
+  Example:
+    (fold/count-if identity) ; count non-nils
+    (fold/count-if #(< 0 %)) ; count positive numbers
+
+  See also: pigpen.fold/count
+"
   [f]
-  (filter f (count)))
+  (->>
+    (filter f)
+    (count)))
 
 (defn sum
-  "Sums the values. All values must be numeric."
-  []
-  (fold-fn +))
+  "Sums the values. All values must be numeric. Optionally takes another
+fold operation to compose.
+
+  Example:
+    (fold/sum)
+
+    (->>
+      (fold/map :foo)
+      (fold/keep identity)
+      (fold/sum))
+
+  See also: pigpen.fold/sum-by, pigpen.fold/sum-if
+"
+  ([]
+    (fold-fn +))
+  ([fold]
+    (comp-fold-new fold (sum))))
 
 (defn sum-by
-  "Sum the result of calling (f value) on each value."
+  "Sum the result of calling (f value) on each value.
+
+  Example:
+    (fold/sum-by :foo)
+
+  See also: pigpen.fold/sum, pigpen.fold/sum-if
+"
   [f]
-  (map f (sum)))
+  (->>
+    (map f)
+    (sum)))
 
 (defn sum-if
-  "Sum the values for which (f value) is true."
+  "Sum the values for which (f value) is true.
+
+  Example:
+    (fold/sum-if identity) ; sum non-nils
+    (fold/sum-if #(< 0 %)) ; sum positive numbers
+
+  See also: pigpen.fold/sum, pigpen.fold/sum-by
+"
   [f]
-  (filter f (sum)))
+  (->>
+    (filter f)
+    (sum)))
 
 (defn avg
-  "Average the values. All values must be numeric."
-  []
-  (fold-fn (fn
-             ([] nil)
-             ([[s0 c0] [s1 c1]]
-               [(+ s0 s1) (+ c0 c1)]))
-           (fn [[s c :as acc] val]
-             (if acc
-               [(+ s val) (inc c)]
-               [val 1]))
-           (fn [[s c]]
-             (/ s c))))
+  "Average the values. All values must be numeric. Optionally takes another
+fold operation to compose.
+
+  Example:
+    (fold/avg)
+
+    (->>
+      (fold/map :foo)
+      (fold/keep identity)
+      (fold/avg))
+
+  See also: pigpen.fold/avg-by, pigpen.fold/avg-if
+"
+  ([]
+    (fold-fn (fn
+               ([] nil)
+               ([[s0 c0] [s1 c1]]
+                 [(+ s0 s1) (+ c0 c1)]))
+             (fn [[s c :as acc] val]
+               (if acc
+                 [(+ s val) (inc c)]
+                 [val 1]))
+             (fn [[s c]]
+               (/ s c))))
+  ([fold]
+    (comp-fold-new fold (avg))))
 
 (defn avg-by
-  "Average the result of calling (f value) on each value."
+  "Average the result of calling (f value) on each value.
+
+  Example:
+    (fold/avg-by :foo)
+
+  See also: pigpen.fold/avg, pigpen.fold/avg-if
+"
   [f]
-  (map f (avg)))
+  (->> 
+    (map f)
+    (avg)))
 
 (defn avg-if
-  "Average the values for which (f value) is true."
+  "Average the values for which (f value) is true.
+
+  Example:
+    (fold/avg-if identity) ; avg non-nils
+    (fold/avg-if #(< 0 %)) ; avg positive numbers
+
+  See also: pigpen.fold/avg, pigpen.fold/avg-by
+"
   [f]
-  (filter f (avg)))
+  (->>
+    (filter f)
+    (avg)))
 
 (defn top
-  "Returns the top n items in the collection. Optionally specify a comparator."
+  "Returns the top n items in the collection. If a comparator is not specified,
+clojure.core/compare is used.
+
+  Example:
+    (fold/top 40)
+    (fold/top > 40)
+
+  See also: pigpen.fold/top-by
+"
   ([n] (top compare n))
   ([comp n]
-    (->> (seq)
+    (->> (vec)
       (sort comp)
       (take n))))
 
 (defn top-by
-  "Returns the top n items in the collection based on (keyfn value). Optionally specify a comparator."
+  "Returns the top n items in the collection based on (keyfn value). If a
+comparator is not specified, clojure.core/compare is used.
+
+  Example:
+    (fold/top-by :foo 40)
+    (fold/top-by :foo > 40)
+
+  See also: pigpen.fold/top
+"
   ([keyfn n] (top-by keyfn compare n))
   ([keyfn comp n]
-    (->> (seq)
+    (->> (vec)
       (sort-by keyfn comp)
       (take n))))
 
-(defn best
+(defn ^:private min*
   "Returns the best item from the collection. Optionally specify a comparator."
-  ([] (best compare))
-  ([comp]
-    (fold-fn (fn
-               ([] ::nil)
-               ([l r]
-                 (if (= ::nil l) r
-                   (if (= ::nil r) l
-                     (if (< (comp l r) 0) l r))))))))
+  [comp fold]
+  (comp-fold-new fold
+                 (fold-fn (fn
+                            ([] ::nil)
+                            ([l r]
+                              (if (= ::nil l) r
+                                (if (= ::nil r) l
+                                  (if (< (comp l r) 0) l r))))))))
+
+(defn ^:private compare-by
+  ([keyfn] (compare-by keyfn compare))
+  ([keyfn comp] #(comp (keyfn %1) (keyfn %2))))
 
 (defn min
-  "Return the minimum value of the collection."
-  []
-  (best))
+  "Return the minimum (first) value of the collection. If a comparator is not
+specified, clojure.core/compare is used. Optionally takes another fold
+operation to compose.
+
+  Example:
+    (fold/min)
+    (fold/min >)
+
+    (->>
+      (fold/map :foo)
+      (fold/min >))
+
+  See also: pigpen.fold/min-key, pigpen.fold/max, pigpen.fold/top
+"
+  ([] (min* compare (vec)))
+  ([comp] (min* comp (vec)))
+  ([comp fold] (min* comp fold)))
 
 (defn min-key
-  "Return the minimum value of the collection based on (keyfn value)."
-  [keyfn]
-  (best #(compare (keyfn %1) (keyfn %2))))
+  "Return the minimum (first) value of the collection based on (keyfn value).
+If a comparator is not specified, clojure.core/compare is used. Optionally takes
+another fold operation to compose.
+
+  Example:
+    (fold/min-key :foo)
+    (fold/min-key :foo >)
+
+  See also: pigpen.fold/min, pigpen.fold/max-key, pigpen.fold/top-by
+"
+  ([keyfn] (min-key keyfn compare (vec)))
+  ([keyfn comp] (min-key keyfn comp (vec)))
+  ([keyfn comp fold] (min* (compare-by keyfn comp) fold)))
 
 (defn max
-  "Return the maximum value of the collection."
-  []
-  (best #(- (compare %1 %2))))
+  "Return the maximum (last) value of the collection. If a comparator is not
+specified, clojure.core/compare is used. Optionally takes another fold
+operation to compose.
+
+  Example:
+    (fold/max)
+    (fold/max >)
+
+    (->>
+      (fold/map :foo)
+      (fold/max >))
+
+  See also: pigpen.fold/max-key, pigpen.fold/min, pigpen.fold/top
+"
+  ([] (min* (clojure.core/comp - compare) (vec)))
+  ([comp] (min* (clojure.core/comp - comp) (vec)))
+  ([comp fold] (min* (clojure.core/comp - comp) fold)))
 
 (defn max-key
-  "Return the maximum value of the collection based on (keyfn value)."
-  [keyfn]
-  (best #(- (compare (keyfn %1) (keyfn %2)))))
+  "Return the maximum (last) value of the collection based on (keyfn value).
+If a comparator is not specified, clojure.core/compare is used. Optionally takes
+another fold operation to compose.
+
+  Example:
+    (fold/max-key :foo)
+    (fold/max-key :foo >)
+
+  See also: pigpen.fold/max, pigpen.fold/min-key, pigpen.fold/top-by
+"
+  ([keyfn] (max-key keyfn compare (vec)))
+  ([keyfn comp] (max-key keyfn comp (vec)))
+  ([keyfn comp fold] (min* (clojure.core/comp - (compare-by keyfn comp)) fold)))

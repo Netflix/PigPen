@@ -610,17 +610,18 @@ result is wrapped in a tuple and bag."
       (apply bag))))
 
 ;; TODO lots of duplication here
-(defn exec-reducef
+(defn exec-initial
   "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value in a tuple."
-  [val reducef args]
+  [pre seed reducef args]
   (->> args
     first
     hybrid->clojure
-    (reduce reducef val)
+    pre
+    (reduce reducef seed)
     pig-freeze
     tuple))
 
-(defn exec-combinef
+(defn exec-intermed
   "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value in a tuple."
   [combinef args]
   (->> args
@@ -630,14 +631,14 @@ result is wrapped in a tuple and bag."
     pig-freeze
     tuple))
 
-(defn exec-finalf
+(defn exec-final
   "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value."
-  [combinef finalf args]
+  [combinef post args]
   (->> args
     first
     hybrid->clojure
     (reduce combinef)
-    finalf
+    post
     pig-freeze))
 
 (defn udf-algebraic
@@ -648,23 +649,23 @@ equivalent to the combine stage."
   (try
     (let [args (.getAll t)]
       (if (not-empty init) (eval-string init))
-      (let [{:keys [combinef reducef finalf]} (eval-string foldf)]
+      (let [{:keys [pre combinef reducef post]} (eval-string foldf)]
         (case type
           :initial
-          (exec-reducef (combinef) reducef args)
+          (exec-initial pre (combinef) reducef args)
 
           :intermed
-          (exec-combinef combinef args)
+          (exec-intermed combinef args)
     
           :final
-          (exec-finalf combinef finalf args)
+          (exec-final combinef post args)
     
           :exec
           (->> args
-            (exec-reducef (combinef) reducef)
+            (exec-initial pre (combinef) reducef)
             ((comp vector bag))
-            (exec-combinef combinef)
+            (exec-intermed combinef)
             ((comp vector bag))
-            (exec-finalf combinef finalf)))))
+            (exec-final combinef post)))))
     
     (catch Throwable z (throw (PigPenException. z)))))

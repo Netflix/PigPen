@@ -218,7 +218,7 @@
                              :return "Algebraic"
                              :expr {:init ""
                                     :func (pigpen.pig/with-ns pigpen.join-test
-                                            (pigpen.join/fold-fn* + + clojure.core/identity))}}}]
+                                            (pigpen.join/fold-fn* clojure.core/identity + + clojure.core/identity))}}}]
         :ancestors [{:type :group
                      :id group1
                      :description nil
