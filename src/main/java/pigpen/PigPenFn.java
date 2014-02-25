@@ -51,12 +51,12 @@ public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
     }
 
     protected final String init, func;
-    
+
     public PigPenFn(String init, String func) {
         this.init = init;
         this.func = func;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public T exec(Tuple input) throws IOException {
