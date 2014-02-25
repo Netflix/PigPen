@@ -86,7 +86,8 @@ Post-processing operations:
   first, last, sort, sort-by, take, top, top-by
 "
   (:refer-clojure :exclude [vec map mapcat filter remove distinct keep take first last sort sort-by juxt count min min-key max max-key])
-  (:require [pigpen.join :refer [fold-fn*]]))
+  (:require [pigpen.join :refer [fold-fn*]]
+            [pigpen.util :refer [zipv]]))
 
 (defn fold-fn
   "Creates a pre-defined fold operation. Can be used with cogroup and group-by
@@ -316,13 +317,34 @@ comparator is not specified, clojure.core/compare is used.
   Example:
     (fold/juxt (fold/count) (fold/sum) (fold/avg))
 "
-  [& folds]
-  (fold-fn (fn [vals] (clojure.core/map (fn [v] (mapv (fn [{:keys [pre]}] (pre v)) folds)) vals))
-           (fn
-             ([] (mapv (fn [{:keys [combinef]}] (combinef)) folds))
-             ([l r] (mapv (fn [{:keys [combinef]} l' r'] (combinef l' r')) folds l r)))
-           (fn [acc val] (mapv (fn [{:keys [reducef]} a' v'] (reducef a' v')) folds acc val))
-           (fn [vals] (mapv (fn [{:keys [post]} v'] (post v')) folds vals))))
+ [& folds]
+ (fold-fn
+   ; pre
+   (fn [vals]
+     (for [v vals]
+       (zipv [{:keys [pre]} folds]
+         (pre [v]))))
+   ; combine
+   (fn
+     ([]
+       (zipv [{:keys [combinef]} folds]
+         (combinef)))
+     ([l r]
+       (zipv [{:keys [combinef]} folds
+              l' l
+              r' r]
+         (combinef l' r'))))
+   ; reduce
+   (fn [acc val]
+     (zipv [{:keys [reducef]} folds
+            a' acc
+            v' val]
+       (reduce reducef a' v')))
+   ; post
+   (fn [vals]
+     (zipv [{:keys [post]} folds
+            v' vals]
+       (post v')))))
 
 (defn count
   "Counts the values, including nils. Optionally takes another fold operation

@@ -221,3 +221,15 @@ Use with safe->!, safe->!!, and safe-go
 "
   [ch]
   (take-while #(not= ::complete %) (repeatedly #(safe-<!! ch))))
+
+(defmacro zip [bindings & body]
+  (let [bindings# (partition 2 bindings)
+        vars# (mapv first bindings#)
+        vals# (mapv second bindings#)]
+    `(map (fn ~vars# ~@body) ~@vals#)))
+
+(defmacro zipv [bindings & body]
+  (let [bindings# (partition 2 bindings)
+        vars# (mapv first bindings#)
+        vals# (mapv second bindings#)]
+    `(mapv (fn ~vars# ~@body) ~@vals#)))

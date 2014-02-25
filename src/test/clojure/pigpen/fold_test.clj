@@ -120,7 +120,17 @@
   (let [data (pig/return [1 2 3 4])
         command (pig/fold (fold/juxt (fold/count) (fold/sum) (fold/avg)) data)]
     (is (= (pig/dump command)
-           [[4 10 5/2]]))))
+           [[4 10 5/2]])))
+  
+  (let [data (pig/return [{:foo 2 :bar "c"}
+                          {:foo 1 :bar "d"}
+                          {:foo 4 :bar "a"}
+                          {:foo 3 :bar "b"}])
+        command (pig/fold (fold/juxt
+                            (->> (fold/map :foo) (fold/min))
+                            (->> (fold/map :foo) (fold/max))) data)]
+    (is (= (pig/dump command)
+           [[1 4]]))))
 
 (deftest test-count
   (let [data (pig/return [1 2 3 4])
@@ -228,12 +238,12 @@
            [1])))
   
   (let [data (pig/return [{:foo 2 :bar "c"}
-                          {:foo 1 :bar "d"}
-                          {:foo 4 :bar "a"}
-                          {:foo 3 :bar "b"}])
-        command (pig/fold (->> (fold/map :foo) (fold/min)) data)]
-    (is (= (pig/dump command)
-           [1]))))
+                         {:foo 1 :bar "d"}
+                         {:foo 4 :bar "a"}
+                         {:foo 3 :bar "b"}])
+       command (pig/fold (->> (fold/map :foo) (fold/min)) data)]
+   (is (= (pig/dump command)
+          [1]))))
 
 (deftest test-min-key
   (let [data (pig/return [{:foo 2 :bar "c"}
