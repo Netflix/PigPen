@@ -111,6 +111,7 @@ reducef and combinef.
     (fold-fn* pre combinef reducef post)))
 
 ;; TODO interop
+;; TODO add assertions that folds are folds
 
 (defn ^:private seq-fold? [fold]
   (and
@@ -492,6 +493,7 @@ comparator is not specified, clojure.core/compare is used.
 (defn ^:private min*
   "Returns the best item from the collection. Optionally specify a comparator."
   [comp fold]
+  {:pre [(instance? java.util.Comparator comp)]}
   (comp-fold-new fold
                  (fold-fn (fn
                             ([] ::nil)
@@ -519,8 +521,12 @@ operation to compose.
 
   See also: pigpen.fold/min-key, pigpen.fold/max, pigpen.fold/top
 "
+  {:arglists '([] [fold] [comp] [comp fold])}
   ([] (min* compare (vec)))
-  ([comp] (min* comp (vec)))
+  ([fold]
+    (if (instance? java.util.Comparator fold)
+      (min* fold (vec))
+      (min* compare fold)))
   ([comp fold] (min* comp fold)))
 
 (defn min-key
@@ -534,8 +540,12 @@ another fold operation to compose.
 
   See also: pigpen.fold/min, pigpen.fold/max-key, pigpen.fold/top-by
 "
+  {:arglists '([keyfn] [keyfn fold] [keyfn comp] [keyfn comp fold])}
   ([keyfn] (min-key keyfn compare (vec)))
-  ([keyfn comp] (min-key keyfn comp (vec)))
+  ([keyfn fold]
+    (if (instance? java.util.Comparator fold)
+      (min-key keyfn fold (vec))
+      (min-key keyfn compare fold)))
   ([keyfn comp fold] (min* (compare-by keyfn comp) fold)))
 
 (defn max
@@ -553,8 +563,12 @@ operation to compose.
 
   See also: pigpen.fold/max-key, pigpen.fold/min, pigpen.fold/top
 "
+  {:arglists '([] [fold] [comp] [comp fold])}
   ([] (min* (clojure.core/comp - compare) (vec)))
-  ([comp] (min* (clojure.core/comp - comp) (vec)))
+  ([fold]
+    (if (instance? java.util.Comparator fold)
+      (min* (clojure.core/comp - fold) (vec))
+      (min* (clojure.core/comp - compare) fold)))
   ([comp fold] (min* (clojure.core/comp - comp) fold)))
 
 (defn max-key
@@ -568,6 +582,10 @@ another fold operation to compose.
 
   See also: pigpen.fold/max, pigpen.fold/min-key, pigpen.fold/top-by
 "
+  {:arglists '([keyfn] [keyfn fold] [keyfn comp] [keyfn comp fold])}
   ([keyfn] (max-key keyfn compare (vec)))
-  ([keyfn comp] (max-key keyfn comp (vec)))
+  ([keyfn fold]
+    (if (instance? java.util.Comparator fold)
+      (max-key keyfn fold (vec))
+      (max-key keyfn compare fold)))
   ([keyfn comp fold] (min* (clojure.core/comp - (compare-by keyfn comp)) fold)))
