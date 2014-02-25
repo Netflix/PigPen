@@ -643,8 +643,7 @@ result is wrapped in a tuple and bag."
 
 (defn udf-algebraic
   "Evaluates an algebraic function. An algebraic function has three stages: the
-initial reduce, a combiner, and a final stage. In PigPen, the final stage is
-equivalent to the combine stage."
+initial reduce, a combiner, and a final stage."
   [init foldf type ^Tuple t]
   (try
     (let [args (.getAll t)]

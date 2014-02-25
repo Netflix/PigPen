@@ -146,8 +146,8 @@ Optionally takes a map of options, including :parallel and :fold.
   ([key-selector opts relation]
     `(group* [(merge
                 {:from ~relation
-                  :key-selector (code/trap ~key-selector)
-                  :type :optional}
+                 :key-selector (code/trap ~key-selector)
+                 :type :optional}
                 ~(quote-select-clause #{:on :by :key-selector :fold}
                                       (mapcat identity opts)))]
              '(fn [~'k ~'v] (clojure.lang.MapEntry. ~'k ~'v))
@@ -175,6 +175,7 @@ for further processing.
     (pig/reduce conj [] foo)
 
   Note: This operation uses a single reducer and won't work for large datasets.
+        Use pig/fold to do a parallel reduce.
 
   See also: pigpen.core/fold, pigpen.core/into
 "
@@ -192,14 +193,14 @@ for further processing.
 using reducef and combinef. First, combinef is called with no args to produce a
 seed value. Then, reducef reduces portions of the data using that seed value.
 Finally, combinef is used to reduce each of the intermediate values. If combinef
-is not specified, reducef is used for both. Fold functions defined using fold-fn
-can also be used.
+is not specified, reducef is used for both. Fold functions defined using
+pigpen.fold/fold-fn can also be used.
 
   Example:
 
     (pig/fold + foo)
     (pig/fold + (fn [acc _] (inc acc)) foo)
-    (pig/fold (pig/fold-fn + (fn [acc _] (inc acc))) foo)
+    (pig/fold (fold/fold-fn + (fn [acc _] (inc acc))) foo)
 
   See pigpen.fold for more info on fold functions.
 "
