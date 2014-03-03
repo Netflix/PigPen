@@ -135,7 +135,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.1.5"]
+[com.netflix.pigpen/pigpen "0.2.0"]
+```
+
+With Gradle:
+
+``` groovy
+compile "com.netflix.pigpen:pigpen:0.2.0"
 ```
 
 With Maven:
@@ -144,7 +150,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.1.5</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
@@ -152,6 +158,22 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 
 ### Release Notes
 
+  * 0.2.0 - Added pigpen.fold - Note: this includes a breaking change in the join and cogroup syntax as follows:
+    
+    ``` clj
+    ; before
+    (pig/join (foo on :f)
+              (bar on :b optional)
+              (fn [f b] ...))
+    
+    ; after
+    (pig/join [(foo :on :f)
+               (bar :on :b :type :optional)]
+              (fn [f b] ...))
+    ```
+    
+    Each of the select clauses must now be wrapped in a vector - there is no longer a varargs overload to either of these forms. Within each of the select clauses, :on is now a keyword instead of a symbol, but a symbol will still work if used. If `optional` or `required` were used, they must be updated to `:type :optional` and `:type :required`, respectively.
+    
   * 0.1.5 - Performance improvements: implemented Pig's Accumulator interface; tuned nippy; reduced number of times data is serialized.
   * 0.1.4 - Fix sort bug in local mode
   * 0.1.3 - Change Pig & Hadoop to be transitive dependencies. Add support for consuming user code via closure.
