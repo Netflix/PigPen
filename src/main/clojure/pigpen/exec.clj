@@ -58,10 +58,9 @@ combine them. Optionally takes a map of options.
   {:added "0.1.0"}
   ([script] (generate-script {} script))
   ([opts script]
-    (as-> script %
-      (oven/bake % opts)
-      (map script/command->script %)
-      (apply str %))))
+    (-> script
+      (oven/bake opts)
+      script/commands->script)))
 
 (defn write-script
   "Generates a Pig script from the relation specified and writes it to location.
