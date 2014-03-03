@@ -138,66 +138,15 @@
     (is (= (pig/dump command)
            [4]))))
 
-(deftest test-count-if
-  (let [data (pig/return [1 2 3 4])
-        command (pig/fold (fold/count-if even?) data)]
-    (is (= (pig/dump command)
-           [2])))
-  
-  (let [data (pig/return [1 nil 2 nil 3 nil 4])
-        command (pig/fold (fold/count-if identity) data)]
-    (is (= (pig/dump command)
-           [4]))))
-
 (deftest test-sum
   (let [data (pig/return [1 2 3 4])
         command (pig/fold (fold/sum) data)]
     (is (= (pig/dump command)
            [10]))))
 
-(deftest test-sum-by
-  (let [data (pig/return [{:foo 1 :bar "d"}
-                          {:foo 2 :bar "c"}
-                          {:foo 3 :bar "b"}
-                          {:foo 4 :bar "a"}])
-        command (pig/fold (fold/sum-by :foo) data)]
-    (is (= (pig/dump command)
-           [10]))))
-
-(deftest test-sum-if
-  (let [data (pig/return [1 2 3 4])
-        command (pig/fold (fold/sum-if even?) data)]
-    (is (= (pig/dump command)
-           [6])))
-  
-  (let [data (pig/return [1 nil 2 nil 3 nil 4])
-        command (pig/fold (fold/sum-if identity) data)]
-    (is (= (pig/dump command)
-           [10]))))
-
 (deftest test-avg
   (let [data (pig/return [1 2 3 4])
         command (pig/fold (fold/avg) data)]
-    (is (= (pig/dump command)
-           [5/2]))))
-
-(deftest test-avg-by
-  (let [data (pig/return [{:foo 1 :bar "d"}
-                          {:foo 2 :bar "c"}
-                          {:foo 3 :bar "b"}
-                          {:foo 4 :bar "a"}])
-        command (pig/fold (fold/avg-by :foo) data)]
-    (is (= (pig/dump command)
-           [5/2]))))
-
-(deftest test-avg-if
-  (let [data (pig/return [1 2 3 4])
-        command (pig/fold (fold/avg-if even?) data)]
-    (is (= (pig/dump command)
-           [3])))
-  
-  (let [data (pig/return [1 nil 2 nil 3 nil 4])
-        command (pig/fold (fold/avg-if identity) data)]
     (is (= (pig/dump command)
            [5/2]))))
 

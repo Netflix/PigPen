@@ -531,8 +531,8 @@
                           {:k :bar, :b 3}
                           {:k :bar, :b 4}
                           {:k :bar, :b 5}])
-        command (pig-join/cogroup [(data0 :on :k, :required true, :fold (fold/sum-by :a))
-                                   (data1 :on :k, :required true, :fold (fold/sum-by :b))]
+        command (pig-join/cogroup [(data0 :on :k, :required true, :fold (->> (fold/map :a) (fold/sum)))
+                                   (data1 :on :k, :required true, :fold (->> (fold/map :b) (fold/sum)))]
                                   vector)]
     (is (= (set (exec/debug-script command))
            '#{(freeze [:foo 6 3])
