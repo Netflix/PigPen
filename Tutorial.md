@@ -179,3 +179,5 @@ Next is a common map-reduce pattern - co-group:
 ```
 
 A cogroup is similar to a join, but instead of flattening the matching rows, all of the values are passed to the consolidation function. Note that our function takes 3 arguments - the first one is the key was joined, the rest are collections of the values that match the key for each of the relations.
+
+It is quite common in map-reduce for the individual groups in a group-by or cogroup to be very large. In these cases, we may need to incrementally aggregate the data in parallel. To accomplish this, we use the functions in pigpen.fold. Check out the pigpen.fold namespace for more info and usage.

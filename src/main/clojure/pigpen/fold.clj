@@ -30,10 +30,10 @@ called to combine intermediate products. An optional post function is called on
 the final result. If combinef is not specified, reducef is used for both. The
 pre and post functions default to identity.
 
-The funcitons in pigpen.fold can be composed, but they must be composed in a
+The functions in pigpen.fold can be composed, but they must be composed in a
 specific order. It must start with preprocessor functions, then a reducer, and
 finally post-processing. The post-processing sequence operators can only be
-used with reducer functions that produce seqs.
+used with reducer functions that produce seqs. See below for which is which.
 
 For example, you can do this:
 
@@ -44,7 +44,14 @@ But you cannot do this:
   (->> (pig/count) (pig/map :foo))
 
 In the first example, there's an implicit (vec) operation to reduce the values
-into a vector.
+into a vector. It's actually doing this:
+
+  (->> (fold/map :foo) (fold/vec) (fold/sort) (fold/take 40))
+
+The (vec) operation reduces into a vector, effectively not reducing the
+collection, but instead just preserving it. This can be useful if you just want
+to project a single value from a larger data structure. It uses conj and concat
+to build the vector.
 
 There are three places to use a fold operation. You can reduce the entire
 dataset using pigpen.pig/fold:
@@ -78,8 +85,7 @@ Pre-processing operations:
 
 Reduce operations:
 
-  count, count-if, sum, sum-if, sum-by, avg, avg-if, avg-by,
-  min, min-by, max, max-by, distinct, vec
+  count, sum, avg, min, min-key, max, max-key, distinct, vec
 
 Post-processing operations:
 
@@ -161,7 +167,7 @@ other is specified.
   []
   (fold-fn ^:seq (fn
                    ([] [])
-                   ([l r] (concat l r)))
+                   ([l r] (vec (concat l r))))
            ^:seq (fn [acc val] (conj acc val))))
 
 (defn preprocess
@@ -353,31 +359,20 @@ to compose.
   Example:
     (fold/count)
 
+    (->> (fold/keep identity) (fold/count)) ; count non-nils
+    (->> (fold/filter #(< 0 %)) (fold/count)) ; count positive numbers
+
     (->>
       (fold/map :foo)
       (fold/keep identity)
       (fold/count))
 
-  See also: pigpen.fold/count-if
+  See also: pigpen.fold/sum, pigpen.fold/avg
 "
   ([]
     (fold-fn + (fn [acc _] (inc acc))))
   ([fold]
     (comp-fold-new fold (count))))
-
-(defn count-if
-  "Counts the values for which (f value) is true.
-
-  Example:
-    (fold/count-if identity) ; count non-nils
-    (fold/count-if #(< 0 %)) ; count positive numbers
-
-  See also: pigpen.fold/count
-"
-  [f]
-  (->>
-    (filter f)
-    (count)))
 
 (defn sum
   "Sums the values. All values must be numeric. Optionally takes another
@@ -386,44 +381,21 @@ fold operation to compose.
   Example:
     (fold/sum)
 
+    (->> (fold/map :foo) (fold/sum)) ; sum the foo's
+    (->> (fold/keep identity) (fold/sum)) ; sum non-nils
+    (->> (fold/filter #(< 0 %)) (fold/sum)) ; sum positive numbers
+
     (->>
       (fold/map :foo)
       (fold/keep identity)
       (fold/sum))
 
-  See also: pigpen.fold/sum-by, pigpen.fold/sum-if
+  See also: pigpen.fold/count, pigpen.fold/avg
 "
   ([]
     (fold-fn +))
   ([fold]
     (comp-fold-new fold (sum))))
-
-(defn sum-by
-  "Sum the result of calling (f value) on each value.
-
-  Example:
-    (fold/sum-by :foo)
-
-  See also: pigpen.fold/sum, pigpen.fold/sum-if
-"
-  [f]
-  (->>
-    (map f)
-    (sum)))
-
-(defn sum-if
-  "Sum the values for which (f value) is true.
-
-  Example:
-    (fold/sum-if identity) ; sum non-nils
-    (fold/sum-if #(< 0 %)) ; sum positive numbers
-
-  See also: pigpen.fold/sum, pigpen.fold/sum-by
-"
-  [f]
-  (->>
-    (filter f)
-    (sum)))
 
 (defn avg
   "Average the values. All values must be numeric. Optionally takes another
@@ -432,12 +404,16 @@ fold operation to compose.
   Example:
     (fold/avg)
 
+    (->> (fold/map :foo) (fold/avg)) ; average the foo's
+    (->> (fold/keep identity) (fold/avg)) ; avg non-nils
+    (->> (fold/filter #(< 0 %)) (fold/avg)) ; avg positive numbers
+
     (->>
       (fold/map :foo)
       (fold/keep identity)
       (fold/avg))
 
-  See also: pigpen.fold/avg-by, pigpen.fold/avg-if
+  See also: pigpen.fold/count, pigpen.fold/sum
 "
   ([]
     (fold-fn (fn
@@ -452,33 +428,6 @@ fold operation to compose.
                (/ s c))))
   ([fold]
     (comp-fold-new fold (avg))))
-
-(defn avg-by
-  "Average the result of calling (f value) on each value.
-
-  Example:
-    (fold/avg-by :foo)
-
-  See also: pigpen.fold/avg, pigpen.fold/avg-if
-"
-  [f]
-  (->> 
-    (map f)
-    (avg)))
-
-(defn avg-if
-  "Average the values for which (f value) is true.
-
-  Example:
-    (fold/avg-if identity) ; avg non-nils
-    (fold/avg-if #(< 0 %)) ; avg positive numbers
-
-  See also: pigpen.fold/avg, pigpen.fold/avg-by
-"
-  [f]
-  (->>
-    (filter f)
-    (avg)))
 
 (defn top
   "Returns the top n items in the collection. If a comparator is not specified,
@@ -520,9 +469,11 @@ comparator is not specified, clojure.core/compare is used.
                  (fold-fn (fn
                             ([] ::nil)
                             ([l r]
-                              (if (= ::nil l) r
-                                (if (= ::nil r) l
-                                  (if (< (comp l r) 0) l r))))))))
+                              (cond
+                                (= ::nil l) r
+                                (= ::nil r) l
+                                (< (comp l r) 0) l
+                                :else r))))))
 
 (defn ^:private compare-by
   ([keyfn] (compare-by keyfn compare))
