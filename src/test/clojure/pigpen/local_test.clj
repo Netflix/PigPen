@@ -28,6 +28,7 @@
             [pigpen.set :as pig-set]
             [pigpen.join :as pig-join]
             [pigpen.exec :as exec]
+            [pigpen.fold :as fold]
             [taoensso.nippy :refer [freeze thaw]])
   (:import [rx Observable]
            [rx.observables BlockingObservable]
@@ -364,7 +365,7 @@
        (count (exec/debug-script command))
        510)))
 
-;; ********** Combine **********
+;; ********** Set **********
 
 (deftest test-distinct
   
@@ -441,6 +442,8 @@
       (sort-by second (exec/debug-script command))
       '[(freeze 3)])))
 
+;; ********** Join **********
+
 (deftest test-group-by
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [data (io/return [{:a 1 :b 2}
@@ -450,9 +453,9 @@
           command (pig-join/group-by :a data)]
 
       (test-diff
-        (exec/debug-script command)
-        '[(freeze [1 ({:a 1, :b 2} {:a 1, :b 3})])
-          (freeze [2 ({:a 2, :b 4})])]))))
+        (set (exec/debug-script command))
+        '#{(freeze [1 ({:a 1, :b 2} {:a 1, :b 3})])
+           (freeze [2 ({:a 2, :b 4})])}))))
 
 (deftest test-into
   (let [data (io/return-raw
@@ -488,6 +491,62 @@
     (test-diff
       (exec/debug-script command)
       '[(freeze 12)])))
+
+(deftest test-fold
+  (let [data (io/return [{:k :foo, :v 1}
+                         {:k :foo, :v 2}
+                         {:k :foo, :v 3}
+                         {:k :bar, :v 4}
+                         {:k :bar, :v 5}])]
+    (let [command (->> data
+                    (pig-join/group-by :k
+                                       {:fold (fold/fold-fn + (fn [acc value] (+ acc (:v value))))}))]
+      (is (= (set (exec/debug-script command))
+             '#{(freeze [:foo 6])
+                (freeze [:bar 9])})))
+    
+    (let [command (->> data
+                    (pig-join/group-by :k
+                                       {:fold (fold/fold-fn (fn ([] 0)
+                                                              ([a b] (+ a b)))
+                                                                (fn [acc _] (inc acc)))}))]
+      (is (= (set (exec/debug-script command))
+             '#{(freeze [:bar 2])
+                (freeze [:foo 3])})))
+    
+    (let [command (->> data
+                    (pig-join/group-by :k
+                                       {:fold (fold/count)}))]
+      (is (= (set (exec/debug-script command))
+             '#{(freeze [:bar 2])
+                (freeze [:foo 3])}))))
+  
+  (let [data0 (io/return [{:k :foo, :a 1}
+                          {:k :foo, :a 2}
+                          {:k :foo, :a 3}
+                          {:k :bar, :a 4}
+                          {:k :bar, :a 5}])
+        data1 (io/return [{:k :foo, :b 1}
+                          {:k :foo, :b 2}
+                          {:k :bar, :b 3}
+                          {:k :bar, :b 4}
+                          {:k :bar, :b 5}])
+        command (pig-join/cogroup [(data0 :on :k, :required true, :fold (->> (fold/map :a) (fold/sum)))
+                                   (data1 :on :k, :required true, :fold (->> (fold/map :b) (fold/sum)))]
+                                  vector)]
+    (is (= (set (exec/debug-script command))
+           '#{(freeze [:foo 6 3])
+              (freeze [:bar 9 12])})))
+  
+  (let [data (io/return [1 2 3 4])
+        command (pig-join/fold + data)]
+    (is (= (exec/debug-script command)
+           '[(freeze 10)])))
+  
+  (let [data (io/return [1 2 3 4])
+        command (pig-join/fold (fold/count) data)]
+   (is (= (exec/debug-script command)
+          '[(freeze 4)]))))
 
 (deftest test-cogroup
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -526,7 +585,7 @@
                           {:a 2, :b 10}
                           {:a 2, :b 12}])
         
-        command (pig-join/cogroup (data1 on :a) (data2 on :a) vector)]
+        command (pig-join/cogroup [(data1 :on :a) (data2 :on :a)] vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -547,8 +606,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/cogroup (data1 by :k required)
-                              (data2 by :k required) vector)]
+        command (pig-join/cogroup [(data1 :by :k :type :required)
+                                   (data2 :by :k :type :required)]
+                                  vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -570,8 +630,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/cogroup (data1 on :k required)
-                              (data2 on :k optional) vector)]
+        command (pig-join/cogroup [(data1 :on :k :type :required)
+                                   (data2 :on :k :type :optional)]
+                                  vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -599,8 +660,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/cogroup (data1 on :k optional)
-                              (data2 on :k required) vector)]
+        command (pig-join/cogroup [(data1 :on :k :type :optional)
+                                   (data2 :on :k :type :required)]
+                                  vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -628,8 +690,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/cogroup (data1 on :k optional)
-                              (data2 on :k optional) vector)]
+        command (pig-join/cogroup [(data1 :on :k :type :optional)
+                                   (data2 :on :k :type :optional)]
+                                  vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -663,10 +726,10 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/cogroup (data1 on :k required)
-                              (data2 on :k required)
-                              vector
-                              {:join-nils true})]
+        command (pig-join/cogroup [(data1 :on :k :type :required)
+                                   (data2 :on :k :type :required)]
+                                  vector
+                                  {:join-nils true})]
 
     (test-diff
       (set (exec/debug-script command))
@@ -691,10 +754,10 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/cogroup (data1 on :k required)
-                              (data2 on :k optional)
-                              vector
-                              {:join-nils true})]
+        command (pig-join/cogroup [(data1 :on :k :type :required)
+                                   (data2 :on :k :type :optional)]
+                                  vector
+                                  {:join-nils true})]
 
     (test-diff
       (set (exec/debug-script command))
@@ -722,10 +785,10 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/cogroup (data1 on :k optional)
-                              (data2 on :k required)
-                              vector
-                              {:join-nils true})]
+        command (pig-join/cogroup [(data1 :on :k :type :optional)
+                                   (data2 :on :k :type :required)]
+                                  vector
+                                  {:join-nils true})]
 
     (test-diff
       (set (exec/debug-script command))
@@ -753,10 +816,10 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/cogroup (data1 on :k optional)
-                           (data2 on :k optional)
-                           vector
-                           {:join-nils true})]
+        command (pig-join/cogroup [(data1 :on :k :type :optional)
+                                   (data2 :on :k :type :optional)]
+                                  vector
+                                  {:join-nils true})]
 
     (test-diff
       (set (exec/debug-script command))
@@ -804,7 +867,7 @@
                           {:a 2, :b 10}
                           {:a 2, :b 12}])
         
-        command (pig-join/join (data1 on :a) (data2 on :a) vector)]
+        command (pig-join/join [(data1 :on :a) (data2 :on :a)] vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -827,8 +890,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k)
-                           (data2 on :k) vector)]
+        command (pig-join/join [(data1 :on :k)
+                                (data2 :on :k)]
+                               vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -851,8 +915,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k required)
-                           (data2 on :k required) vector)]
+        command (pig-join/join [(data1 :on :k :type :required)
+                                (data2 :on :k :type :required)]
+                               vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -875,8 +940,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k required)
-                           (data2 on :k optional) vector)]
+        command (pig-join/join [(data1 :on :k :type :required)
+                                (data2 :on :k :type :optional)]
+                               vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -903,8 +969,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k optional)
-                           (data2 on :k required) vector)]
+        command (pig-join/join [(data1 :on :k :type :optional)
+                                (data2 :on :k :type :required)]
+                               vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -931,8 +998,9 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k optional)
-                           (data2 on :k optional) vector)]
+        command (pig-join/join [(data1 :on :k :type :optional)
+                                (data2 :on :k :type :optional)]
+                               vector)]
 
     (test-diff
       (set (exec/debug-script command))
@@ -963,10 +1031,10 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k required)
-                           (data2 on :k required)
-                           vector
-                           {:join-nils true})]
+        command (pig-join/join [(data1 :on :k :type :required)
+                                (data2 :on :k :type :required)]
+                               vector
+                               {:join-nils true})]
 
     (test-diff
       (set (exec/debug-script command))
@@ -993,10 +1061,10 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k required)
-                           (data2 on :k optional)
-                           vector
-                           {:join-nils true})]
+        command (pig-join/join [(data1 :on :k :type :required)
+                                (data2 :on :k :type :optional)]
+                               vector
+                               {:join-nils true})]
 
     (test-diff
       (set (exec/debug-script command))
@@ -1025,10 +1093,10 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k optional)
-                           (data2 on :k required)
-                           vector
-                           {:join-nils true})]
+        command (pig-join/join [(data1 :on :k :type :optional)
+                                (data2 :on :k :type :required)]
+                               vector
+                               {:join-nils true})]
 
     (test-diff
       (set (exec/debug-script command))
@@ -1057,10 +1125,10 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])
         
-        command (pig-join/join (data1 on :k optional)
-                           (data2 on :k optional)
-                           vector
-                           {:join-nils true})]
+        command (pig-join/join [(data1 :on :k :type :optional)
+                                (data2 :on :k :type :optional)]
+                               vector
+                               {:join-nils true})]
 
     (test-diff
       (set (exec/debug-script command))
@@ -1076,8 +1144,3 @@
          (freeze [{:k :l, :v 11} nil])
          (freeze [nil {:k :r, :v 10}])
          (freeze [nil {:k :r, :v 12}])})))
-
-
-
-
-

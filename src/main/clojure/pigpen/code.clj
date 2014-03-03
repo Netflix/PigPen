@@ -19,7 +19,8 @@
 (ns pigpen.code
   "Contains functions that assist in handling user code in operations like map
 or reduce."
-  (:require [pigpen.raw :as raw]
+  (:require [pigpen.pig :as pig]
+            [pigpen.raw :as raw]
             [clojure.java.io :as io])
   (:import [org.apache.pig.data DataBag]
            [java.lang.reflect Method]))
@@ -54,14 +55,19 @@ or reduce."
                        '[& more]))])]
     (concat fixed varargs)))
 
-(defn assert-arity [f n]
-  {:pre [f (integer? n) (<= 0 n)]}
-  (let [f' (eval f)
-        [fixed varargs] (arity f')]
+(defn assert-arity* [f' n]
+  {:pre [f' (integer? n) (<= 0 n)]}
+  (let [[fixed varargs] (arity f')]
     (assert
       (or (fixed n) (if varargs (<= varargs n)))
       (str "Expecting arity: " n " Found arities: "
            (pr-str (format-arity fixed varargs))))))
+
+(defn assert-arity [f n]
+  {:pre [f]}
+  (let [f' (eval f)
+        [fixed varargs] (arity f')]
+    (assert-arity* f' n)))
 
 ;; TODO add an option to make the default include/exclude configurable
 
@@ -83,21 +89,34 @@ or reduce."
                  (clojure.java.io/resource %)))
     ns))
 
-(defn trap* [keys values ns f]
+(defn build-requires [nss]
+  (->> nss
+    (filter ns-exists)
+    (cons 'pigpen.pig)
+    (distinct)
+    (map (fn [r] `'[~r]))
+    (cons 'clojure.core/require)))
+
+(defn trap-locals [keys values f]
   (let [args (vec (mapcat make-binding keys values))]
-    (if (ns-exists (second ns)) ; ns is (quote foo)
-      (if (not-empty args)
-        `(binding [*ns* (find-ns ~ns)]
-           (eval '(let ~args ~f)))
-        `(binding [*ns* (find-ns ~ns)]
-           (eval '~f)))
-      (if (not-empty args)
-        `(let ~args ~f)
-        f))))
+    (if (not-empty args)
+      `(let ~args ~f)
+      f)))
+
+(defn trap-ns [ns f]
+  (if (ns-exists ns)
+    `(pig/with-ns ~ns ~f)
+    f))
+
+(defn trap* [keys values ns f]
+  (->> f
+    (trap-locals keys values)
+    (trap-ns ns)))
 
 (defmacro trap
   "Returns a form that, when evaluated, will reconsitiute f in namespace ns, in
 the presence of any local bindings"
-  [ns f]
-  (let [keys# (vec (keys &env))]
-    `(trap* '~keys# ~keys# '~ns '~f)))
+  ([f] `(trap '~(ns-name *ns*) ~f))
+  ([ns f]
+    (let [keys# (vec (keys &env))]
+      `(trap* '~keys# ~keys# ~ns '~f))))

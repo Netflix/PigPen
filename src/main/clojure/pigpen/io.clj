@@ -55,6 +55,7 @@ each input field. The data is returned as a map with 'fields' as the keys.
                 {:args '~(clojure.core/mapcat (juxt str identity) fields)
                  :field-type-in :native})))
 
+;; TODO load-json
 (defmacro load-clj
   "Loads clojure data from a file. Each line should contain one value and will
 be parsed using clojure.edn/read-string into a value.
@@ -136,6 +137,7 @@ unless debugging scripts."
                 {:args (:fields ~relation), :field-type-out :native})
      (raw/store$ ~location raw/default-storage {})))
 
+;; TODO store-json
 (defmacro store-clj
   "Stores the relation into location using edn (clojure format). Each value is
 written as a single line.

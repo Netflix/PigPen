@@ -292,16 +292,16 @@ Let's take a look at the PigPen version:
       c (pig/load-pig "numbers2.tsv" [i y])
       d (pig/load-pig "numbers3.tsv" [i z])
 
-      j0 (pig/join (a on :i)
-                   (b on :i)
+      j0 (pig/join [(a :on :i)
+                    (b :on :i)]
                    merge)
-      
-      j1 (pig/join (j0 on :i)
-                   (c on :i)
+        
+      j1 (pig/join [(j0 :on :i)
+                    (c :on :i)]
                    merge)
-      
-      j2 (pig/join (j1 on :i)
-                   (d on :i)
+        
+      j2 (pig/join [(j1 :on :i)
+                    (d :on :i)]
                    merge)]
   (pig/dump j2))
 ```

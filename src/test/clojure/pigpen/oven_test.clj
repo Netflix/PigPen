@@ -202,8 +202,8 @@
     
     (let [r ^:pig {:id 'r :fields '[value]}
           s ^:pig {:id 's :fields '[value]}
-          c (pig/join (r on identity)
-                      (s on identity)
+          c (pig/join [(r :on identity)
+                       (s :on identity)]
                       merge)
           mapping '{r r0, s s0, generate1 g1, generate2 g2, join3 j3, generate4 g4}
           commands (#'pigpen.oven/braise c)]
@@ -449,8 +449,8 @@
                               (pig/load-clj "in1")
                               (pig/map dec))]
                      (->>
-                       (pig/join (p0 on identity)
-                                 (p1 on identity)
+                       (pig/join [(p0 :on identity)
+                                  (p1 :on identity)]
                                  merge)
                        (pig/filter (constantly true))
                        (pig/store-clj "out")
@@ -496,18 +496,12 @@
                        :ancestors [load1]
                        :projections [{:type :projection-flat
                                       :code {:type :code
-                                             :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]) (quote [pigpen.oven-test]))
+                                             :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]))
                                                     :func (pigpen.pig/exec [(pigpen.pig/pre-process :native)
                                                                             (pigpen.pig/map->bind clojure.edn/read-string)
-                                                                            (pigpen.pig/map->bind
-                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                (clojure.core/eval (quote identity))))
-                                                                            (pigpen.pig/filter->bind
-                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                (clojure.core/eval (quote (constantly true)))))
-                                                                            (pigpen.pig/mapcat->bind
-                                                                              (clojure.core/binding [clojure.core/*ns* (clojure.core/find-ns (quote pigpen.oven-test))]
-                                                                                (clojure.core/eval (quote vector))))
+                                                                            (pigpen.pig/map->bind (pigpen.pig/with-ns pigpen.oven-test identity))
+                                                                            (pigpen.pig/filter->bind (pigpen.pig/with-ns pigpen.oven-test (constantly true)))
+                                                                            (pigpen.pig/mapcat->bind (pigpen.pig/with-ns pigpen.oven-test vector))
                                                                             (pigpen.pig/map->bind clojure.core/pr-str)
                                                                             (pigpen.pig/post-process :native)])}
                                              :return "DataBag"

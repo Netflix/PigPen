@@ -388,13 +388,21 @@ serialization info."
   "Reads code from a string & evaluates it"
   (memoize #(eval (read-string %))))
 
+(defmacro with-ns
+  "Evaluates f within ns. Calls (require 'ns) first."
+  [ns f]
+  `(do
+     (require '~ns)
+     (binding [*ns* (find-ns '~ns)]
+       (eval '~f))))
+
 (defn eval-udf
-  [^Tuple t]
+  [init func ^Tuple t]
   "Evaluates a pig tuple as a clojure function. The first element of the tuple
    is any initialization code. The second element is the function to be called.
    Any remaining args are passed to the function as a collection."
   (try
-    (let [[init func & args] (.getAll t)]
+    (let [args (.getAll t)]
       (when (not-empty init) (eval-string init))
       ((eval-string func) args))
     ;; Errors (like AssertionError) hang the interop layer.
@@ -428,8 +436,8 @@ args."
   "Creates a new accumulator state. This is a vector with two elements. The
 first is the channels to pass future values to. The second is a channel
 containing the singe value of the result."
-  [^Tuple tuple]
-  (let [[init func & args] (.getAll tuple)]
+  [init func ^Tuple tuple]
+  (let [args (.getAll tuple)]
     ;; Run init code if present
     (when (not-empty init)
       (eval-string init))
@@ -455,17 +463,17 @@ state, should be nil. On subsequent calls, pass the value returned by this
 function as the state. Each subsequent call is expected to have identical args
 except for bag, which will contain new values. Non-bag values are ignored and
 the bag values are pushed into their respective channels."
-  [[input-bags result] ^Tuple tuple]
+  [init func [input-bags result] ^Tuple tuple]
   (try
     (if-not result ; have we started processing this value yet?
 
       ;; create new channels
-      (let [state (create-accumulate-state tuple)]
-        (udf-accumulate state tuple) ;; actually push the initial values
+      (let [state (create-accumulate-state init func tuple)]
+        (udf-accumulate init func state tuple) ;; actually push the initial values
         state)
 
       ;; push values to existing channels
-      (let [[_ _ & args] (.getAll tuple)]
+      (let [args (.getAll tuple)]
         (doall
           (map (fn [input-bag arg]
                  (when input-bag ; arg was a bag
@@ -500,7 +508,7 @@ as the initial state for the next accumulation."
 ;; **********
 
 (defn ^:private pig-freeze [value]
-  (DataByteArray. (freeze value {:legacy-mode true})))
+  (DataByteArray. (freeze value {:skip-header? true, :legacy-mode true})))
 
 (defn ^:private pig-freeze-with-nils [value]
   (if value
@@ -600,3 +608,63 @@ result is wrapped in a tuple and bag."
       (reduce (fn [vs f] (mapcat f vs)) [args] fs)
       (map (partial apply tuple))
       (apply bag))))
+
+;; TODO lots of duplication here
+(defn exec-initial
+  "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value in a tuple."
+  [pre seed reducef args]
+  (->> args
+    first
+    hybrid->clojure
+    pre
+    (reduce reducef seed)
+    pig-freeze
+    tuple))
+
+(defn exec-intermed
+  "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value in a tuple."
+  [combinef args]
+  (->> args
+    first
+    hybrid->clojure
+    (reduce combinef)
+    pig-freeze
+    tuple))
+
+(defn exec-final
+  "Special exec function for fold. Input will always be a frozen bag. Returns a single frozen value."
+  [combinef post args]
+  (->> args
+    first
+    hybrid->clojure
+    (reduce combinef)
+    post
+    pig-freeze))
+
+(defn udf-algebraic
+  "Evaluates an algebraic function. An algebraic function has three stages: the
+initial reduce, a combiner, and a final stage."
+  [init foldf type ^Tuple t]
+  (try
+    (let [args (.getAll t)]
+      (if (not-empty init) (eval-string init))
+      (let [{:keys [pre combinef reducef post]} (eval-string foldf)]
+        (case type
+          :initial
+          (exec-initial pre (combinef) reducef args)
+
+          :intermed
+          (exec-intermed combinef args)
+    
+          :final
+          (exec-final combinef post args)
+    
+          :exec
+          (->> args
+            (exec-initial pre (combinef) reducef)
+            ((comp vector bag))
+            (exec-intermed combinef)
+            ((comp vector bag))
+            (exec-final combinef post)))))
+    
+    (catch Throwable z (throw (PigPenException. z)))))

@@ -32,7 +32,8 @@ building blocks for more complex operations.")
   [id]
   (boolean (or (and (symbol? id)
                     (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))
-               (number? id))))
+               (number? id)
+               (and (vector? id) (not-empty id) (every? field? id)))))
 
 ;; **********
 
@@ -90,7 +91,9 @@ building blocks for more complex operations.")
   {:pre [expr return (sequential? args)]}
   ^:pig {:type :code
          :expr expr
-         :return (last (clojure.string/split (.getName return) #"\."))
+         :return (if (string? return)
+                   return
+                   (last (clojure.string/split (.getName return) #"\.")))
          :args (vec args)})
 
 ;; ********** IO **********

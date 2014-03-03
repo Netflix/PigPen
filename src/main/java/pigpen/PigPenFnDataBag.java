@@ -27,4 +27,8 @@ import org.apache.pig.data.DataBag;
  *
  */
 public class PigPenFnDataBag extends PigPenFn<DataBag> {
+
+    public PigPenFnDataBag(String init, String func) {
+        super(init, func);
+    }
 }

@@ -26,4 +26,8 @@ package pigpen;
  *
  */
 public class PigPenFnString extends PigPenFn<String> {
+
+    public PigPenFnString(String init, String func) {
+        super(init, func);
+    }
 }

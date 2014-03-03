@@ -43,7 +43,7 @@
 
         <!-- Checks for Javadoc comments.                     -->
         <!-- See http://checkstyle.sf.net/config_javadoc.html -->
-        <module name="JavadocMethod">
+        <!-- <module name="JavadocMethod">
           <property name="scope" value="package"/>
           <property name="allowMissingParamTags" value="true"/>
           <property name="allowMissingThrowsTags" value="true"/>
@@ -51,13 +51,13 @@
           <property name="allowThrowsTagsForSubclasses" value="true"/>
           <property name="allowUndeclaredRTE" value="true"/>
           <property name="allowMissingPropertyJavadoc" value="true"/>
-        </module>
+        </module> -->
         <module name="JavadocType">
           <property name="scope" value="package"/>
         </module>
-        <module name="JavadocVariable">
+        <!-- <module name="JavadocVariable">
           <property name="scope" value="package"/>
-        </module>
+        </module> -->
         <module name="JavadocStyle">
           <property name="checkEmptyJavadoc" value="true"/>
         </module>
@@ -156,7 +156,9 @@
         <module name="FinalClass"/>
         <module name="HideUtilityClassConstructor"/>
         <module name="InterfaceIsType"/>
-        <module name="VisibilityModifier"/>
+        <module name="VisibilityModifier">
+          <property name="protectedAllowed" value="true"/>
+        </module>
 
 
         <!-- Miscellaneous other checks.                   -->

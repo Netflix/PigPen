@@ -50,17 +50,24 @@ public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
         CLEANUP = RT.var("pigpen.pig", "udf-cleanup");
     }
 
+    protected final String init, func;
+
+    public PigPenFn(String init, String func) {
+        this.init = init;
+        this.func = func;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public T exec(Tuple input) throws IOException {
-        return (T) EVAL.invoke(input);
+        return (T) EVAL.invoke(init, func, input);
     }
 
     private Object state = null;
 
     @Override
     public void accumulate(Tuple input) throws IOException {
-        state = ACCUMULATE.invoke(state, input);
+        state = ACCUMULATE.invoke(init, func, state, input);
     }
 
     @SuppressWarnings("unchecked")
