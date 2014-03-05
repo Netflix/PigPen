@@ -28,6 +28,7 @@ info on fold functions.
   Options:
 
     :parallel - The degree of parallelism to use
+    :join-nils - Whether nil keys from each relation should be treated as equal
 
   See also: pigpen.core/join, pigpen.core/group-by</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/join.clj#L218">Source</a></div></div><div class="public" id="var-concat"><h3>concat</h3><div class="usage"><code>(concat relations+)</code></div><pre class="doc">Concatenates all relations provided. Does not guarantee any ordering of the
 relations. Identical to pigpen.core/union-multiset.
@@ -240,8 +241,9 @@ options.
   Options:
 
     :parallel - The degree of parallelism to use
+    :join-nils - Whether nil keys from each relation should be treated as equal
 
-  See also: pigpen.core/cogroup, pigpen.core/union</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/join.clj#L257">Source</a></div></div><div class="public" id="var-load-clj"><h3>load-clj</h3><h4 class="macro">macro</h4><div class="usage"><code>(load-clj location)</code></div><pre class="doc">Loads clojure data from a file. Each line should contain one value and will
+  See also: pigpen.core/cogroup, pigpen.core/union</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/join.clj#L258">Source</a></div></div><div class="public" id="var-load-clj"><h3>load-clj</h3><h4 class="macro">macro</h4><div class="usage"><code>(load-clj location)</code></div><pre class="doc">Loads clojure data from a file. Each line should contain one value and will
 be parsed using clojure.edn/read-string into a value.
 
   Example:
