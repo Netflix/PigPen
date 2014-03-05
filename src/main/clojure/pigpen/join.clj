@@ -244,6 +244,7 @@ info on fold functions.
   Options:
 
     :parallel - The degree of parallelism to use
+    :join-nils - Whether nil keys from each relation should be treated as equal
 
   See also: pigpen.core/join, pigpen.core/group-by
 "
@@ -282,6 +283,7 @@ options.
   Options:
 
     :parallel - The degree of parallelism to use
+    :join-nils - Whether nil keys from each relation should be treated as equal
 
   See also: pigpen.core/cogroup, pigpen.core/union
 "
