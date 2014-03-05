@@ -18,78 +18,8 @@
 
 (ns pigpen.fold
   "Contains fold operations for use with pig/fold, pig/group-by, and pig/cogroup.
-Each fold operation consists of 3 parts: pre-processing on the input values, a
-parallel reduce, and post-processing on the output value.
 
-Use pigpen.fold/fold-fn to create a fold function. The pre function is a
-function that takes a sequence and returns a sequence. The combinef and reducef
-functions are used to aggregate the collection. Calling (combinef) with no args
-is used to produce a seed value. Then reducef is used to aggregate chunks of
-data into intermediate products in parallel. Finally, combinef is optionally
-called to combine intermediate products. An optional post function is called on
-the final result. If combinef is not specified, reducef is used for both. The
-pre and post functions default to identity.
-
-The functions in pigpen.fold can be composed, but they must be composed in a
-specific order. It must start with preprocessor functions, then a reducer, and
-finally post-processing. The post-processing sequence operators can only be
-used with reducer functions that produce seqs. See below for which is which.
-
-For example, you can do this:
-
-  (->> (fold/map :foo) (fold/sort) (fold/take 40))
-
-But you cannot do this:
-
-  (->> (pig/count) (pig/map :foo))
-
-In the first example, there's an implicit (vec) operation to reduce the values
-into a vector. It's actually doing this:
-
-  (->> (fold/map :foo) (fold/vec) (fold/sort) (fold/take 40))
-
-The (vec) operation reduces into a vector, effectively not reducing the
-collection, but instead just preserving it. This can be useful if you just want
-to project a single value from a larger data structure. It uses conj and concat
-to build the vector.
-
-There are three places to use a fold operation. You can reduce the entire
-dataset using pigpen.pig/fold:
-
-  (pig/fold (fold/count) foos)
-
-Or apply a fold to the groupings produced by pigpen.pig/group-by and
-pigpen.pig/cogroup:
-
-  (->> foos
-    (pig/group-by :foo
-      {:fold (fold/count)})
-    (pig/map (fn [key f] f)))
-
-  (pig/cogroup [(foos :on :foo, :fold (fold/sum))
-                (bars :on :bar, :fold (fold/avg))]
-    (fn [key f b] [f b]))
-
-In the last examples, f and b are both numerical values instead of the usual
-sequences. If you need to perform multiple aggregations, fold/juxt is what you
-need:
-
-  (->> foos
-    (pig/group-by :foo
-      {:fold (fold/juxt (fold/count) (fold/sum) (fold/avg))})
-    (pig/map (fn [key [count sum avg]] ...)))
-
-Pre-processing operations:
-
-  map, mapcat, filter, remove, keep
-
-Reduce operations:
-
-  count, sum, avg, min, min-key, max, max-key, distinct, vec
-
-Post-processing operations:
-
-  first, last, sort, sort-by, take, top, top-by
+See https://github.com/Netflix/PigPen/wiki/Folding-Data
 "
   (:refer-clojure :exclude [vec map mapcat filter remove distinct keep take first last sort sort-by juxt count min min-key max max-key])
   (:require [pigpen.join :refer [fold-fn*]]
