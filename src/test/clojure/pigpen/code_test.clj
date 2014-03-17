@@ -70,9 +70,9 @@
   (is (= (pig/build-requires '[foo])
          '(clojure.core/require (quote [pigpen.pig]))))
   (is (= (pig/build-requires '[pigpen.code])
-         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code]))))
+         '(clojure.core/require (quote [pigpen.pig]))))
   (is (= (pig/build-requires '[pigpen.code pigpen.code-test])
-         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code]) (quote [pigpen.code-test])))))
+         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code-test])))))
 
 (defn test-fn [& args]
   (apply + args))  
