@@ -125,3 +125,20 @@ the presence of any local bindings"
   ([ns f]
     (let [keys# (vec (keys &env))]
       `(trap* '~keys# ~keys# ~ns '~f))))
+
+(defn trap-values
+  "Takes a sequence of options , converts them into a map (if not already), and
+optionally traps specific values. The parameter quotable determines which ones
+should be quoted and trapped."
+  [quotable values]
+  (let [values' (cond
+                  (map? values) values
+                  (sequential? values) (partition 2 values)
+                  :else (throw (IllegalArgumentException. "Unknown values")))]
+    (->> values'
+      (map (fn [[k v]]
+             (let [k (keyword k)
+                   ;; TODO move this to join
+                   k (if (#{:on :by} k) :key-selector k)]
+               [k (if (quotable k) `(trap ~v) v)])))
+      (clojure.core/into {}))))

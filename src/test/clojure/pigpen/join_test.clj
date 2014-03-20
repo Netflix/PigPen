@@ -22,14 +22,6 @@
             [pigpen.join :as pig]
             [pigpen.fold :as fold]))
 
-(deftest test-quote-select-clause
-  (test-diff
-    (#'pigpen.join/quote-select-clause #{:on :by :key-selector}
-                                       '(:from r0 :on (fn [x] x) :type :required))
-    {:from 'r0
-     :key-selector `(pigpen.code/trap (~'fn [~'x] ~'x))
-     :type :required}))
-
 (deftest test-select->generate
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
 

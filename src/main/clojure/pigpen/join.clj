@@ -30,19 +30,6 @@
 
 (set! *warn-on-reflection* true)
 
-(defn ^:private quote-select-clause
-  "Takes a sequence of options for a join or group command, converts them into
-a map, and optionally traps specific values. The parameter quotable determines
-which ones should be quoted and trapped."
-  [quotable select]
-  (->> select
-    (partition 2)
-    (map (fn [[k v]]
-           (let [k (keyword k)
-                 k (if (#{:on :by} k) :key-selector k)]
-             [k (if (quotable k) `(code/trap ~v) v)])))
-    (clojure.core/into {})))
-
 (defn ^:private select->generate
   "Performs the key selection prior to a join. If join-nils? is true, we leave nils
    as frozen nils so they appear as values. Otherwise we return a nil value as nil
@@ -148,8 +135,7 @@ Optionally takes a map of options, including :parallel and :fold.
                 {:from ~relation
                  :key-selector (code/trap ~key-selector)
                  :type :optional}
-                ~(quote-select-clause #{:on :by :key-selector :fold}
-                                      (mapcat identity opts)))]
+                ~(code/trap-values #{:on :by :key-selector :fold} opts))]
              '(fn [~'k ~'v] (clojure.lang.MapEntry. ~'k ~'v))
              (assoc ~opts :description ~(util/pp-str key-selector)))))
 
@@ -250,7 +236,7 @@ info on fold functions.
 "
   ([selects f] `(cogroup ~selects ~f {}))
   ([selects f opts]
-    (let [selects# (mapv #(quote-select-clause #{:on :by :key-selector :fold} (cons :from %)) selects)]
+    (let [selects# (mapv #(code/trap-values #{:on :by :key-selector :fold} (cons :from %)) selects)]
       `(group* ~selects#
                (code/trap ~f)
                (assoc ~opts :description ~(util/pp-str f))))))
@@ -289,7 +275,7 @@ options.
 "
   ([selects f] `(join ~selects ~f {}))
   ([selects f opts]
-    (let [selects# (mapv #(quote-select-clause #{:on :by :key-selector} (cons :from %)) selects)]
+    (let [selects# (mapv #(code/trap-values #{:on :by :key-selector} (cons :from %)) selects)]
       `(join* ~selects#
               (code/trap ~f)
               (assoc ~opts :description ~(util/pp-str f))))))

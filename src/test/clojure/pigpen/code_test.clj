@@ -86,3 +86,11 @@
                 (fn [z] (test-fn x y z))))))
     (is (= (expr-fn 3)
            6))))
+
+(deftest test-trap-values
+  (test-diff
+    (pig/trap-values #{:on :by :key-selector}
+                                       '(:from r0 :on (fn [x] x) :type :required))
+    {:from 'r0
+     :key-selector `(pigpen.code/trap (~'fn [~'x] ~'x))
+     :type :required}))
