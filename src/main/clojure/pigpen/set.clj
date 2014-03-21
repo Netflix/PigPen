@@ -38,6 +38,8 @@
   (let [[opts relations] (split-with #(not (and (contains? % :type) (contains? % :id))) opts-relations)]
     [(apply merge opts) relations]))
 
+;; TODO add options to use fold here
+
 (defn ^:private set-operation
   "Common base for most set operations"
   [f opts-relations]
