@@ -137,8 +137,6 @@ should be quoted and trapped."
                   :else (throw (IllegalArgumentException. "Unknown values")))]
     (->> values'
       (map (fn [[k v]]
-             (let [k (keyword k)
-                   ;; TODO move this to join
-                   k (if (#{:on :by} k) :key-selector k)]
+             (let [k (keyword k)]
                [k (if (quotable k) `(trap ~v) v)])))
       (clojure.core/into {}))))

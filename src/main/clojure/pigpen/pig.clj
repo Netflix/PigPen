@@ -552,6 +552,13 @@ as the initial state for the next accumulation."
       [args] ;; wrap as arg to next fn
       [])))
 
+(defn sentinel-nil
+  "Coerces nils into a sentinel value. Useful for nil handling in outer joins."
+  [value]
+  (if (nil? value)
+    ::nil
+    value))
+
 (defn key-selector->bind
   "Returns a tuple of applying f to args and the first arg."
   [f]

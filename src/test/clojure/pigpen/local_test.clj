@@ -955,6 +955,18 @@
          (freeze [{:a 2, :b 6} {:a 2, :b 10}])
          (freeze [{:a 2, :b 6} {:a 2, :b 12}])})))
 
+(deftest test-join-identity
+  (let [data1 (io/return [1 2])
+        data2 (io/return [2 3])
+        
+        command (pig-join/join [(data1)
+                                (data2)]
+                               vector)]
+
+    (test-diff
+      (set (exec/debug-script command))
+      '#{(freeze [2 2])})))
+
 (deftest test-join-inner-implicit
   (let [data1 (io/return [{:k nil, :v 1}
                           {:k nil, :v 3}
@@ -1223,3 +1235,69 @@
          (freeze [{:k :l, :v 11} nil])
          (freeze [nil {:k :r, :v 10}])
          (freeze [nil {:k :r, :v 12}])})))
+
+(deftest test-filter-by
+  (let [data (io/return [{:k nil, :v 1}
+                         {:k nil, :v 3}
+                         {:k :i, :v 5}
+                         {:k :i, :v 7}
+                         {:k :l, :v 9}
+                         {:k :l, :v 11}])]
+
+    (testing "Normal"
+      (let [keys (io/return [:i])]
+        (test-diff
+          (set (exec/debug-script (pig-join/filter-by :k keys data)))
+          '#{(freeze {:k :i, :v 5})
+             (freeze {:k :i, :v 7})})))
+    
+    (testing "Nil keys"
+      (let [keys (io/return [:i nil])]
+        (test-diff
+          (set (exec/debug-script (pig-join/filter-by :k keys data)))
+          '#{(freeze {:k nil, :v 1})
+             (freeze {:k nil, :v 3})
+             (freeze {:k :i, :v 5})
+             (freeze {:k :i, :v 7})})))
+    
+    (testing "Duplicate keys"
+      (let [keys (io/return [:i :i])]
+        (test-diff
+          (exec/debug-script (pig-join/filter-by :k keys data))
+          '[(freeze {:k :i, :v 5})
+            (freeze {:k :i, :v 7})
+            (freeze {:k :i, :v 5})
+            (freeze {:k :i, :v 7})])))))
+
+(deftest test-remove-by
+  (let [data (io/return [{:k nil, :v 1}
+                         {:k nil, :v 3}
+                         {:k :i, :v 5}
+                         {:k :i, :v 7}
+                         {:k :l, :v 9}
+                         {:k :l, :v 11}])]
+
+    (testing "Normal"
+      (let [keys (io/return [:i])]
+          (test-diff
+            (set (exec/debug-script (pig-join/remove-by :k keys data)))
+            '#{(freeze {:k nil, :v 1})
+               (freeze {:k nil, :v 3})
+               (freeze {:k :l, :v 9})
+               (freeze {:k :l, :v 11})})))
+    
+    (testing "Nil keys"
+      (let [keys (io/return [:i nil])]
+        (test-diff
+          (set (exec/debug-script (pig-join/remove-by :k keys data)))
+          '#{(freeze {:k :l, :v 9})
+             (freeze {:k :l, :v 11})})))
+    
+    (testing "Duplicate keys"
+      (let [keys (io/return [:i :i])]
+        (test-diff
+          (set (exec/debug-script (pig-join/remove-by :k keys data)))
+          '#{(freeze {:k nil, :v 1})
+             (freeze {:k nil, :v 3})
+             (freeze {:k :l, :v 9})
+             (freeze {:k :l, :v 11})})))))

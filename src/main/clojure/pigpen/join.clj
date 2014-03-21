@@ -22,7 +22,7 @@
   Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
   (:refer-clojure :exclude [group-by into reduce])
-  (:require [pigpen.util :as util]
+  (:require [pigpen.util :as util :refer [forcat]]
             [pigpen.pig :as pig]
             [pigpen.raw :as raw]
             [pigpen.code :as code])
@@ -31,17 +31,21 @@
 (set! *warn-on-reflection* true)
 
 (defn ^:private select->generate
-  "Performs the key selection prior to a join. If join-nils? is true, we leave nils
-   as frozen nils so they appear as values. Otherwise we return a nil value as nil
-   and let the join take its course."
+  "Performs the key selection prior to a join. If join-nils is true, we leave
+nils as frozen nils so they appear as values. Otherwise we return a nil value as
+nil and let the join take its course. If sentinel-nil is true, nil keys are
+coerced to ::nil so they can be differentiated from outer joins later."
   ;; TODO - If this is an inner join, we can filter nil keys before the join
-  [join-nils? {:keys [from key-selector]}]
-  (-> from
-    (raw/bind$ `(pigpen.pig/key-selector->bind ~key-selector)
-               {:field-type-out (if join-nils? :frozen :frozen-with-nils)
-                :implicit-schema true})
-    (raw/generate$ [(raw/projection-field$ 0 'key)
-                    (raw/projection-field$ 1 'value)] {})))
+  [{:keys [join-nils sentinel-nil]} {:keys [from key-selector on by]}]
+  (let [key-selector (or key-selector on by 'identity)]
+    (-> from
+      (raw/bind$ (if sentinel-nil
+                   `(pigpen.pig/key-selector->bind (comp pig/sentinel-nil ~key-selector))
+                   `(pigpen.pig/key-selector->bind ~key-selector))
+                 {:field-type-out (if join-nils :frozen :frozen-with-nils)
+                  :implicit-schema true})
+      (raw/generate$ [(raw/projection-field$ 0 'key)
+                      (raw/projection-field$ 1 'value)] {}))))
 
 (defn fold-fn*
   "See pigpen.core/fold-fn"
@@ -66,7 +70,7 @@
 (defn group*
   "See pigpen.core/group-by, pigpen.core/cogroup"
   [selects f opts]
-  (let [relations  (mapv (partial select->generate (:join-nils opts)) selects)
+  (let [relations  (mapv (partial select->generate opts) selects)
         keys       (for [r relations] ['key])
         values     (cons 'group (for [r relations] [[(:id r)] 'value]))
         folds      (mapv projection-fold (cons nil (map :fold selects)) values (map #(symbol (str "value" %)) (range)))
@@ -100,10 +104,13 @@
 
 (defn join*
   "See pigpen.core/join"
-  [selects f opts]
-  (let [relations  (mapv (partial select->generate (:join-nils opts)) selects)
+  [selects f {:keys [all-args] :as opts}]
+  (let [relations  (mapv (partial select->generate opts) selects)
         keys       (for [r relations] ['key])
-        values     (for [r relations] [[(:id r) 'value]])
+        values     (forcat [r relations]
+                     (if all-args
+                       [[[(:id r) 'key]] [[(:id r) 'value]]]
+                       [[[(:id r) 'value]]]))
         join-types (mapv #(get % :type :required) selects)]
     (code/assert-arity f (count values))
     (-> relations
@@ -236,7 +243,10 @@ info on fold functions.
 "
   ([selects f] `(cogroup ~selects ~f {}))
   ([selects f opts]
-    (let [selects# (mapv #(code/trap-values #{:on :by :key-selector :fold} (cons :from %)) selects)]
+    (let [selects# (->> selects
+                     (map (partial cons :from))
+                     (map (partial code/trap-values #{:on :by :key-selector :fold}))
+                     vec)]
       `(group* ~selects#
                (code/trap ~f)
                (assoc ~opts :description ~(util/pp-str f))))))
@@ -275,10 +285,90 @@ options.
 "
   ([selects f] `(join ~selects ~f {}))
   ([selects f opts]
-    (let [selects# (mapv #(code/trap-values #{:on :by :key-selector} (cons :from %)) selects)]
+    (let [selects# (->> selects
+                     (map (partial cons :from))
+                     (map (partial code/trap-values #{:on :by :key-selector}))
+                     vec)]
       `(join* ~selects#
               (code/trap ~f)
               (assoc ~opts :description ~(util/pp-str f))))))
 
-;; TODO semi-join
-;; TODO anti-join
+(defmacro filter-by
+  "Filters a relation by the keys in another relation. The key-selector function
+is applied to each element of relation. If the resulting key is present in keys,
+the value is kept. Otherwise it is dropped. nils are dropped or preserved based
+on whether there is a nil value present in keys. This operation is referred to
+as a semi-join in relational databases.
+
+  Example:
+
+    (let [keys (pig/return [1 3 5])
+          data (pig/return [{:k 1, :v \"a\"}
+                            {:k 2, :v \"b\"}
+                            {:k 3, :v \"c\"}
+                            {:k 4, :v \"d\"}
+                            {:k 5, :v \"e\"}])]
+      (pig/filter-by :k keys data))
+
+    => (pig/dump *1)
+    [{:k 1, :v \"a\"}
+     {:k 3, :v \"c\"}
+     {:k 5, :v \"e\"}]
+
+  Options:
+
+    :parallel - The degree of parallelism to use
+
+  Note: keys must be distinct before this is used or you will get duplicate values.
+  Note: Unlike filter, this joins relation with keys and can be potentially expensive.
+
+  See also: pigpen.core/filter, pigpen.core/remove-by, pigpen.core/intersection
+"
+  ([key-selector keys relation] `(filter-by ~key-selector ~keys {} ~relation))
+  ([key-selector keys opts relation]
+    `(join* [{:from ~keys :key-selector 'identity}
+             {:from ~relation :key-selector (code/trap ~key-selector)}]
+            '(fn [~'k ~'v] ~'v)
+            (assoc ~opts :description ~(util/pp-str key-selector)
+                         :sentinel-nil true))))
+
+(defmacro remove-by
+  "Filters a relation by the keys in another relation. The key-selector function
+is applied to each element of relation. If the resulting key is _not_ present in
+keys, the value is kept. Otherwise it is dropped. nils are dropped or preserved
+based on whether there is a nil value present in keys. This operation is
+referred to as an anti-join in relational databases.
+
+  Example:
+
+    (let [keys (pig/return [1 3 5])
+          data (pig/return [{:k 1, :v \"a\"}
+                            {:k 2, :v \"b\"}
+                            {:k 3, :v \"c\"}
+                            {:k 4, :v \"d\"}
+                            {:k 5, :v \"e\"}])]
+      (pig/remove-by :k keys data))
+
+    => (pig/dump *1)
+    [{:k 2, :v \"b\"}
+     {:k 4, :v \"d\"}]
+
+  Options:
+
+    :parallel - The degree of parallelism to use
+
+  Note: Unlike remove, this joins relation with keys and can be potentially expensive.
+
+  See also: pigpen.core/remove, pigpen.core/filter-by, pigpen.core/difference
+"
+  ([key-selector keys relation] `(remove-by ~key-selector ~keys {} ~relation))
+  ([key-selector keys opts relation]
+    (let [f '(fn [[k _ _ v]] (when (nil? k) [v]))]
+      `(->
+         (join* [{:from ~keys :key-selector 'identity :type :optional}
+                 {:from ~relation :key-selector (code/trap ~key-selector)}]
+                'vector
+                (assoc ~opts :description ~(util/pp-str key-selector)
+                             :all-args true
+                             :sentinel-nil true))
+         (raw/bind$ '(pig/mapcat->bind ~f) {})))))

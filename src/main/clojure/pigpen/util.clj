@@ -233,3 +233,7 @@ Use with safe->!, safe->!!, and safe-go
         vars# (mapv first bindings#)
         vals# (mapv second bindings#)]
     `(mapv (fn ~vars# ~@body) ~@vals#)))
+
+(defmacro forcat [seq-exprs body-expr]
+  `(apply concat
+     (for ~seq-exprs ~body-expr)))

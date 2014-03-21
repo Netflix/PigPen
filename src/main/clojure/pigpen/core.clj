@@ -79,6 +79,8 @@
 (intern *ns* (with-meta 'cogroup (meta #'pigpen.join/cogroup)) @#'pigpen.join/cogroup)
 (intern *ns* (with-meta 'join (meta #'pigpen.join/join)) @#'pigpen.join/join)
 (intern *ns* (with-meta 'fold (meta #'pigpen.join/fold)) @#'pigpen.join/fold)
+(intern *ns* (with-meta 'filter-by (meta #'pigpen.join/filter-by)) @#'pigpen.join/filter-by)
+(intern *ns* (with-meta 'remove-by (meta #'pigpen.join/remove-by)) @#'pigpen.join/remove-by)
 
 ;; ********** Script **********
 
