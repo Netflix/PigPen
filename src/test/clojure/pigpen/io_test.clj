@@ -21,6 +21,22 @@
   (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc regex->string]]
             [pigpen.io :as io]))
 
+(deftest test-load-binary
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (io/load-binary "foo")
+      '{:type :load
+        :id load1
+        :description "foo"
+        :location "foo"
+        :fields [value]
+        :field-type :native
+        :storage {:type :storage
+                  :references []
+                  :func "PigStorage"
+                  :args []}
+        :opts {:type :load-opts}})))
+
 (deftest test-load-pig
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
@@ -48,6 +64,60 @@
                      :opts {:type :load-opts
                             :cast "chararray"}}]})))
 
+(deftest test-load-string
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (io/load-string "foo")
+      '{:type :bind
+        :id bind2
+        :description nil
+        :func (pigpen.pig/map->bind clojure.core/identity)
+        :args [value]
+        :requires []
+        :fields [value]
+        :field-type-in :native
+        :field-type-out :frozen
+        :opts {:type :bind-opts}
+        :ancestors [{:type :load
+                     :id load1
+                     :description "foo"
+                     :location "foo"
+                     :fields [value]
+                     :field-type :native
+                     :storage {:type :storage
+                               :references []
+                               :func "PigStorage"
+                               :args ["\\u0000"]}
+                     :opts {:type :load-opts
+                            :cast "chararray"}}]})))
+
+(deftest test-load-tsv
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (regex->string (io/load-tsv "foo"))
+      '{:type :bind
+        :id bind2
+        :description nil
+        :func (pigpen.pig/map->bind (clojure.core/fn [s] (if s (clojure.string/split s "\\t"))))
+        :args [value]
+        :requires []
+        :fields [value]
+        :field-type-in :native
+        :field-type-out :frozen
+        :opts {:type :bind-opts}
+        :ancestors [{:type :load
+                     :id load1
+                     :description "foo"
+                     :location "foo"
+                     :fields [value]
+                     :field-type :native
+                     :storage {:type :storage
+                               :references []
+                               :func "PigStorage"
+                               :args ["\\u0000"]}
+                     :opts {:type :load-opts
+                            :cast "chararray"}}]})))
+
 (deftest test-load-clj
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
@@ -71,36 +141,24 @@
                      :storage {:type :storage
                                :references []
                                :func "PigStorage"
-                               :args []}
+                               :args ["\\u0000"]}
                      :opts {:type :load-opts
                             :cast "chararray"}}]})))
 
-(deftest test-load-binary
+(deftest test-load-json
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (io/load-binary "foo")
-      '{:type :load
-        :id load1
-        :description "foo"
-        :location "foo"
-        :fields [value]
-        :field-type :native
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
-        :opts {:type :load-opts}})))
-
-(deftest test-load-tsv
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (test-diff
-      (regex->string (io/load-tsv "foo"))
+      (io/load-json "foo")
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind (clojure.core/fn [s] (if s (clojure.string/split s "\\t"))))
+        :func (pigpen.pig/map->bind
+                (clojure.core/fn [s]
+                  (clojure.data.json/read-str s
+                                              :key-fn (pigpen.pig/with-ns pigpen.io-test
+                                                        clojure.core/keyword))))
         :args [value]
-        :requires []
+        :requires [clojure.data.json]
         :fields [value]
         :field-type-in :native
         :field-type-out :frozen
@@ -145,6 +203,22 @@
                     :opts {:type :load-opts
                            :cast "chararray"}}]})))
 
+(deftest test-store-binary
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (io/store-binary "foo" {:fields '[value]})
+      '{:type :store
+        :id store1
+        :description "foo"
+        :location "foo"
+        :ancestors [{:fields [value]}]
+        :fields [value]
+        :opts {:type :store-opts}
+        :storage {:type :storage
+                  :references []
+                  :func "PigStorage"
+                  :args []}})))
+
 (deftest test-store-pig
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
@@ -167,6 +241,32 @@
                      :args [value]
                      :requires []
                      :fields [value]                     
+                     :field-type-in :frozen
+                     :field-type-out :native
+                     :opts {:type :bind-opts}}]})))
+
+(deftest test-store-string
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (io/store-string "foo" {:fields '[value]})
+      '{:type :store
+        :id store2
+        :description "foo"
+        :location "foo"
+        :fields [value]
+        :opts {:type :store-opts}
+        :storage {:type :storage
+                  :references []
+                  :func "PigStorage"
+                  :args []}
+        :ancestors [{:type :bind
+                     :id bind1
+                     :description nil
+                     :ancestors [{:fields [value]}]
+                     :func (pigpen.pig/map->bind clojure.core/str)
+                     :args [value]
+                     :requires []
+                     :fields [value]
                      :field-type-in :frozen
                      :field-type-out :native
                      :opts {:type :bind-opts}}]})))
@@ -223,21 +323,33 @@
                      :field-type-out :native
                      :opts {:type :bind-opts}}]})))
 
-(deftest test-store-binary
+(deftest test-store-json
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (io/store-binary "foo" {:fields '[value]})
+      (io/store-json "foo" {:fields '[value]})
       '{:type :store
-        :id store1
+        :id store2
         :description "foo"
         :location "foo"
-        :ancestors [{:fields [value]}]
         :fields [value]
         :opts {:type :store-opts}
         :storage {:type :storage
                   :references []
                   :func "PigStorage"
-                  :args []}})))
+                  :args []}
+        :ancestors [{:type :bind
+                     :id bind1
+                     :description nil
+                     :ancestors [{:fields [value]}]
+                     :func (pigpen.pig/map->bind
+                             (clojure.core/fn [s]
+                               (clojure.data.json/write-str s)))
+                     :args [value]
+                     :requires [clojure.data.json]
+                     :fields [value]
+                     :field-type-in :frozen
+                     :field-type-out :native
+                     :opts {:type :bind-opts}}]})))
 
 (deftest test-return
   (with-redefs [pigpen.raw/pigsym pigsym-zero]

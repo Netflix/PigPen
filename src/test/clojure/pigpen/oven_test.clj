@@ -462,29 +462,29 @@
      (test-diff (clean-bind-sequence
                   (#'pigpen.oven/find-bind-sequence s0))
                 '[[[load1 "in"]]
-                  [[bind2 nil] [bind3 "identity\n"] [bind7 nil]]
-                  [[store8 "out"]]]))
+                  [[bind2 nil] [bind3 "identity\n"] [bind4 nil]]
+                  [[store5 "out"]]]))
     
     (testing "s1"
       (test-diff (clean-bind-sequence
                    (#'pigpen.oven/find-bind-sequence s1))
                  '[[[load1 "in"]]
-                   [[bind2 nil] [bind3 "identity\n"] [bind4 "(constantly true)\n"] [bind5 "vector\n"] [bind11 nil]]
-                   [[store12 "out"]]]))
+                   [[bind2 nil] [bind3 "identity\n"] [bind4 "(constantly true)\n"] [bind5 "vector\n"] [bind6 nil]]
+                   [[store7 "out"]]]))
     
     (testing "s2"
      (test-diff (clean-bind-sequence
                   (#'pigpen.oven/find-bind-sequence s2))
                 '[[[load1 "in"]]
                   [[bind2 nil] [bind3 "identity\n"] [bind4 "identity\n"]]
-                  [[bind11 "dec\n"] [bind12 "(constantly false)\n"] [bind15 nil] [store16 "out1"] [bind5 "(constantly true)\n"] [bind6 "inc\n"] [bind9 nil] [store10 "out0"] [script17 nil]]]))
+                  [[bind9 "dec\n"] [bind10 "(constantly false)\n"] [bind11 nil] [store12 "out1"] [bind5 "(constantly true)\n"] [bind6 "inc\n"] [bind7 nil] [store8 "out0"] [script13 nil]]]))
     
     (testing "s3"
        (test-diff (clean-bind-sequence
                     (#'pigpen.oven/find-bind-sequence s3))
                   '[[[load4 "in1"]]
                     [[bind5 nil] [bind6 "dec\n"] [bind9 nil]]
-                    [[generate10 nil] [load1 "in0"] [bind2 nil] [bind3 "inc\n"] [bind7 nil] [generate8 nil] [join11 "merge\n"] [bind12 nil] [bind13 "(constantly true)\n"] [bind21 nil] [store22 "out"]]])))
+                    [[generate10 nil] [load1 "in0"] [bind2 nil] [bind3 "inc\n"] [bind7 nil] [generate8 nil] [join11 "merge\n"] [bind12 nil] [bind13 "(constantly true)\n"] [bind14 nil] [store15 "out"]]])))
   
   (deftest test-bind->generate
     
@@ -522,14 +522,14 @@
         (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s0))
                    '[[load1 "in"]
                      [generate1 "identity\n"]
-                     [store8 "out"]])))
+                     [store5 "out"]])))
     
     (testing "s1"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
         (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s1))
                    '[[load1 "in"]
                      [generate1 "identity\n(constantly true)\nvector\n"]
-                     [store12 "out"]])))
+                     [store7 "out"]])))
     
     (testing "s2"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -537,10 +537,10 @@
                    '[[load1 "in"]
                      [generate1 "identity\nidentity\n"]
                      [generate2 "dec\n(constantly false)\n"]
-                     [store16 "out1"]
+                     [store12 "out1"]
                      [generate3 "(constantly true)\ninc\n"]
-                     [store10 "out0"]
-                     [script17 nil]])))
+                     [store8 "out0"]
+                     [script13 nil]])))
     
     (testing "s3"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -553,7 +553,7 @@
                      [generate8 nil]
                      [join11 "merge\n"]
                      [generate3 "(constantly true)\n"]
-                     [store22 "out"]])))))
+                     [store15 "out"]])))))
 
 (deftest test-expand-load-filters
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

@@ -113,6 +113,9 @@ building blocks for more complex operations.")
 (def default-storage
   (storage$ [] "PigStorage" []))
 
+(def string-storage
+  (storage$ [] "PigStorage" ["\\u0000"]))
+
 (defn load$
   [location fields storage opts]
   {:pre [(string? location)

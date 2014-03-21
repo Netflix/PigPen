@@ -18,7 +18,7 @@
 
 (ns pigpen.core
   "Contains the operators for PigPen."
-  (:refer-clojure :exclude [constantly map mapcat map-indexed sort sort-by filter remove distinct concat take group-by into reduce])
+  (:refer-clojure :exclude [load-string constantly map mapcat map-indexed sort sort-by filter remove distinct concat take group-by into reduce])
   (:require [pigpen.raw :as raw]
             [pigpen.io]
             [pigpen.map]
@@ -32,12 +32,16 @@
 ;; ********** IO **********
 
 (intern *ns* (with-meta 'load-pig (meta #'pigpen.io/load-pig)) @#'pigpen.io/load-pig)
-(intern *ns* (with-meta 'load-clj (meta #'pigpen.io/load-clj)) @#'pigpen.io/load-clj)
+(intern *ns* (with-meta 'load-string (meta #'pigpen.io/load-string)) @#'pigpen.io/load-string)
 (intern *ns* (with-meta 'load-tsv (meta #'pigpen.io/load-tsv)) @#'pigpen.io/load-tsv)
+(intern *ns* (with-meta 'load-clj (meta #'pigpen.io/load-clj)) @#'pigpen.io/load-clj)
+(intern *ns* (with-meta 'load-json (meta #'pigpen.io/load-json)) @#'pigpen.io/load-json)
 (intern *ns* (with-meta 'load-lazy (meta #'pigpen.io/load-lazy)) @#'pigpen.io/load-lazy)
 (intern *ns* (with-meta 'store-pig (meta #'pigpen.io/store-pig)) @#'pigpen.io/store-pig)
-(intern *ns* (with-meta 'store-clj (meta #'pigpen.io/store-clj)) @#'pigpen.io/store-clj)
+(intern *ns* (with-meta 'store-string (meta #'pigpen.io/store-string)) @#'pigpen.io/store-string)
 (intern *ns* (with-meta 'store-tsv (meta #'pigpen.io/store-tsv)) @#'pigpen.io/store-tsv)
+(intern *ns* (with-meta 'store-clj (meta #'pigpen.io/store-clj)) @#'pigpen.io/store-clj)
+(intern *ns* (with-meta 'store-json (meta #'pigpen.io/store-json)) @#'pigpen.io/store-json)
 (intern *ns* (with-meta 'constantly (meta #'pigpen.io/constantly)) @#'pigpen.io/constantly)
 (intern *ns* (with-meta 'return (meta #'pigpen.io/return)) @#'pigpen.io/return)
 
