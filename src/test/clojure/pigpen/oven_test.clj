@@ -19,7 +19,7 @@
 (ns pigpen.oven-test
   (:use clojure.test
         pigpen.oven)
-  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.raw :as pig-raw]
             [pigpen.core :as pig]))
 

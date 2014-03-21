@@ -16,10 +16,5 @@
 ;;
 ;;
 
-(ns pigpen.core-test
-  (:use clojure.test)
-  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]))
+(ns pigpen.extensions.test-test)
 
-;; ********** Script **********
-
-;; TODO test-script

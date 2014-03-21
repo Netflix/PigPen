@@ -22,7 +22,7 @@
   Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
   (:refer-clojure :exclude [filter remove take])
-  (:require [pigpen.util :as util]
+  (:require [pigpen.extensions.core :refer [pp-str]]
             [pigpen.raw :as raw]
             [pigpen.code :as code]))
 
@@ -48,7 +48,7 @@ returns true.
             pigpen.core/distinct, pigpen.core/filter-by
 "
   [pred relation]
-  `(filter* (code/trap ~pred) {:description ~(util/pp-str pred)} ~relation))
+  `(filter* (code/trap ~pred) {:description ~(pp-str pred)} ~relation))
 
 (defmacro remove
   "Returns a relation without items for which (pred item) returns true.

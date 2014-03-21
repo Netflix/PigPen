@@ -25,7 +25,7 @@ See pigpen.core and pigpen.exec
   (:refer-clojure :exclude [load])
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [pigpen.util :refer [multicast]]
+            [pigpen.rx.extensions.core :refer [multicast]]
             [pigpen.pig :as pig])
   (:import [pigpen PigPenException]
            [org.apache.pig EvalFunc]

@@ -25,10 +25,10 @@ possible as it's used at runtime."
             [clojure.edn :as edn]
             [clojure.data.json :as json]
             [clojure.core.async :as a]
+            [pigpen.extensions.core-async :as ae]
             [clj-time.format :as time]
             [instaparse.core :as insta]
-            [taoensso.nippy :refer [freeze thaw]]
-            [pigpen.util :as util])
+            [taoensso.nippy :refer [freeze thaw]])
   (:import [pigpen PigPenException]
            [org.apache.pig.data
             DataByteArray
@@ -277,7 +277,7 @@ STRING    = #'[^\\,\\)\\}\\]\\#]+'
   (->> value (.iterator) iterator-seq (mapcat hybrid->clojure)))
 
 (defmethod hybrid->clojure Channel [value]
-  (->> value util/safe-<!! (map hybrid->clojure)))
+  (->> value ae/safe-<!! (map hybrid->clojure)))
 
 ;; **********
 
@@ -416,7 +416,7 @@ serialization info."
   ;; This matches the behavior of hybrid->clojure
   (doseq [^Tuple t (-> bag (.iterator) iterator-seq)
           value (.getAll t)]
-    (util/safe->!! ch value)))
+    (ae/safe->!! ch value)))
 
 (defn ^:private lazy-bag-args
   "Takes a seq of args. Returns two arg vectors. The first is new arguments,
@@ -428,7 +428,7 @@ args."
     (map (fn [a] (if (instance? DataBag a)
                    ;; TODO tune this
                    (let [c (a/chan java.lang.Long/MAX_VALUE)]
-                     [(util/safe-go (util/chan->lazy-seq c)) c])
+                     [(ae/safe-go (ae/chan->lazy-seq c)) c])
                    [a nil])))
     (apply map vector)))
 
@@ -444,7 +444,7 @@ containing the singe value of the result."
     ;; Make new lazy bags & create a result channel
     (let [[args* input-bags] (lazy-bag-args args)
           ;; Start result evaluation asynchronously, it will block on lazy bags
-          result (util/safe-go ((eval-string func) args*))]      
+          result (ae/safe-go ((eval-string func) args*))]      
       [input-bags result])))
 
 (defn udf-accumulate
@@ -489,11 +489,11 @@ the bag values are pushed into their respective channels."
   "Returns the result value of an accumulation. Closes each input bag and
 returns the single value in the result channel."
   [[input-bags result]]
-  {:pre [(util/channel? result)]}
+  {:pre [(ae/channel? result)]}
   (doseq [b input-bags
           :when b]
     (a/close! b))
-  (util/safe-<!! result))
+  (ae/safe-<!! result))
 
 (defn udf-cleanup
   "Cleans up any accumulator state by closing the result channel. Returns nil

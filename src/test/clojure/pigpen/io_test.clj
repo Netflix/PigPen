@@ -18,7 +18,7 @@
 
 (ns pigpen.io-test
   (:use clojure.test)
-  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc regex->string]]
+  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc regex->string]]
             [pigpen.io :as io]))
 
 (deftest test-load-binary

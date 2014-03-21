@@ -23,7 +23,7 @@ See https://github.com/Netflix/PigPen/wiki/Folding-Data
 "
   (:refer-clojure :exclude [vec map mapcat filter remove distinct keep take first last sort sort-by juxt count min min-key max max-key])
   (:require [pigpen.join :refer [fold-fn*]]
-            [pigpen.util :refer [zipv]]))
+            [pigpen.extensions.core :refer [zipv]]))
 
 (defn fold-fn
   "Creates a pre-defined fold operation. Can be used with cogroup and group-by

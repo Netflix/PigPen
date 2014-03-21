@@ -18,7 +18,7 @@
 
 (ns pigpen.script-test
   (:use clojure.test pigpen.script)
-  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]))
+  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]))
 
 (deftest test-format-field
   (is (= (#'pigpen.script/format-field "abc") "'abc'"))
