@@ -315,6 +315,15 @@
     (is (= (exec/dump command)
            [1 1 1 2 2 2 3 3 3]))))
 
+(deftest test-for
+  (is (= (pigpen.exec/dump
+           (apply pig-set/concat
+             (for [x [1 2 3]]
+               (->>
+                 (io/return [1 2 3])
+                 (pig-map/map (fn [y] (+ x y)))))))
+         [4 3 2 5 4 3 6 5 4])))
+
 ;; ********** Filter **********
 
 (deftest test-filter

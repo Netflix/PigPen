@@ -21,7 +21,9 @@
 or reduce."
   (:require [pigpen.pig :as pig]
             [pigpen.raw :as raw]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [taoensso.nippy :as nippy]
+            [taoensso.nippy.utils :as nippy-util])
   (:import [org.apache.pig.data DataBag]
            [java.lang.reflect Method]))
 
@@ -77,6 +79,9 @@ or reduce."
     (:pig (meta v)) nil
     (:local (meta v)) nil
     (:local (meta k)) nil
+    (not (nippy-util/readable? v)) nil
+    ;; TODO if something is freezable, but not EDN friendly, maybe use a base64 string?
+    ;(nippy/freezeable? v) [k `(thaw (decode ~(encode (freeze v))))]
     :else [k `(quote ~v)]))
 
 (defn ns-exists
