@@ -345,8 +345,10 @@ See pigpen.core and pigpen.exec
     ^List
     (mapv (fn [[r v] ^Observable d]
             (.map d (fn [values]
-                      {:values (pig/tuple (v values))
-                       :relation [r v]})))  
+                      ;; TODO clean up pig dereferencing
+                      (let [v' (v values)]
+                        {:values (if (instance? Tuple v') v' (pig/tuple v'))
+                         :relation [r v]}))))
          (next fields) data)
     (Observable/merge)
     (.groupBy :relation)

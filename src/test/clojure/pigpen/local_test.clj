@@ -324,6 +324,20 @@
                  (pig-map/map (fn [y] (+ x y)))))))
          [4 3 2 5 4 3 6 5 4])))
 
+(deftest test-map+fold
+  (is (= (pigpen.exec/dump
+           (->> (io/return [-2 -1 0 1 2])
+             (pig-map/map #(> % 0))
+             (pig-join/fold (->> (fold/filter identity) (fold/count)))))
+         [2])))
+
+(deftest test-map+reduce
+  (is (= (pigpen.exec/dump
+           (->> (io/return [-2 -1 0 1 2])
+             (pig-map/map inc)
+             (pig-join/fold (->> (fold/filter #(> % 0)) (fold/count)))))
+         [3])))
+
 ;; ********** Filter **********
 
 (deftest test-filter
