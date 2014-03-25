@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.0"]
+[com.netflix.pigpen/pigpen "0.2.1"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.0"
+compile "com.netflix.pigpen:pigpen:0.2.1"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.1</version>
 </dependency>
 ```
 
