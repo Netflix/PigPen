@@ -97,7 +97,7 @@ other is specified.
   []
   (fold-fn ^:seq (fn
                    ([] [])
-                   ([l r] (vec (concat l r))))
+                   ([l r] (clojure.core/vec (concat l r))))
            ^:seq (fn [acc val] (conj acc val))))
 
 (defn preprocess

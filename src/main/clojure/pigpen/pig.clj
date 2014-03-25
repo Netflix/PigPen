@@ -641,6 +641,15 @@ result is wrapped in a tuple and bag."
     post
     pig-freeze))
 
+(defn split-bag
+  "Splits a single databag into multiple bags"
+  [^DataBag b]
+  (->> b
+    (.iterator)
+    iterator-seq
+    (split-at (/ (.size b) 2))
+    (map (partial apply bag))))
+
 (defn udf-algebraic
   "Evaluates an algebraic function. An algebraic function has three stages: the
 initial reduce, a combiner, and a final stage."
@@ -652,19 +661,24 @@ initial reduce, a combiner, and a final stage."
         (case type
           :initial
           (exec-initial pre (combinef) reducef args)
-
+          
           :intermed
           (exec-intermed combinef args)
-    
+          
           :final
           (exec-final combinef post args)
-    
+          
+          ;; This is only used locally, so we split the input bag to test combinef
           :exec
           (->> args
-            (exec-initial pre (combinef) reducef)
-            ((comp vector bag))
+            (mapcat split-bag)
+            (map vector)
+            (map (partial exec-initial pre (combinef) reducef))
+            (apply bag)
+            vector
             (exec-intermed combinef)
-            ((comp vector bag))
+            bag
+            vector
             (exec-final combinef post)))))
     
     (catch Throwable z (throw (PigPenException. z)))))
