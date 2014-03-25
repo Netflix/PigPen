@@ -50,6 +50,7 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 
 # Release Notes
 
+  * 0.2.1 - Fixed bug when using `for` to generate scripts. Fixed local mode bug with `map` followed by `reduce` or `fold`
   * 0.2.0 - Added pigpen.fold - Note: this includes a breaking change in the join and cogroup syntax as follows:
     
     ``` clj
