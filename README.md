@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.1"]
+[com.netflix.pigpen/pigpen "0.2.2"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.1"
+compile "com.netflix.pigpen:pigpen:0.2.2"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.1</version>
+  <version>0.2.2</version>
 </dependency>
 ```
 
@@ -50,6 +50,7 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 
 # Release Notes
 
+  * 0.2.2 - Fixed bug in `pigpen.fold/vec`. This would also cause `fold/map` and `fold/filter` to not work when run in the cluster.
   * 0.2.1 - Fixed bug when using `for` to generate scripts. Fixed local mode bug with `map` followed by `reduce` or `fold`
   * 0.2.0 - Added pigpen.fold - Note: this includes a breaking change in the join and cogroup syntax as follows:
     
