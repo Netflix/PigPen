@@ -16,7 +16,7 @@ fold operation to compose.
       (fold/keep identity)
       (fold/avg))
 
-  See also: pigpen.fold/count, pigpen.fold/sum</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L343">Source</a></div></div><div class="public" id="var-count"><h3>count</h3><div class="usage"><code>(count)</code><code>(count fold)</code></div><pre class="doc">Counts the values, including nils. Optionally takes another fold operation
+  See also: pigpen.fold/count, pigpen.fold/sum</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L343">Source</a></div></div><div class="public" id="var-count"><h3>count</h3><div class="usage"><code>(count)</code><code>(count fold)</code></div><pre class="doc">Counts the values, including nils. Optionally takes another fold operation
 to compose.
 
   Example:
@@ -30,15 +30,15 @@ to compose.
       (fold/keep identity)
       (fold/count))
 
-  See also: pigpen.fold/sum, pigpen.fold/avg</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L296">Source</a></div></div><div class="public" id="var-distinct"><h3>distinct</h3><div class="usage"><code>(distinct)</code><code>(distinct fold)</code></div><pre class="doc">Returns the distinct set of values.
+  See also: pigpen.fold/sum, pigpen.fold/avg</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L296">Source</a></div></div><div class="public" id="var-distinct"><h3>distinct</h3><div class="usage"><code>(distinct)</code><code>(distinct fold)</code></div><pre class="doc">Returns the distinct set of values.
 
 Example:
   (fold/distinct)
 
   (-&gt;&gt; (fold/map :foo)
        (fold/keep identity)
-       (fold/distinct))</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L137">Source</a></div></div><div class="public" id="var-filter"><h3>filter</h3><div class="usage"><code>(filter f)</code><code>(filter f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/filter.
-</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L133">Source</a></div></div><div class="public" id="var-first"><h3>first</h3><div class="usage"><code>(first)</code><code>(first fold)</code></div><pre class="doc">Returns the first output value. This is a post-reduce operation, meaning that
+       (fold/distinct))</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L137">Source</a></div></div><div class="public" id="var-filter"><h3>filter</h3><div class="usage"><code>(filter f)</code><code>(filter f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/filter.
+</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L133">Source</a></div></div><div class="public" id="var-first"><h3>first</h3><div class="usage"><code>(first)</code><code>(first fold)</code></div><pre class="doc">Returns the first output value. This is a post-reduce operation, meaning that
 it can only be applied after a fold operation that produces a sequence.
 
   Example:
@@ -48,7 +48,7 @@ it can only be applied after a fold operation that produces a sequence.
          (fold/sort)
          (fold/first))
 
-  See also: pigpen.fold/last, pigpen.fold/min, pigpen.fold/max</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L169">Source</a></div></div><div class="public" id="var-fold-fn"><h3>fold-fn</h3><div class="usage"><code>(fold-fn reducef)</code><code>(fold-fn combinef reducef)</code><code>(fold-fn combinef reducef post)</code><code>(fold-fn pre combinef reducef post)</code></div><pre class="doc">Creates a pre-defined fold operation. Can be used with cogroup and group-by
+  See also: pigpen.fold/last, pigpen.fold/min, pigpen.fold/max</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L169">Source</a></div></div><div class="public" id="var-fold-fn"><h3>fold-fn</h3><div class="usage"><code>(fold-fn reducef)</code><code>(fold-fn combinef reducef)</code><code>(fold-fn combinef reducef post)</code><code>(fold-fn pre combinef reducef post)</code></div><pre class="doc">Creates a pre-defined fold operation. Can be used with cogroup and group-by
 to aggregate large groupings in parallel. See pigpen.core/fold for usage of
 reducef and combinef.
 
@@ -61,11 +61,11 @@ reducef and combinef.
       (pig/fold-fn +))
 
     (defn sum-by [f]
-      (pig/fold-fn + (fn [acc value] (+ acc (f value)))))</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L28">Source</a></div></div><div class="public" id="var-juxt"><h3>juxt</h3><div class="usage"><code>(juxt &amp; folds)</code></div><pre class="doc">Applies multiple fold fns to the same data. Produces a vector of results.
+      (pig/fold-fn + (fn [acc value] (+ acc (f value)))))</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L28">Source</a></div></div><div class="public" id="var-juxt"><h3>juxt</h3><div class="usage"><code>(juxt &amp; folds)</code></div><pre class="doc">Applies multiple fold fns to the same data. Produces a vector of results.
 
 Example:
-  (fold/juxt (fold/count) (fold/sum) (fold/avg))</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L260">Source</a></div></div><div class="public" id="var-keep"><h3>keep</h3><div class="usage"><code>(keep f)</code><code>(keep f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/keep.
-</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L135">Source</a></div></div><div class="public" id="var-last"><h3>last</h3><div class="usage"><code>(last)</code><code>(last fold)</code></div><pre class="doc">Returns the last output value. This is a post-reduce operation, meaning that
+  (fold/juxt (fold/count) (fold/sum) (fold/avg))</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L260">Source</a></div></div><div class="public" id="var-keep"><h3>keep</h3><div class="usage"><code>(keep f)</code><code>(keep f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/keep.
+</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L135">Source</a></div></div><div class="public" id="var-last"><h3>last</h3><div class="usage"><code>(last)</code><code>(last fold)</code></div><pre class="doc">Returns the last output value. This is a post-reduce operation, meaning that
 it can only be applied after a fold operation that produces a sequence.
 
   Example:
@@ -75,9 +75,9 @@ it can only be applied after a fold operation that produces a sequence.
          (fold/sort)
          (fold/last))
 
-  See also: pigpen.fold/first, pigpen.fold/min, pigpen.fold/max</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L189">Source</a></div></div><div class="public" id="var-map"><h3>map</h3><div class="usage"><code>(map f)</code><code>(map f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/map.
-</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L131">Source</a></div></div><div class="public" id="var-mapcat"><h3>mapcat</h3><div class="usage"><code>(mapcat f)</code><code>(mapcat f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/mapcat.
-</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L132">Source</a></div></div><div class="public" id="var-max"><h3>max</h3><div class="usage"><code>(max)</code><code>(max fold)</code><code>(max comp)</code><code>(max comp fold)</code></div><pre class="doc">Return the maximum (last) value of the collection. If a comparator is not
+  See also: pigpen.fold/first, pigpen.fold/min, pigpen.fold/max</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L189">Source</a></div></div><div class="public" id="var-map"><h3>map</h3><div class="usage"><code>(map f)</code><code>(map f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/map.
+</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L131">Source</a></div></div><div class="public" id="var-mapcat"><h3>mapcat</h3><div class="usage"><code>(mapcat f)</code><code>(mapcat f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/mapcat.
+</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L132">Source</a></div></div><div class="public" id="var-max"><h3>max</h3><div class="usage"><code>(max)</code><code>(max fold)</code><code>(max comp)</code><code>(max comp fold)</code></div><pre class="doc">Return the maximum (last) value of the collection. If a comparator is not
 specified, clojure.core/compare is used. Optionally takes another fold
 operation to compose.
 
@@ -89,7 +89,7 @@ operation to compose.
       (fold/map :foo)
       (fold/max &gt;))
 
-  See also: pigpen.fold/max-key, pigpen.fold/min, pigpen.fold/top</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L472">Source</a></div></div><div class="public" id="var-max-key"><h3>max-key</h3><div class="usage"><code>(max-key keyfn)</code><code>(max-key keyfn fold)</code><code>(max-key keyfn comp)</code><code>(max-key keyfn comp fold)</code></div><pre class="doc">Return the maximum (last) value of the collection based on (keyfn value).
+  See also: pigpen.fold/max-key, pigpen.fold/min, pigpen.fold/top</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L472">Source</a></div></div><div class="public" id="var-max-key"><h3>max-key</h3><div class="usage"><code>(max-key keyfn)</code><code>(max-key keyfn fold)</code><code>(max-key keyfn comp)</code><code>(max-key keyfn comp fold)</code></div><pre class="doc">Return the maximum (last) value of the collection based on (keyfn value).
 If a comparator is not specified, clojure.core/compare is used. Optionally takes
 another fold operation to compose.
 
@@ -97,7 +97,7 @@ another fold operation to compose.
     (fold/max-key :foo)
     (fold/max-key :foo &gt;)
 
-  See also: pigpen.fold/max, pigpen.fold/min-key, pigpen.fold/top-by</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L496">Source</a></div></div><div class="public" id="var-min"><h3>min</h3><div class="usage"><code>(min)</code><code>(min fold)</code><code>(min comp)</code><code>(min comp fold)</code></div><pre class="doc">Return the minimum (first) value of the collection. If a comparator is not
+  See also: pigpen.fold/max, pigpen.fold/min-key, pigpen.fold/top-by</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L496">Source</a></div></div><div class="public" id="var-min"><h3>min</h3><div class="usage"><code>(min)</code><code>(min fold)</code><code>(min comp)</code><code>(min comp fold)</code></div><pre class="doc">Return the minimum (first) value of the collection. If a comparator is not
 specified, clojure.core/compare is used. Optionally takes another fold
 operation to compose.
 
@@ -109,7 +109,7 @@ operation to compose.
       (fold/map :foo)
       (fold/min &gt;))
 
-  See also: pigpen.fold/min-key, pigpen.fold/max, pigpen.fold/top</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L428">Source</a></div></div><div class="public" id="var-min-key"><h3>min-key</h3><div class="usage"><code>(min-key keyfn)</code><code>(min-key keyfn fold)</code><code>(min-key keyfn comp)</code><code>(min-key keyfn comp fold)</code></div><pre class="doc">Return the minimum (first) value of the collection based on (keyfn value).
+  See also: pigpen.fold/min-key, pigpen.fold/max, pigpen.fold/top</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L428">Source</a></div></div><div class="public" id="var-min-key"><h3>min-key</h3><div class="usage"><code>(min-key keyfn)</code><code>(min-key keyfn fold)</code><code>(min-key keyfn comp)</code><code>(min-key keyfn comp fold)</code></div><pre class="doc">Return the minimum (first) value of the collection based on (keyfn value).
 If a comparator is not specified, clojure.core/compare is used. Optionally takes
 another fold operation to compose.
 
@@ -117,15 +117,15 @@ another fold operation to compose.
     (fold/min-key :foo)
     (fold/min-key :foo &gt;)
 
-  See also: pigpen.fold/min, pigpen.fold/max-key, pigpen.fold/top-by</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L452">Source</a></div></div><div class="public" id="var-preprocess"><h3>preprocess</h3><div class="usage"><code>(preprocess f')</code></div><pre class="doc">Takes a a clojure seq function, like map or filter, and returns a fold
+  See also: pigpen.fold/min, pigpen.fold/max-key, pigpen.fold/top-by</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L452">Source</a></div></div><div class="public" id="var-preprocess"><h3>preprocess</h3><div class="usage"><code>(preprocess f')</code></div><pre class="doc">Takes a a clojure seq function, like map or filter, and returns a fold
 preprocess function. The function must take two params: a function and a seq.
 
   Example:
 
     (def map (preprocess clojure.core/map))
 
-    (pig/fold (map :foo))</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L105">Source</a></div></div><div class="public" id="var-remove"><h3>remove</h3><div class="usage"><code>(remove f)</code><code>(remove f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/remove.
-</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L134">Source</a></div></div><div class="public" id="var-sort"><h3>sort</h3><div class="usage"><code>(sort)</code><code>(sort fold)</code><code>(sort c fold)</code></div><pre class="doc">Sorts the data. This sorts the data after every element, so it's best to use
+    (pig/fold (map :foo))</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L105">Source</a></div></div><div class="public" id="var-remove"><h3>remove</h3><div class="usage"><code>(remove f)</code><code>(remove f fold)</code></div><pre class="doc">Pre-processes data for a fold operation. Same as clojure.core/remove.
+</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L134">Source</a></div></div><div class="public" id="var-sort"><h3>sort</h3><div class="usage"><code>(sort)</code><code>(sort fold)</code><code>(sort c fold)</code></div><pre class="doc">Sorts the data. This sorts the data after every element, so it's best to use
 with take, which also limits the data after every value. If a comparator is not
 specified, clojure.core/compare is used.
 
@@ -141,7 +141,7 @@ specified, clojure.core/compare is used.
       (fold/sort &gt;)
       (fold/take 40))
 
-  See also: pigpen.fold/sort-by, pigpen.fold/top</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L210">Source</a></div></div><div class="public" id="var-sort-by"><h3>sort-by</h3><div class="usage"><code>(sort-by keyfn)</code><code>(sort-by keyfn fold)</code><code>(sort-by keyfn c fold)</code></div><pre class="doc">Sorts the data by (keyfn value). This sorts the data after every element, so
+  See also: pigpen.fold/sort-by, pigpen.fold/top</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L210">Source</a></div></div><div class="public" id="var-sort-by"><h3>sort-by</h3><div class="usage"><code>(sort-by keyfn)</code><code>(sort-by keyfn fold)</code><code>(sort-by keyfn c fold)</code></div><pre class="doc">Sorts the data by (keyfn value). This sorts the data after every element, so
 it's best to use with take, which also limits the data after every value. If a
 comparator is not specified, clojure.core/compare is used.
 
@@ -157,7 +157,7 @@ comparator is not specified, clojure.core/compare is used.
       (fold/sort-by :foo &gt;)
       (fold/take 40))
 
-  See also: pigpen.fold/sort, pigpen.fold/top-by</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L235">Source</a></div></div><div class="public" id="var-sum"><h3>sum</h3><div class="usage"><code>(sum)</code><code>(sum fold)</code></div><pre class="doc">Sums the values. All values must be numeric. Optionally takes another
+  See also: pigpen.fold/sort, pigpen.fold/top-by</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L235">Source</a></div></div><div class="public" id="var-sum"><h3>sum</h3><div class="usage"><code>(sum)</code><code>(sum fold)</code></div><pre class="doc">Sums the values. All values must be numeric. Optionally takes another
 fold operation to compose.
 
   Example:
@@ -172,7 +172,7 @@ fold operation to compose.
       (fold/keep identity)
       (fold/sum))
 
-  See also: pigpen.fold/count, pigpen.fold/avg</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L319">Source</a></div></div><div class="public" id="var-take"><h3>take</h3><div class="usage"><code>(take n)</code><code>(take n fold)</code></div><pre class="doc">Returns a sequence of the first n items in coll. This is a post-reduce
+  See also: pigpen.fold/count, pigpen.fold/avg</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L319">Source</a></div></div><div class="public" id="var-take"><h3>take</h3><div class="usage"><code>(take n)</code><code>(take n fold)</code></div><pre class="doc">Returns a sequence of the first n items in coll. This is a post-reduce
 operation, meaning that it can only be applied after a fold operation that
 produces a sequence.
 
@@ -180,25 +180,25 @@ produces a sequence.
 
     (-&gt;&gt;
       (fold/sort)
-      (fold/take 40))</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L153">Source</a></div></div><div class="public" id="var-top"><h3>top</h3><div class="usage"><code>(top n)</code><code>(top comp n)</code></div><pre class="doc">Returns the top n items in the collection. If a comparator is not specified,
+      (fold/take 40))</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L153">Source</a></div></div><div class="public" id="var-top"><h3>top</h3><div class="usage"><code>(top n)</code><code>(top comp n)</code></div><pre class="doc">Returns the top n items in the collection. If a comparator is not specified,
 clojure.core/compare is used.
 
   Example:
     (fold/top 40)
     (fold/top &gt; 40)
 
-  See also: pigpen.fold/top-by</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L376">Source</a></div></div><div class="public" id="var-top-by"><h3>top-by</h3><div class="usage"><code>(top-by keyfn n)</code><code>(top-by keyfn comp n)</code></div><pre class="doc">Returns the top n items in the collection based on (keyfn value). If a
+  See also: pigpen.fold/top-by</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L376">Source</a></div></div><div class="public" id="var-top-by"><h3>top-by</h3><div class="usage"><code>(top-by keyfn n)</code><code>(top-by keyfn comp n)</code></div><pre class="doc">Returns the top n items in the collection based on (keyfn value). If a
 comparator is not specified, clojure.core/compare is used.
 
   Example:
     (fold/top-by :foo 40)
     (fold/top-by :foo &gt; 40)
 
-  See also: pigpen.fold/top</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L393">Source</a></div></div><div class="public" id="var-vec"><h3>vec</h3><div class="usage"><code>(vec)</code></div><pre class="doc">Returns all values as a vector. This is the default fold operation if none
+  See also: pigpen.fold/top</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L393">Source</a></div></div><div class="public" id="var-vec"><h3>vec</h3><div class="usage"><code>(vec)</code></div><pre class="doc">Returns all values as a vector. This is the default fold operation if none
 other is specified.
 
   Example:
     (fold/vec)
 
     (-&gt;&gt; (fold/vec)
-      (fold/take 5))</pre><div class="doc">Added 0.2.0</div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L88">Source</a></div></div></div></body></html>
+      (fold/take 5))</pre><pre class="doc">Added 0.2.0</pre><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/master/src/main/clojure/pigpen/fold.clj#L88">Source</a></div></div></div></body></html>
