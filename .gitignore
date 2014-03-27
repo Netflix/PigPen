@@ -68,6 +68,8 @@ classes
 bin/
 .lein-repl-history
 pom.xml
+doc
+project.clj
 
 # NetBeans specific files/directories
 .nbattrs

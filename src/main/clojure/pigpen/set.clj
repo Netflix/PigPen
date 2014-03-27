@@ -90,6 +90,7 @@ map of options.
 
   See also: pigpen.core/union, pigpen.core/union-multiset, pigpen.core/filter
 "
+  {:added "0.1.0"}
   ([relation] (distinct {} relation))
   ([opts relation]
     (raw/distinct$ relation opts)))
@@ -113,7 +114,8 @@ Optionally takes a map of options as the first parameter.
 
   See also: pigpen.core/union-multiset, pigpen.core/distinct
 "
-  {:arglists '([opts? relations+])}
+  {:arglists '([opts? relations+])
+   :added "0.1.0"}
   [& opts-relations]
   (let [[opts relations] (split-opts-relations opts-relations)]
     (raw/distinct$ (raw/union$ (filter identity relations) {}) opts)))
@@ -133,7 +135,8 @@ relations. Identical to pigpen.core/union-multiset.
 
   See also: pigpen.core/union, pigpen.core/distinct, pigpen.core/union-multiset
 "
-  {:arglists '([relations+])}
+  {:arglists '([relations+])
+   :added "0.1.0"}
   [& relations]
   (raw/union$ (filter identity relations) {}))
 
@@ -152,7 +155,8 @@ Identical to pigpen.core/concat.
 
   See also: pigpen.core/union, pigpen.core/distinct, pigpen.core/concat
 "
-  {:arglists '([relations+])}
+  {:arglists '([relations+])
+   :added "0.1.0"}
   [& relations]
   (raw/union$ (filter identity relations) {}))
 
@@ -175,7 +179,8 @@ results. Optionally takes a map of options as the first parameter.
 
   See also: pigpen.core/intersection-multiset, pigpen.core/difference
 "
-  {:arglists '([opts? relations+])}
+  {:arglists '([opts? relations+])
+   :added "0.1.0"}
   [& opts-relations]
   (set-operation 'pigpen.set/pig-intersection opts-relations))
 
@@ -198,7 +203,8 @@ results. Optionally takes a map of options as the first parameter.
 
   See also: pigpen.core/intersection, pigpen.core/difference
 "
-  {:arglists '([opts? relations+])}
+  {:arglists '([opts? relations+])
+   :added "0.1.0"}
   [& opts-relations]
   (set-operation 'pigpen.set/pig-intersection-multiset opts-relations))
 
@@ -221,7 +227,8 @@ results. Optionally takes a map of options as the first parameter.
 
   See also: pigpen.core/difference-multiset, pigpen.core/intersection
 "
-  {:arglists '([opts? relations+])}
+  {:arglists '([opts? relations+])
+   :added "0.1.0"}
   [& opts-relations]
   (set-operation 'pigpen.set/pig-difference opts-relations))
 
@@ -244,6 +251,7 @@ results. Optionally takes a map of options as the first parameter.
 
   See also: pigpen.core/difference, pigpen.core/intersection
 "
-  {:arglists '([opts? relations+])}
+  {:arglists '([opts? relations+])
+   :added "0.1.0"}
   [& opts-relations]
   (set-operation 'pigpen.set/pig-difference-multiset opts-relations))

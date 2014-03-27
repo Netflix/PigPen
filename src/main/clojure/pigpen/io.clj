@@ -48,6 +48,7 @@ each input field. The data is returned as a map with 'fields' as the keys.
 
   See also: pigpen.core/load-tsv, pigpen.core/load-clj
 "
+  {:added "0.1.0"}
   [location fields]
   `(->
      (raw/load$ ~location '~fields raw/default-storage {:cast "chararray"})
@@ -72,6 +73,7 @@ and f specify a conversion function to apply to each input row."
 
   See also: pigpen.core/load-tsv, pigpen.core/load-clj, pigpen.core/load-json
 "
+  {:added "0.2.3"}
   [location]
   (load-string* location [] 'clojure.core/identity))
 
@@ -89,6 +91,7 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
 
   See also: pigpen.core/load-string, pigpen.core/load-clj, pigpen.core/load-json
 "
+  {:added "0.1.0"}
   ([location] (load-tsv location #"\t"))
   ([location delimiter]
     (load-string* location [] `(fn [~'s] (if ~'s (clojure.string/split ~'s ~delimiter))))))
@@ -105,6 +108,7 @@ be parsed using clojure.edn/read-string into a value.
 
   See: https://github.com/edn-format/edn
 "
+  {:added "0.1.0"}
   [location]
   (load-string* location '[clojure.edn] 'clojure.edn/read-string))
 
@@ -119,6 +123,7 @@ read-str as a map. The default options used are {:key-fn keyword}.
 
   See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-clj
 "
+  {:added "0.2.3"}
   ([location] `(load-json ~location {:key-fn keyword}))
   ([location opts]
     (let [opts' (code/trap-values #{:key-fn :value-fn} opts)]
@@ -140,6 +145,7 @@ the specified delimiter. The default delimiter is \\t.
 
   See also: pigpen.core/load-tsv
 "
+  {:added "0.1.0"}
   ([location] (load-lazy location #"\t"))
   ([location delimiter]
     (let [delimiter (java.util.regex.Pattern/compile (str "[^" delimiter "]"))]
@@ -162,6 +168,7 @@ unless debugging scripts."
 
   See also: pigpen.core/store-clj, pigpen.core/store-tsv
 "
+  {:added "0.1.0"}
   [location relation]
   `(-> ~relation
      (raw/bind$ [] '(pigpen.pig/map->bind (comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
@@ -187,6 +194,7 @@ single line.
 
   See also: pigpen.core/store-tsv, pigpen.core/store-clj, pigpen.core/store-json
 "
+  {:added "0.2.3"}
   [location relation]
   (store-string* location [] 'clojure.core/str relation))
 
@@ -202,6 +210,7 @@ Single string values are not quoted. You may optionally pass a different delimit
 
   See also: pigpen.core/store-string, pigpen.core/store-clj, pigpen.core/store-json
 "
+  {:added "0.1.0"}
   ([location relation] (store-tsv location "\t" relation))
   ([location delimiter relation]
     (store-string* location [] `(fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))) relation)))
@@ -218,6 +227,7 @@ written as a single line.
 
   See: https://github.com/edn-format/edn
 "
+  {:added "0.1.0"}
   [location relation]
   (store-string* location [] 'clojure.core/pr-str relation))
 
@@ -231,6 +241,7 @@ written as a single line. Options can be passed to write-str as a map.
 
   See also: pigpen.core/store-string, pigpen.core/store-tsv, pigpen.core/store-clj
 "
+  {:added "0.2.3"}
   ([location relation] `(store-json ~location {} ~relation))
   ([location opts relation]
     (let [opts' (code/trap-values #{:key-fn :value-fn} opts)]
@@ -250,6 +261,7 @@ sequence. The values of 'data' can be any clojure type.
 
   See also: pigpen.core/constantly
 "
+  {:added "0.1.0"}
   [data]
   (raw/return$
     (for [d data]
@@ -273,6 +285,7 @@ The values of 'data' can be any clojure type.
 
   See also: pigpen.core/return
 "
+  {:added "0.1.0"}
   [data]
   (clojure.core/constantly
     (return data)))

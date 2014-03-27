@@ -96,7 +96,8 @@ if you have a single output.
 
   Note: When run locally, this will merge the results of any source relations.
 "
-  {:arglists '([outputs+])}
+  {:arglists '([outputs+])
+   :added "0.1.0"}
   [& outputs]
   (raw/script$ outputs))
 

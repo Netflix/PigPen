@@ -47,6 +47,7 @@ returns true.
   See also: pigpen.core/remove, pigpen.core/take, pigpen.core/sample,
             pigpen.core/distinct, pigpen.core/filter-by
 "
+  {:added "0.1.0"}
   [pred relation]
   `(filter* (code/trap ~pred) {:description ~(pp-str pred)} ~relation))
 
@@ -61,6 +62,7 @@ returns true.
   See also: pigpen.core/filter, pigpen.core/take, pigpen.core/sample,
             pigpen.core/distinct, pigpen.core/remove-by
 "
+  {:added "0.1.0"}
   [pred relation]
   `(filter (complement ~pred) ~relation))
 
@@ -75,6 +77,7 @@ returns true.
 
   See also: pigpen.core/filter, pigpen.core/sample
 "
+  {:added "0.1.0"}
   [n relation]
   (raw/limit$ relation n {}))
 
@@ -91,5 +94,6 @@ between 0.0 and 1.0
 
   See also: pigpen.core/filter, pigpen.core/take
 "
+  {:added "0.1.0"}
   [p relation]
   (raw/sample$ relation p {}))

@@ -41,6 +41,7 @@ reducef and combinef.
     (defn sum-by [f]
       (pig/fold-fn + (fn [acc value] (+ acc (f value)))))
 "
+  {:added "0.2.0"}
   ([reducef] (fold-fn identity reducef reducef identity))
   ([combinef reducef] (fold-fn identity combinef reducef identity))
   ([combinef reducef post] (fold-fn identity combinef reducef post))
@@ -94,6 +95,7 @@ other is specified.
     (->> (fold/vec)
       (fold/take 5))
 "
+  {:added "0.2.0"}
   []
   (fold-fn ^:seq (fn
                    ([] [])
@@ -110,6 +112,7 @@ preprocess function. The function must take two params: a function and a seq.
 
     (pig/fold (map :foo))
 "
+  {:added "0.2.0"}
   [f']
   (fn
     ([f]
@@ -120,7 +123,8 @@ preprocess function. The function must take two params: a function and a seq.
 (defmacro ^:private def-preprocess
   ""
   [name fn]
-  `(def ~(with-meta name {:arglists ''([f] [f fold])})
+  `(def ~(with-meta name {:arglists ''([f] [f fold])
+                          :added "0.2.0"})
      ~(str "Pre-processes data for a fold operation. Same as " fn ".")
      (preprocess ~fn)))
 
@@ -140,6 +144,7 @@ preprocess function. The function must take two params: a function and a seq.
          (fold/keep identity)
          (fold/distinct))
 "
+  {:added "0.2.0"}
   ([]
     (fold-fn clojure.set/union conj))
   ([fold]
@@ -156,6 +161,7 @@ produces a sequence.
       (fold/sort)
       (fold/take 40))
 "
+  {:added "0.2.0"}
   ([n] (take n (vec)))
   ([n fold]
     (comp-fold (partial clojure.core/take n) fold)))
@@ -173,6 +179,7 @@ it can only be applied after a fold operation that produces a sequence.
 
   See also: pigpen.fold/last, pigpen.fold/min, pigpen.fold/max
 "
+  {:added "0.2.0"}
   ([] (first (vec)))
   ([fold]
     (->> fold
@@ -192,6 +199,7 @@ it can only be applied after a fold operation that produces a sequence.
 
   See also: pigpen.fold/first, pigpen.fold/min, pigpen.fold/max
 "
+  {:added "0.2.0"}
   ([] (last (vec)))
   ([fold]
     (->> fold
@@ -218,6 +226,7 @@ specified, clojure.core/compare is used.
 
   See also: pigpen.fold/sort-by, pigpen.fold/top
 "
+  {:added "0.2.0"}
   ([] (sort compare (vec)))
   ([fold] (sort compare fold))
   ([c fold]
@@ -242,6 +251,7 @@ comparator is not specified, clojure.core/compare is used.
 
   See also: pigpen.fold/sort, pigpen.fold/top-by
 "
+  {:added "0.2.0"}
   ([keyfn] (sort-by keyfn compare (vec)))
   ([keyfn fold] (sort-by keyfn compare fold))
   ([keyfn c fold]
@@ -253,34 +263,35 @@ comparator is not specified, clojure.core/compare is used.
   Example:
     (fold/juxt (fold/count) (fold/sum) (fold/avg))
 "
- [& folds]
- (fold-fn
-   ; pre
-   (fn [vals]
-     (for [v vals]
-       (zipv [{:keys [pre]} folds]
-         (pre [v]))))
-   ; combine
-   (fn
-     ([]
-       (zipv [{:keys [combinef]} folds]
-         (combinef)))
-     ([l r]
-       (zipv [{:keys [combinef]} folds
-              l' l
-              r' r]
-         (combinef l' r'))))
-   ; reduce
-   (fn [acc val]
-     (zipv [{:keys [reducef]} folds
-            a' acc
-            v' val]
-       (reduce reducef a' v')))
-   ; post
-   (fn [vals]
-     (zipv [{:keys [post]} folds
-            v' vals]
-       (post v')))))
+  {:added "0.2.0"}
+  [& folds]
+  (fold-fn
+    ; pre
+    (fn [vals]
+      (for [v vals]
+        (zipv [{:keys [pre]} folds]
+          (pre [v]))))
+    ; combine
+    (fn
+      ([]
+        (zipv [{:keys [combinef]} folds]
+          (combinef)))
+      ([l r]
+        (zipv [{:keys [combinef]} folds
+               l' l
+               r' r]
+          (combinef l' r'))))
+    ; reduce
+    (fn [acc val]
+      (zipv [{:keys [reducef]} folds
+             a' acc
+             v' val]
+        (reduce reducef a' v')))
+    ; post
+    (fn [vals]
+      (zipv [{:keys [post]} folds
+             v' vals]
+        (post v')))))
 
 (defn count
   "Counts the values, including nils. Optionally takes another fold operation
@@ -299,6 +310,7 @@ to compose.
 
   See also: pigpen.fold/sum, pigpen.fold/avg
 "
+  {:added "0.2.0"}
   ([]
     (fold-fn + (fn [acc _] (inc acc))))
   ([fold]
@@ -322,6 +334,7 @@ fold operation to compose.
 
   See also: pigpen.fold/count, pigpen.fold/avg
 "
+  {:added "0.2.0"}
   ([]
     (fold-fn +))
   ([fold]
@@ -345,6 +358,7 @@ fold operation to compose.
 
   See also: pigpen.fold/count, pigpen.fold/sum
 "
+  {:added "0.2.0"}
   ([]
     (fold-fn (fn
                ([] nil)
@@ -369,6 +383,7 @@ clojure.core/compare is used.
 
   See also: pigpen.fold/top-by
 "
+  {:added "0.2.0"}
   ([n] (top compare n))
   ([comp n]
     (->> (vec)
@@ -385,6 +400,7 @@ comparator is not specified, clojure.core/compare is used.
 
   See also: pigpen.fold/top
 "
+  {:added "0.2.0"}
   ([keyfn n] (top-by keyfn compare n))
   ([keyfn comp n]
     (->> (vec)
@@ -424,7 +440,8 @@ operation to compose.
 
   See also: pigpen.fold/min-key, pigpen.fold/max, pigpen.fold/top
 "
-  {:arglists '([] [fold] [comp] [comp fold])}
+  {:arglists '([] [fold] [comp] [comp fold])
+   :added "0.2.0"}
   ([] (min* compare (vec)))
   ([fold]
     (if (instance? java.util.Comparator fold)
@@ -443,7 +460,8 @@ another fold operation to compose.
 
   See also: pigpen.fold/min, pigpen.fold/max-key, pigpen.fold/top-by
 "
-  {:arglists '([keyfn] [keyfn fold] [keyfn comp] [keyfn comp fold])}
+  {:arglists '([keyfn] [keyfn fold] [keyfn comp] [keyfn comp fold])
+   :added "0.2.0"}
   ([keyfn] (min-key keyfn compare (vec)))
   ([keyfn fold]
     (if (instance? java.util.Comparator fold)
@@ -466,7 +484,8 @@ operation to compose.
 
   See also: pigpen.fold/max-key, pigpen.fold/min, pigpen.fold/top
 "
-  {:arglists '([] [fold] [comp] [comp fold])}
+  {:arglists '([] [fold] [comp] [comp fold])
+   :added "0.2.0"}
   ([] (min* (clojure.core/comp - compare) (vec)))
   ([fold]
     (if (instance? java.util.Comparator fold)
@@ -485,7 +504,8 @@ another fold operation to compose.
 
   See also: pigpen.fold/max, pigpen.fold/min-key, pigpen.fold/top-by
 "
-  {:arglists '([keyfn] [keyfn fold] [keyfn comp] [keyfn comp fold])}
+  {:arglists '([keyfn] [keyfn fold] [keyfn comp] [keyfn comp fold])
+   :added "0.2.0"}
   ([keyfn] (max-key keyfn compare (vec)))
   ([keyfn fold]
     (if (instance? java.util.Comparator fold)

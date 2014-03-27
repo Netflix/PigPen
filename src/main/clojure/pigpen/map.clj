@@ -52,6 +52,7 @@ pig/cogroup, and pig/union for combining sets of data.
   See also: pigpen.core/mapcat, pigpen.core/map-indexed, pigpen.core/join,
             pigpen.core/cogroup, pigpen.core/union
 "
+  {:added "0.1.0"}
   [f relation]
   `(map* (code/trap ~f) {:description ~(pp-str f)} ~relation))
 
@@ -72,6 +73,7 @@ f to each item in relation. Thus f should return a collection.
 
   See also: pigpen.core/map, pigpen.core/map-indexed
 "
+  {:added "0.1.0"}
   [f relation]
   `(mapcat* (code/trap ~f) {:description ~(pp-str f)} ~relation))
 
@@ -102,6 +104,7 @@ and the value. If you require sequential ids, use option {:dense true}.
 
   See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core/map, pigpen.core/mapcat
 "
+  {:added "0.1.0"}
   ([f relation] `(map-indexed ~f {} ~relation))
   ([f opts relation]
     `(map-indexed* (code/trap ~f) (assoc ~opts :description ~(pp-str f)) ~relation)))
@@ -139,6 +142,7 @@ and the value. If you require sequential ids, use option {:dense true}.
 
   See also: pigpen.core/sort-by
 "
+  {:added "0.1.0"}
   ([relation] `(sort :asc {} ~relation))
   ([comp relation] `(sort ~comp {} ~relation))
   ([comp opts relation]
@@ -166,6 +170,7 @@ optional map of options.
 
   See also: pigpen.core/sort
 "
+  {:added "0.1.0"}
   ([key-fn relation] `(sort-by ~key-fn :asc {} ~relation))
   ([key-fn comp relation] `(sort-by ~key-fn ~comp {} ~relation))
   ([key-fn comp opts relation]

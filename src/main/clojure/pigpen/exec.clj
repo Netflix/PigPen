@@ -55,6 +55,7 @@ combine them. Optionally takes a map of options.
 
   See also: pigpen.core/write-script, pigpen.core/script
 "
+  {:added "0.1.0"}
   ([script] (generate-script {} script))
   ([opts script]
     (as-> script %
@@ -83,6 +84,7 @@ combine them. Optionally takes a map of options.
 
   See also: pigpen.core/generate-script, pigpen.core/script
 "
+  {:added "0.1.0"}
   ([location script] (write-script location {} script))
   ([location opts script]
     (spit location (generate-script opts script))))
@@ -130,6 +132,7 @@ sequence. This command is very useful for unit tests.
 
   See also: pigpen.core/show, pigpen.core/dump&show
 "
+  {:added "0.1.0"}
   [script]
   (->> script
     script->observable
@@ -137,6 +140,7 @@ sequence. This command is very useful for unit tests.
 
 (defn dump-async
   "Executes a script asynchronously and prints the results to the console."
+  {:added "0.1.0"}
   [script]
   (-> script
     script->observable
@@ -159,6 +163,7 @@ This command uses a terse description for each operation.
 
   See also: pigpen.core/show+, pigpen.core/dump&show
 "
+  {:added "0.1.0"}
   [script]
   (-> script
     (oven/bake {})
@@ -175,6 +180,7 @@ This command uses a verbose description for each operation, including user code.
 
   See also: pigpen.core/show, pigpen.core/dump&show+
 "
+  {:added "0.1.0"}
   [script]
   (-> script
     (oven/bake {})
@@ -187,12 +193,12 @@ This command uses a verbose description for each operation, including user code.
       local/graph->observable
       local/observable->data)))
 
-(def ^{:arglists '([script])} dump&show
+(def ^{:arglists '([script]) :added "0.1.0"} dump&show
   "Combines pig/show and pig/dump. This is useful so that the graph & resulting
 script have the same ids."
   (partial dump&show* viz/command->description))
 
-(def ^{:arglists '([script])} dump&show+
+(def ^{:arglists '([script]) :added "0.1.0"} dump&show+
   "Combines pig/show+ and pig/dump. This is useful so that the graph & resulting
 script have the same ids."
   (partial dump&show* viz/command->description+))

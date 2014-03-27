@@ -136,6 +136,7 @@ Optionally takes a map of options, including :parallel and :fold.
 
   See pigpen.fold for more info on :fold options.
 "
+  {:added "0.1.0"}
   ([key-selector relation] `(group-by ~key-selector {} ~relation))
   ([key-selector opts relation]
     `(group* [(merge
@@ -153,6 +154,7 @@ Optionally takes a map of options, including :parallel and :fold.
 
   See also: pigpen.core/reduce
 "
+  {:added "0.1.0"}
   [to relation]
   `(group-all* ~relation (quote (partial clojure.core/into ~to)) {:description (str "into " ~to)}))
 
@@ -172,6 +174,7 @@ for further processing.
 
   See also: pigpen.core/fold, pigpen.core/into
 "
+  {:added "0.1.0"}
   ([f relation]
     `(group-all* ~relation
                  (code/trap (partial clojure.core/reduce ~f))
@@ -197,6 +200,7 @@ pigpen.fold/fold-fn can also be used.
 
   See pigpen.fold for more info on fold functions.
 "
+  {:added "0.2.0"}
   ([reducef relation]
     `(if (-> ~reducef :type #{:fold})
        (fold* ~relation
@@ -241,6 +245,7 @@ info on fold functions.
 
   See also: pigpen.core/join, pigpen.core/group-by
 "
+  {:added "0.1.0"}
   ([selects f] `(cogroup ~selects ~f {}))
   ([selects f opts]
     (let [selects# (->> selects
@@ -283,6 +288,7 @@ options.
 
   See also: pigpen.core/cogroup, pigpen.core/union
 "
+  {:added "0.1.0"}
   ([selects f] `(join ~selects ~f {}))
   ([selects f opts]
     (let [selects# (->> selects
@@ -324,6 +330,7 @@ as a semi-join in relational databases.
 
   See also: pigpen.core/filter, pigpen.core/remove-by, pigpen.core/intersection
 "
+  {:added "0.2.3"}
   ([key-selector keys relation] `(filter-by ~key-selector ~keys {} ~relation))
   ([key-selector keys opts relation]
     `(join* [{:from ~keys :key-selector 'identity}
@@ -361,6 +368,7 @@ referred to as an anti-join in relational databases.
 
   See also: pigpen.core/remove, pigpen.core/filter-by, pigpen.core/difference
 "
+  {:added "0.2.3"}
   ([key-selector keys relation] `(remove-by ~key-selector ~keys {} ~relation))
   ([key-selector keys opts relation]
     (let [f '(fn [[k _ _ v]] (when (nil? k) [v]))]
