@@ -29,18 +29,40 @@
    (clojure.pprint/pprint object writer)
    (.toString writer)))
 
-(defmacro zip [bindings & body]
+(defmacro zip
+  "Syntax of for, semantics of map.
+
+  Example:
+		=> (zip [x [1 2 3]
+		         y [:a :b :c]
+		         z [\"foo\" \"bar\" \"baz\"]]
+		     [x y z])
+		([1 :a \"foo\"] [2 :b \"bar\"] [3 :c \"baz\"])
+"
+  [bindings & body]
   (let [bindings# (partition 2 bindings)
         vars# (mapv first bindings#)
         vals# (mapv second bindings#)]
     `(map (fn ~vars# ~@body) ~@vals#)))
 
-(defmacro zipv [bindings & body]
+(defmacro zipv
+  "Syntax of for, semantics of mapv.
+
+  Example:
+		=> (zipv [x [1 2 3]
+		          y [:a :b :c]
+		          z [\"foo\" \"bar\" \"baz\"]]
+		     [x y z])
+		[[1 :a \"foo\"] [2 :b \"bar\"] [3 :c \"baz\"]]
+"
+  [bindings & body]
   (let [bindings# (partition 2 bindings)
         vars# (mapv first bindings#)
         vals# (mapv second bindings#)]
     `(mapv (fn ~vars# ~@body) ~@vals#)))
 
-(defmacro forcat [seq-exprs body-expr]
+(defmacro forcat
+  "Returns the result of applying concat to a for expression."
+  [seq-exprs body-expr]
   `(apply concat
      (for ~seq-exprs ~body-expr)))
