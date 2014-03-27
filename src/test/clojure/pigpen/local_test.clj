@@ -117,7 +117,7 @@
       (is (= "class java.lang.String\tfoo\n"
             (slurp "build/local-test/test-debug-bind4")))
       (is (= "class java.lang.String\t\"foo\"\n"
-            (slurp "build/local-test/test-debug-bind9"))))))
+            (slurp "build/local-test/test-debug-bind5"))))))
 
 ;; ********** IO **********
 
@@ -137,13 +137,13 @@
       '#{(freeze {:a 2, :b "bar"})
          (freeze {:a 1, :b "foo"})})))  
 
-(deftest test-load-clj
-  (let [command (io/load-clj "build/local-test/test-load-clj")]
-    (spit "build/local-test/test-load-clj" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
+(deftest test-load-string
+  (let [command (io/load-string "build/local-test/test-load-string")]
+    (spit "build/local-test/test-load-string" "The quick brown fox\njumps over the lazy dog\n")
     (test-diff
       (set (exec/debug-script command))
-      '#{(freeze {:a 2, :b "bar"})
-         (freeze {:a 1, :b "foo"})})))  
+      '#{(freeze "The quick brown fox")
+         (freeze "jumps over the lazy dog")})))  
 
 (deftest test-load-tsv
   
@@ -171,6 +171,44 @@
         '#{(freeze ["a" "b" "c"])
            (freeze ["1" "2" "3"])}))))
 
+(deftest test-load-clj
+  (let [command (io/load-clj "build/local-test/test-load-clj")]
+    (spit "build/local-test/test-load-clj" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
+    (test-diff
+      (set (exec/debug-script command))
+      '#{(freeze {:a 2, :b "bar"})
+         (freeze {:a 1, :b "foo"})})))
+
+(deftest test-load-json
+  
+  (spit "build/local-test/test-load-json" "{\"a\" 1, \"b\" \"foo\"}\n{\"a\" 2, \"b\" \"bar\"}")
+  
+  (testing "Default"
+    (let [command (io/load-json "build/local-test/test-load-json")]
+      (test-diff
+        (set (exec/debug-script command))
+        '#{(freeze {:a 2, :b "bar"})
+           (freeze {:a 1, :b "foo"})})))
+  
+  (testing "No options"
+    (let [command (io/load-json "build/local-test/test-load-json" {})]
+      (test-diff
+        (set (exec/debug-script command))
+        '#{(freeze {"a" 2, "b" "bar"})
+           (freeze {"a" 1, "b" "foo"})})))
+  
+  (testing "Two options"
+    (let [command (io/load-json "build/local-test/test-load-json"
+                                {:key-fn keyword
+                                 :value-fn (fn [k v]
+                                             (case k
+                                               :a (* v v)
+                                               :b (count v)))})]
+      (test-diff
+        (set (exec/debug-script command))
+        '#{(freeze {:a 1, :b 3})
+           (freeze {:a 4, :b 3})}))))
+
 (deftest test-load-lazy
   (let [command (io/load-tsv "build/local-test/test-load-lazy")]
     (spit "build/local-test/test-load-lazy" "a\tb\tc\n1\t2\t3\n")
@@ -189,15 +227,25 @@
 
 (deftest test-store-pig
   (let [data (io/return [{:a 1, :b "foo"}
-                           {:a 2, :b "bar"}])
+                         {:a 2, :b "bar"}])
         command (io/store-pig "build/local-test/test-store-pig" data)]
     (is (empty? (exec/debug-script command)))
     (is (= "[a#1,b#foo]\n[a#2,b#bar]\n"
            (slurp "build/local-test/test-store-pig")))))
 
+(deftest test-store-string
+  (let [data (io/return ["The quick brown fox"
+                         "jumps over the lazy dog"
+                         42
+                         :foo])
+        command (io/store-string "build/local-test/test-store-string" data)]
+    (is (empty? (exec/debug-script command)))
+    (is (= "The quick brown fox\njumps over the lazy dog\n42\n:foo\n"
+           (slurp "build/local-test/test-store-string")))))
+
 (deftest test-store-tsv
   (let [data (io/return [[1 "foo" :a]
-                           [2 "bar" :b]])
+                         [2 "bar" :b]])
         command (io/store-tsv "build/local-test/test-store-tsv" data)]
     (is (empty? (exec/debug-script command)))
     (is (= "1\tfoo\t:a\n2\tbar\t:b\n"
@@ -205,11 +253,19 @@
 
 (deftest test-store-clj
   (let [data (io/return [{:a 1, :b "foo"}
-                           {:a 2, :b "bar"}])
+                         {:a 2, :b "bar"}])
         command (io/store-clj "build/local-test/test-store-clj" data)]
     (is (empty? (exec/debug-script command)))
     (is (= "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}\n"
            (slurp "build/local-test/test-store-clj")))))
+
+(deftest test-store-json
+  (let [data (io/return [{:a 1, :b "foo"}
+                         {:a 2, :b "bar"}])
+        command (io/store-json "build/local-test/test-store-json" data)]
+    (is (empty? (exec/debug-script command)))
+    (is (= "{\"a\":1,\"b\":\"foo\"}\n{\"a\":2,\"b\":\"bar\"}\n"
+           (slurp "build/local-test/test-store-json")))))
 
 (deftest test-return
   

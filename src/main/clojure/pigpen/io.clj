@@ -21,7 +21,7 @@
 
   Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
-  (:refer-clojure :exclude [constantly])
+  (:refer-clojure :exclude [load-string constantly])
   (:require [pigpen.raw :as raw]
             [pigpen.code :as code]
             [pigpen.pig :as pig]))
@@ -55,22 +55,25 @@ each input field. The data is returned as a map with 'fields' as the keys.
                 {:args '~(clojure.core/mapcat (juxt str identity) fields)
                  :field-type-in :native})))
 
-;; TODO load-json
-(defmacro load-clj
-  "Loads clojure data from a file. Each line should contain one value and will
-be parsed using clojure.edn/read-string into a value.
+(defn load-string*
+  "The base for load-string, load-clj, and load-json. The parameters requires
+and f specify a conversion function to apply to each input row."
+  [location requires f]
+  (->
+    (raw/load$ location ['value] raw/string-storage {:cast "chararray"})
+    (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:field-type-in :native})))
+
+(defn load-string
+  "Loads data from a file. Each line is returned as a string.
 
   Example:
 
-    (pig/load-clj \"input.clj\")
+    (pig/load-string \"input.txt\")
 
-  See also: pigpen.core/load-tsv
+  See also: pigpen.core/load-tsv, pigpen.core/load-clj, pigpen.core/load-json
 "
   [location]
-  `(->
-     (raw/load$ ~location '~['value] raw/default-storage {:cast "chararray"})
-     (raw/bind$ '[clojure.edn] '(pigpen.pig/map->bind clojure.edn/read-string)
-                {:field-type-in :native})))
+  (load-string* location [] 'clojure.core/identity))
 
 (defn load-tsv
   "Loads data from a tsv file. Each line is returned as a vector of strings,
@@ -79,23 +82,54 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
   Example:
 
     (pig/load-tsv \"input.tsv\")
-    (pig/load-tsv \"input.tsv\" #\",\")
+    (pig/load-tsv \"input.csv\" #\",\")
 
   Note: Internally this uses \\u0000 as the split char so Pig won't split the line.
         This won't work for files that actually have that char
 
-  See also: pigpen.core/load-clj
+  See also: pigpen.core/load-string, pigpen.core/load-clj, pigpen.core/load-json
 "
   ([location] (load-tsv location #"\t"))
   ([location delimiter]
-    (->
-      (raw/load$ location ['value] (raw/storage$ [] "PigStorage" ["\\u0000"]) {:cast "chararray"})
-      (raw/bind$ [] `(pigpen.pig/map->bind (fn [~'s] (if ~'s (clojure.string/split ~'s ~delimiter))))
-                 {:field-type-in :native}))))
+    (load-string* location [] `(fn [~'s] (if ~'s (clojure.string/split ~'s ~delimiter))))))
+
+(defn load-clj
+  "Loads clojure data from a file. Each line should contain one value and will
+be parsed using clojure.edn/read-string into a value.
+
+  Example:
+
+    (pig/load-clj \"input.clj\")
+
+  See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-json
+
+  See: https://github.com/edn-format/edn
+"
+  [location]
+  (load-string* location '[clojure.edn] 'clojure.edn/read-string))
+
+(defmacro load-json
+  "Loads json data from a file. Each line should contain one value and will be
+parsed using clojure.data.json/read-str into a value. Options can be passed to
+read-str as a map. The default options used are {:key-fn keyword}.
+
+  Example:
+
+    (pig/load-json \"input.json\")
+
+  See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-clj
+"
+  ([location] `(load-json ~location {:key-fn keyword}))
+  ([location opts]
+    (let [opts' (code/trap-values #{:key-fn :value-fn} opts)]
+      `(load-string* ~location '[clojure.data.json]
+                     `(fn [~'~'s] (clojure.data.json/read-str ~'~'s ~@~@opts'))))))
 
 ;; TODO fix the regex inversion
 (defn load-lazy
-  "Loads data from a tsv file. Each line is returned as a lazy seq, split by
+  "ALPHA / EXPERIMENTAL - May be removed
+
+Loads data from a tsv file. Each line is returned as a lazy seq, split by
 the specified delimiter. The default delimiter is \\t.
 
   Note: The delimiter is wrapped with [^ ]+ to negate it for use with re-seq.
@@ -109,10 +143,7 @@ the specified delimiter. The default delimiter is \\t.
   ([location] (load-lazy location #"\t"))
   ([location delimiter]
     (let [delimiter (java.util.regex.Pattern/compile (str "[^" delimiter "]"))]
-      (->
-        (raw/load$ location ['value] (raw/storage$ [] "PigStorage" ["\\u0000"]) {:cast "chararray"})
-        (raw/bind$ [] `(pigpen.pig/map->bind (fn [~'s] (re-seq ~delimiter ~'s)))
-                   {:field-type-in :native})))))
+      (load-string* location [] `(fn [~'s] (re-seq ~delimiter ~'s))))))
 
 (defn store-binary
   "Stores data in the PigPen binary format. This is generally not used
@@ -137,24 +168,27 @@ unless debugging scripts."
                 {:args (:fields ~relation), :field-type-out :native})
      (raw/store$ ~location raw/default-storage {})))
 
-;; TODO store-json
-(defmacro store-clj
-  "Stores the relation into location using edn (clojure format). Each value is
-written as a single line.
+(defn store-string*
+  "The base for store-string, store-clj, and store-json. The parameters requires
+and f specify a conversion function to apply to each output row."
+  [location requires f relation]
+  (-> relation
+    (raw/bind$ requires `(pigpen.pig/map->bind ~f)
+               {:args (:fields relation), :field-type-out :native})
+    (raw/store$ location raw/default-storage {})))
+
+(defn store-string
+  "Stores the relation into location as a string. Each value is written as a
+single line.
 
   Example:
 
-    (pig/store-clj \"output.tsv\" foo)
+    (pig/store-string \"output.txt\" foo)
 
-  See also: pigpen.core/store-tsv
-
-  See: https://github.com/edn-format/edn
+  See also: pigpen.core/store-tsv, pigpen.core/store-clj, pigpen.core/store-json
 "
   [location relation]
-  `(-> ~relation
-     (raw/bind$ [] `(pigpen.pig/map->bind pr-str)
-                {:args (:fields ~relation), :field-type-out :native})
-     (raw/store$ ~location raw/default-storage {})))
+  (store-string* location [] 'clojure.core/str relation))
 
 (defn store-tsv
   "Stores the relation into location as a tab-delimited file. Thus, each input
@@ -166,16 +200,43 @@ Single string values are not quoted. You may optionally pass a different delimit
     (pig/store-tsv \"output.tsv\" foo)
     (pig/store-tsv \"output.csv\" \",\" foo)
 
-  See also: pigpen.core/store-clj
-
-  See: https://github.com/edn-format/edn
+  See also: pigpen.core/store-string, pigpen.core/store-clj, pigpen.core/store-json
 "
   ([location relation] (store-tsv location "\t" relation))
   ([location delimiter relation]
-    (-> relation
-      (raw/bind$ [] `(pigpen.pig/map->bind (fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))))
-                 {:args (:fields relation), :field-type-out :native})
-      (raw/store$ location raw/default-storage {}))))
+    (store-string* location [] `(fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))) relation)))
+
+(defn store-clj
+  "Stores the relation into location using edn (clojure format). Each value is
+written as a single line.
+
+  Example:
+
+    (pig/store-clj \"output.clj\" foo)
+
+  See also: pigpen.core/store-string, pigpen.core/store-tsv, pigpen.core/store-json
+
+  See: https://github.com/edn-format/edn
+"
+  [location relation]
+  (store-string* location [] 'clojure.core/pr-str relation))
+
+(defmacro store-json
+  "Stores the relation into location using clojure.data.json. Each value is
+written as a single line. Options can be passed to write-str as a map.
+
+  Example:
+
+    (pig/store-json \"output.json\" foo)
+
+  See also: pigpen.core/store-string, pigpen.core/store-tsv, pigpen.core/store-clj
+"
+  ([location relation] `(store-json ~location {} ~relation))
+  ([location opts relation]
+    (let [opts' (code/trap-values #{:key-fn :value-fn} opts)]
+      `(store-string* ~location '[clojure.data.json]
+                      `(fn [~'~'s] (clojure.data.json/write-str ~'~'s ~@~@opts'))
+                      ~relation))))
 
 (defn return
   "Returns a constant set of data as a pigpen relation. This is useful for
