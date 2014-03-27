@@ -44,7 +44,8 @@ returns true.
     (pig/filter even? foo)
     (pig/filter (fn [x] (even? (* x x))) foo)
 
-  See also: pigpen.core/remove, pigpen.core/take, pigpen.core/sample, pigpen.core/distinct
+  See also: pigpen.core/remove, pigpen.core/take, pigpen.core/sample,
+            pigpen.core/distinct, pigpen.core/filter-by
 "
   [pred relation]
   `(filter* (code/trap ~pred) {:description ~(util/pp-str pred)} ~relation))
@@ -57,7 +58,8 @@ returns true.
     (pig/remove even? foo)
     (pig/remove (fn [x] (even? (* x x))) foo)
 
-  See also: pigpen.core/filter, pigpen.core/take, pigpen.core/sample, pigpen.core/distinct
+  See also: pigpen.core/filter, pigpen.core/take, pigpen.core/sample,
+            pigpen.core/distinct, pigpen.core/remove-by
 "
   [pred relation]
   `(filter (complement ~pred) ~relation))

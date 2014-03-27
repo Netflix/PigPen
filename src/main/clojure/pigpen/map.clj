@@ -27,10 +27,6 @@
             [pigpen.code :as code])
   (:import [org.apache.pig.data DataBag]))
 
-;; TODO Initialization of external code
-;; TODO How to package external code
-;; TODO Loading of external libs
-
 (set! *warn-on-reflection* true)
 
 (defn map*

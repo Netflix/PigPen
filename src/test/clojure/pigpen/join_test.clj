@@ -26,7 +26,7 @@
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
 
     (test-diff
-      (#'pigpen.join/select->generate true '{:from {:fields [value]} :key-selector (fn [x] x)})
+      (#'pigpen.join/select->generate {:join-nils true} '{:from {:fields [value]} :key-selector (fn [x] x)})
       '{:type :generate
         :id generate0
         :description nil
@@ -53,7 +53,7 @@
                             :implicit-schema true}}]})
     
     (test-diff
-      (#'pigpen.join/select->generate false '{:from {:fields [value]} :key-selector (fn [x] x)})
+      (#'pigpen.join/select->generate {:join-nils false} '{:from {:fields [value]} :key-selector (fn [x] x)})
       '{:type :generate
         :id generate0
         :description nil
@@ -390,3 +390,147 @@
                                                :ancestors [{:fields [value]}]
                                                :opts {:type :bind-opts
                                                       :implicit-schema true}}]}]}]})))
+
+(deftest test-filter-by
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (pigpen.join/filter-by :key {:fields ['value]} {:fields ['value]})
+      '{:type :bind
+        :id bind6
+        :description nil
+        :func (pigpen.pig/map->bind (clojure.core/fn [k v] v))
+        :args [[[generate2 value]] [[generate4 value]]]
+        :requires []
+        :fields [value]
+        :field-type-in :frozen
+        :field-type-out :frozen
+        :opts {:type :bind-opts}
+        :ancestors [{:type :join
+                     :id join5
+                     :description ":key\n"
+                     :fields [[[generate2 key]] [[generate2 value]] [[generate4 key]] [[generate4 value]]]
+                     :field-type :frozen
+                     :join-types [:required :required]
+                     :keys [[key] [key]]
+                     :opts {:type :join-opts
+                            :sentinel-nil true}
+                     :ancestors [{:type :generate
+                                  :id generate2
+                                  :description nil
+                                  :fields [key value]
+                                  :field-type :frozen
+                                  :opts {:type :generate-opts}
+                                  :projections [{:type :projection-field, :field 0, :alias key}
+                                                {:type :projection-field, :field 1, :alias value}]
+                                  :ancestors [{:type :bind
+                                               :id bind1
+                                               :description nil
+                                               :func (pigpen.pig/key-selector->bind
+                                                       (clojure.core/comp pigpen.pig/sentinel-nil
+                                                                          clojure.core/identity))
+                                               :args [value]
+                                               :requires []
+                                               :fields [value]
+                                               :field-type-in :frozen
+                                               :field-type-out :frozen-with-nils
+                                               :opts {:type :bind-opts, :implicit-schema true}
+                                               :ancestors [{:fields [value]}]}]}
+                                 {:type :generate
+                                  :id generate4
+                                  :description nil
+                                  :fields [key value]
+                                  :field-type :frozen
+                                  :opts {:type :generate-opts}
+                                  :projections [{:type :projection-field, :field 0, :alias key}
+                                                {:type :projection-field, :field 1, :alias value}]
+                                  :ancestors [{:type :bind
+                                               :id bind3
+                                               :description nil
+                                               :func (pigpen.pig/key-selector->bind
+                                                       (clojure.core/comp pigpen.pig/sentinel-nil
+                                                                          (pigpen.pig/with-ns pigpen.join-test :key)))
+                                               :args [value]
+                                               :requires []
+                                               :fields [value]
+                                               :field-type-in :frozen
+                                               :field-type-out :frozen-with-nils
+                                               :opts {:type :bind-opts, :implicit-schema true}
+                                               :ancestors [{:fields [value]}]}]}]}]})))
+
+(deftest test-remove-by
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (pigpen.join/remove-by :key {:fields ['value]} {:fields ['value]})
+      '{:type :bind
+        :id bind7
+        :description nil
+        :func (pigpen.pig/mapcat->bind
+                (fn [[k _ _ v]] (when (nil? k) [v])))
+        :args [value]
+        :requires []
+        :fields [value]
+        :field-type-in :frozen
+        :field-type-out :frozen
+        :opts {:type :bind-opts}
+        :ancestors [{:type :bind
+                     :id bind6
+                     :description nil
+                     :func (pigpen.pig/map->bind clojure.core/vector)
+                     :args [[[generate2 key]] [[generate2 value]] [[generate4 key]] [[generate4 value]]]
+                     :requires []
+                     :fields [value]
+                     :field-type-in :frozen
+                     :field-type-out :frozen
+                     :opts {:type :bind-opts}
+                     :ancestors [{:type :join
+                                  :id join5
+                                  :description ":key\n"
+                                  :fields [[[generate2 key]] [[generate2 value]] [[generate4 key]] [[generate4 value]]]
+                                  :field-type :frozen
+                                  :join-types [:optional :required]
+                                  :keys [[key] [key]]
+                                  :opts {:type :join-opts
+                                         :all-args true
+                                         :sentinel-nil true}
+                                  :ancestors [{:type :generate
+                                               :id generate2
+                                               :description nil
+                                               :field-type :frozen
+                                               :fields [key value]
+                                               :opts {:type :generate-opts}
+                                               :projections [{:type :projection-field, :field 0, :alias key}
+                                                             {:type :projection-field, :field 1, :alias value}]
+                                               :ancestors [{:type :bind
+                                                            :id bind1
+                                                            :description nil
+                                                            :func (pigpen.pig/key-selector->bind
+                                                                    (clojure.core/comp pigpen.pig/sentinel-nil
+                                                                                       clojure.core/identity))
+                                                            :args [value]
+                                                            :requires []
+                                                            :fields [value]
+                                                            :field-type-in :frozen
+                                                            :field-type-out :frozen-with-nils
+                                                            :opts {:type :bind-opts, :implicit-schema true}
+                                                            :ancestors [{:fields [value]}]}]}
+                                              {:type :generate
+                                               :id generate4
+                                               :description nil
+                                               :field-type :frozen
+                                               :fields [key value]
+                                               :opts {:type :generate-opts}
+                                               :projections [{:type :projection-field, :field 0, :alias key}
+                                                             {:type :projection-field, :field 1, :alias value}]
+                                               :ancestors [{:type :bind
+                                                            :id bind3
+                                                            :description nil
+                                                            :func (pigpen.pig/key-selector->bind
+                                                                    (clojure.core/comp pigpen.pig/sentinel-nil
+                                                                                       (pigpen.pig/with-ns pigpen.join-test :key)))
+                                                            :args [value]
+                                                            :requires []
+                                                            :fields [value]
+                                                            :field-type-in :frozen
+                                                            :field-type-out :frozen-with-nils
+                                                            :opts {:type :bind-opts, :implicit-schema true}
+                                                            :ancestors [{:fields [value]}]}]}]}]}]})))

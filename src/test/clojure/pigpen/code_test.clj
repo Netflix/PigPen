@@ -90,7 +90,7 @@
 (deftest test-trap-values
   (test-diff
     (pig/trap-values #{:on :by :key-selector}
-                                       '(:from r0 :on (fn [x] x) :type :required))
+                     '(:from r0 :on (fn [x] x) :type :required))
     {:from 'r0
-     :key-selector `(pigpen.code/trap (~'fn [~'x] ~'x))
+     :on `(pigpen.code/trap (~'fn [~'x] ~'x))
      :type :required}))

@@ -102,6 +102,7 @@ combine them. Optionally takes a map of options.
 (defn debug-script [script]
   (map 'value (debug-script-raw script)))
 
+;; TODO add a version that returns a multiset
 (defn dump
   "Executes a script locally and returns the resulting values as a clojure
 sequence. This command is very useful for unit tests.
