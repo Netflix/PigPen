@@ -18,7 +18,7 @@
 
 (ns pigpen.core-test
   (:use clojure.test)
-  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]))
+  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]))
 
 ;; ********** Script **********
 

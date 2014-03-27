@@ -22,7 +22,7 @@
   Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
   (:refer-clojure :exclude [group-by into reduce])
-  (:require [pigpen.util :as util :refer [forcat]]
+  (:require [pigpen.extensions.core :refer [pp-str forcat]]
             [pigpen.pig :as pig]
             [pigpen.raw :as raw]
             [pigpen.code :as code])
@@ -144,7 +144,7 @@ Optionally takes a map of options, including :parallel and :fold.
                  :type :optional}
                 ~(code/trap-values #{:on :by :key-selector :fold} opts))]
              '(fn [~'k ~'v] (clojure.lang.MapEntry. ~'k ~'v))
-             (assoc ~opts :description ~(util/pp-str key-selector)))))
+             (assoc ~opts :description ~(pp-str key-selector)))))
 
 (defmacro into
   "Returns a new relation with all values from relation conjoined onto to.
@@ -175,11 +175,11 @@ for further processing.
   ([f relation]
     `(group-all* ~relation
                  (code/trap (partial clojure.core/reduce ~f))
-                 {:description ~(util/pp-str f)}))
+                 {:description ~(pp-str f)}))
   ([f val relation]
     `(group-all* ~relation
                  (code/trap (partial clojure.core/reduce ~f ~val))
-                 {:description ~(util/pp-str f)})))
+                 {:description ~(pp-str f)})))
 
 (defmacro fold
   "Computes a parallel reduce of the relation. This is done in multiple stages
@@ -249,7 +249,7 @@ info on fold functions.
                      vec)]
       `(group* ~selects#
                (code/trap ~f)
-               (assoc ~opts :description ~(util/pp-str f))))))
+               (assoc ~opts :description ~(pp-str f))))))
 
 (defmacro join
   "Joins many relations together by a common key. Each relation specifies a
@@ -291,7 +291,7 @@ options.
                      vec)]
       `(join* ~selects#
               (code/trap ~f)
-              (assoc ~opts :description ~(util/pp-str f))))))
+              (assoc ~opts :description ~(pp-str f))))))
 
 (defmacro filter-by
   "Filters a relation by the keys in another relation. The key-selector function
@@ -329,7 +329,7 @@ as a semi-join in relational databases.
     `(join* [{:from ~keys :key-selector 'identity}
              {:from ~relation :key-selector (code/trap ~key-selector)}]
             '(fn [~'k ~'v] ~'v)
-            (assoc ~opts :description ~(util/pp-str key-selector)
+            (assoc ~opts :description ~(pp-str key-selector)
                          :sentinel-nil true))))
 
 (defmacro remove-by
@@ -368,7 +368,7 @@ referred to as an anti-join in relational databases.
          (join* [{:from ~keys :key-selector 'identity :type :optional}
                  {:from ~relation :key-selector (code/trap ~key-selector)}]
                 'vector
-                (assoc ~opts :description ~(util/pp-str key-selector)
+                (assoc ~opts :description ~(pp-str key-selector)
                              :all-args true
                              :sentinel-nil true))
          (raw/bind$ '(pig/mapcat->bind ~f) {})))))

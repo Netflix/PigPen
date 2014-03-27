@@ -19,11 +19,11 @@
 (ns pigpen.pig-test
   (:use clojure.test
         pigpen.pig)
-  (:require [pigpen.util :refer [test-diff pigsym-zero pigsym-inc]]
+  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [clj-time.format :as time]
             [taoensso.nippy :refer [freeze thaw]]
             [clojure.core.async :as a]
-            [pigpen.util :as util])
+            [pigpen.extensions.core-async :as ae])
   (:import [org.apache.pig.data
             DataByteArray
             Tuple TupleFactory
@@ -311,10 +311,10 @@
         [args* input-bags] (#'pigpen.pig/lazy-bag-args args)
         [a0 a1 a2] args*
         [i0 i1 i2] input-bags]
-    (is (util/channel? a0))
+    (is (ae/channel? a0))
     (is (= a1 2))
     (is (= a2 "b"))
-    (is (util/channel? i0))
+    (is (ae/channel? i0))
     (is (nil? i1))
     (is (nil? i2))))
 
@@ -326,10 +326,10 @@
                               (str '(fn [[x y z]] [(a/<!! x) y z]))
                               t)
         [i0 i1 i2] input-bags]
-    (is (util/channel? i0))
+    (is (ae/channel? i0))
     (is (nil? i1))
     (is (nil? i2))
-    (is (util/channel? result))))
+    (is (ae/channel? result))))
 
 (deftest test-accumulate
   
