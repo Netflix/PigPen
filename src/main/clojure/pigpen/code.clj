@@ -41,7 +41,7 @@ or reduce."
                 set)
         varargs (->> methods
                   (filter (fn [^Method m] (= "doInvoke" (.getName m))))
-                  (map (fn [^Method m] (-> m .getParameterTypes alength)))
+                  (map (fn [^Method m] (-> m .getParameterTypes alength dec)))
                   first)]
     [fixed varargs]))
 

@@ -47,6 +47,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
       (raw/generate$ [(raw/projection-field$ 0 'key)
                       (raw/projection-field$ 1 'value)] {}))))
 
+;; TODO verify these are vetted at compile time
 (defn fold-fn*
   "See pigpen.core/fold-fn"
   [pre combinef reducef post]
