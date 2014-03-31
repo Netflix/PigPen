@@ -37,10 +37,13 @@ import clojure.lang.Var;
  * @author mbossenbroek
  *
  */
-public class PigPenFnAlgebraic extends PigPenFn<DataByteArray> implements Algebraic {
+public class PigPenFnAlgebraic extends EvalFunc<DataByteArray> implements Algebraic {
+
+    protected final String init, func;
 
     public PigPenFnAlgebraic(String init, String func) {
-        super(init, func);
+        this.init = init;
+        this.func = func;
     }
 
     private static final IFn ALGEBRAIC;
