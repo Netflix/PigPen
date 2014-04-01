@@ -677,6 +677,8 @@ initial reduce, a combiner, and a final stage."
         (exec-final combinef post args)
           
         ;; This is only used locally, so we split the input bag to test combinef
+        ;; TODO I was wrong, this will be used on the cluster.
+        ;; Need a better fix for using folds in a cogroup
         :exec
         (->> args
           (mapcat split-bag)

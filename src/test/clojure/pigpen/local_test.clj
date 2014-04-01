@@ -992,6 +992,16 @@
          (freeze [{:k :i, :v 7} {:k :i, :v 6}])
          (freeze [{:k :i, :v 7} {:k :i, :v 8}])})))
 
+;; TODO make this work
+#_(deftest test-join-self
+   (let [data (pig/return [0 1 2])
+         data-fn (fn [n] (pig/return [1 2 3]))
+         command (pig/join [(data :on identity)
+                            ((data-fn 3) :on identity)]
+                           vector)]
+     (is (= (pig/dump command)
+            [[2 2] [0 0] [1 1]]))))
+
 (deftest test-join-inner
   (let [data1 (io/return [{:k nil, :v 1}
                           {:k nil, :v 3}
