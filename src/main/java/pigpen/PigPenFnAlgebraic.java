@@ -33,20 +33,13 @@ import clojure.lang.Var;
 
 /**
  * Used to execute Clojure code from within a Pig UDF. This implements the Algebraic interface.
- *
+ * 
  * @author mbossenbroek
- *
+ * 
  */
 public class PigPenFnAlgebraic extends EvalFunc<DataByteArray> implements Algebraic {
 
-    protected final String init, func;
-
-    public PigPenFnAlgebraic(String init, String func) {
-        this.init = init;
-        this.func = func;
-    }
-
-    private static final IFn ALGEBRAIC;
+    private static final IFn EVAL_STRING, ALGEBRAIC;
     private static final Keyword EXEC = RT.keyword(null, "exec");
     private static final Keyword INITIAL = RT.keyword(null, "initial");
     private static final Keyword INTERMED = RT.keyword(null, "intermed");
@@ -55,27 +48,38 @@ public class PigPenFnAlgebraic extends EvalFunc<DataByteArray> implements Algebr
     static {
         final Var require = RT.var("clojure.core", "require");
         require.invoke(Symbol.intern("pigpen.pig"));
+        EVAL_STRING = RT.var("pigpen.pig", "eval-string");
         ALGEBRAIC = RT.var("pigpen.pig", "udf-algebraic");
+    }
+
+    private final String initString, funcString;
+    private final Object func;
+
+    public PigPenFnAlgebraic(String init, String func) {
+        this.initString = init;
+        this.funcString = func;
+        EVAL_STRING.invoke(init);
+        this.func = EVAL_STRING.invoke(func);
     }
 
     @Override
     public DataByteArray exec(final Tuple input) throws IOException {
-        return (DataByteArray) ALGEBRAIC.invoke(init, func, EXEC, input);
+        return (DataByteArray) ALGEBRAIC.invoke(func, EXEC, input);
     }
 
     @Override
     public String getInitial() {
-        return Initial.class.getName() + "('" + init + "','" + func + "')";
+        return Initial.class.getName() + "('" + initString + "','" + funcString + "')";
     }
 
     @Override
     public String getIntermed() {
-        return Intermed.class.getName() + "('" + init + "','" + func + "')";
+        return Intermed.class.getName() + "('" + initString + "','" + funcString + "')";
     }
 
     @Override
     public String getFinal() {
-        return Final.class.getName() + "('" + init + "','" + func + "')";
+        return Final.class.getName() + "('" + initString + "','" + funcString + "')";
     }
 
     /**
@@ -83,16 +87,21 @@ public class PigPenFnAlgebraic extends EvalFunc<DataByteArray> implements Algebr
      */
     public static class Initial extends EvalFunc<Tuple> {
 
-        private final String init, func;
+        private final Object func;
 
         public Initial(String init, String func) {
-            this.init = init;
-            this.func = func;
+            // there are no words to describe how I feel about this crap
+            if (!init.equals("null")) {
+                EVAL_STRING.invoke(init);
+                this.func = EVAL_STRING.invoke(func);
+            } else {
+                this.func = null;
+            }
         }
 
         @Override
         public Tuple exec(final Tuple input) throws IOException {
-            return (Tuple) ALGEBRAIC.invoke(init, func, INITIAL, input);
+            return (Tuple) ALGEBRAIC.invoke(func, INITIAL, input);
         }
     }
 
@@ -101,16 +110,20 @@ public class PigPenFnAlgebraic extends EvalFunc<DataByteArray> implements Algebr
      */
     public static class Intermed extends EvalFunc<Tuple> {
 
-        private final String init, func;
+        private final Object func;
 
         public Intermed(String init, String func) {
-            this.init = init;
-            this.func = func;
+            if (!init.equals("null")) {
+                EVAL_STRING.invoke(init);
+                this.func = EVAL_STRING.invoke(func);
+            } else {
+                this.func = null;
+            }
         }
 
         @Override
         public Tuple exec(final Tuple input) throws IOException {
-            return (Tuple) ALGEBRAIC.invoke(init, func, INTERMED, input);
+            return (Tuple) ALGEBRAIC.invoke(func, INTERMED, input);
         }
     }
 
@@ -119,16 +132,20 @@ public class PigPenFnAlgebraic extends EvalFunc<DataByteArray> implements Algebr
      */
     public static class Final extends EvalFunc<DataByteArray> {
 
-        private final String init, func;
+        private final Object func;
 
         public Final(String init, String func) {
-            this.init = init;
-            this.func = func;
+            if (!init.equals("null")) {
+                EVAL_STRING.invoke(init);
+                this.func = EVAL_STRING.invoke(func);
+            } else {
+                this.func = null;
+            }
         }
 
         @Override
         public DataByteArray exec(final Tuple input) throws IOException {
-            return (DataByteArray) ALGEBRAIC.invoke(init, func, FINAL, input);
+            return (DataByteArray) ALGEBRAIC.invoke(func, FINAL, input);
         }
     }
 }

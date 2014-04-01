@@ -39,35 +39,36 @@ import clojure.lang.Var;
  */
 public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
 
-    private static final IFn EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
+    private static final IFn EVAL_STRING, EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
 
     static {
         final Var require = RT.var("clojure.core", "require");
         require.invoke(Symbol.intern("pigpen.pig"));
+        EVAL_STRING = RT.var("pigpen.pig", "eval-string");
         EVAL = RT.var("pigpen.pig", "eval-udf");
         ACCUMULATE = RT.var("pigpen.pig", "udf-accumulate");
         GET_VALUE = RT.var("pigpen.pig", "udf-get-value");
         CLEANUP = RT.var("pigpen.pig", "udf-cleanup");
     }
 
-    protected final String init, func;
+    private final Object func;
 
     public PigPenFn(String init, String func) {
-        this.init = init;
-        this.func = func;
+        EVAL_STRING.invoke(init);
+        this.func = EVAL_STRING.invoke(func);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public T exec(Tuple input) throws IOException {
-        return (T) EVAL.invoke(init, func, input);
+        return (T) EVAL.invoke(func, input);
     }
 
     private Object state = null;
 
     @Override
     public void accumulate(Tuple input) throws IOException {
-        state = ACCUMULATE.invoke(init, func, state, input);
+        state = ACCUMULATE.invoke(func, state, input);
     }
 
     @SuppressWarnings("unchecked")
