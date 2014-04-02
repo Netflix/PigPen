@@ -585,14 +585,18 @@ single arg, which is sequential. Applies f to the remaining args."
          (take n values)
          [(f (drop n values))])])))
 
+(defn pre-process*
+  [type value]
+  (case type
+    :frozen (hybrid->clojure value)
+    :native value))
+
 (defn pre-process
   "Optionally deserializes incoming data"
   [type]
   (fn [args]
     [(for [value args]
-       (case type
-         :frozen (hybrid->clojure value)
-         :native value))]))
+       (pre-process* type value))]))
 
 (defn post-process
   "Serializes outgoing data"
@@ -692,3 +696,8 @@ initial reduce, a combiner, and a final stage."
           (exec-final combinef post))))
     
     (catch Throwable z (throw (PigPenException. z)))))
+
+(defn get-partition
+  "A hadoop custom partitioner"
+  [type func key n]
+  (int (func n (pre-process* (keyword type) key))))

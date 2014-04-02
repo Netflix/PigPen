@@ -75,7 +75,7 @@
   [s0 & more]
   (drop (->> more (map count) (reduce +)) s0))
 
-(defn distinct
+(defmacro distinct
   "Returns a relation with the distinct values of relation. Optionally takes a
 map of options.
 
@@ -87,13 +87,16 @@ map of options.
   Options:
 
     :parallel - The degree of parallelism to use
+    :partition-by - A partition function to use. Should take the form:
+      (fn [n key] (mod (hash key) n)) Where n is the number of partitions and
+      key is the key to partition.
 
   See also: pigpen.core/union, pigpen.core/union-multiset, pigpen.core/filter
 "
   {:added "0.1.0"}
-  ([relation] (distinct {} relation))
+  ([relation] `(distinct {} ~relation))
   ([opts relation]
-    (raw/distinct$ relation opts)))
+    `(raw/distinct$ ~relation ~(code/trap-values #{:partition-by} opts))))
 
 (defn union
   "Performs a union on all relations provided and returns the distinct results.
