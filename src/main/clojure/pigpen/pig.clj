@@ -384,9 +384,14 @@ serialization info."
 
 ;; **********
 
-(def ^:private eval-string
+(defn eval-string
   "Reads code from a string & evaluates it"
-  (memoize #(eval (read-string %))))
+  [f]
+  (when (not-empty f)
+    (try
+      (eval (read-string f))
+      (catch Throwable z
+        (throw (RuntimeException. (str "Exception evaluating: " f) z))))))
 
 (defmacro with-ns
   "Evaluates f within ns. Calls (require 'ns) first."
@@ -397,14 +402,13 @@ serialization info."
        (eval '~f))))
 
 (defn eval-udf
-  [init func ^Tuple t]
+  [func ^Tuple t]
   "Evaluates a pig tuple as a clojure function. The first element of the tuple
    is any initialization code. The second element is the function to be called.
    Any remaining args are passed to the function as a collection."
   (try
     (let [args (.getAll t)]
-      (when (not-empty init) (eval-string init))
-      ((eval-string func) args))
+      (func args))
     ;; Errors (like AssertionError) hang the interop layer.
     ;; This allows any problem with user code to pass through.
     (catch Throwable z (throw (PigPenException. z)))))
@@ -436,15 +440,13 @@ args."
   "Creates a new accumulator state. This is a vector with two elements. The
 first is the channels to pass future values to. The second is a channel
 containing the singe value of the result."
-  [init func ^Tuple tuple]
+  [func ^Tuple tuple]
   (let [args (.getAll tuple)]
     ;; Run init code if present
-    (when (not-empty init)
-      (eval-string init))
     ;; Make new lazy bags & create a result channel
     (let [[args* input-bags] (lazy-bag-args args)
           ;; Start result evaluation asynchronously, it will block on lazy bags
-          result (ae/safe-go ((eval-string func) args*))]      
+          result (ae/safe-go (func args*))]      
       [input-bags result])))
 
 (defn udf-accumulate
@@ -463,13 +465,13 @@ state, should be nil. On subsequent calls, pass the value returned by this
 function as the state. Each subsequent call is expected to have identical args
 except for bag, which will contain new values. Non-bag values are ignored and
 the bag values are pushed into their respective channels."
-  [init func [input-bags result] ^Tuple tuple]
+  [func [input-bags result] ^Tuple tuple]
   (try
     (if-not result ; have we started processing this value yet?
 
       ;; create new channels
-      (let [state (create-accumulate-state init func tuple)]
-        (udf-accumulate init func state tuple) ;; actually push the initial values
+      (let [state (create-accumulate-state func tuple)]
+        (udf-accumulate func state tuple) ;; actually push the initial values
         state)
 
       ;; push values to existing channels
@@ -660,32 +662,33 @@ result is wrapped in a tuple and bag."
 (defn udf-algebraic
   "Evaluates an algebraic function. An algebraic function has three stages: the
 initial reduce, a combiner, and a final stage."
-  [init foldf type ^Tuple t]
+  [foldf type ^Tuple t]
   (try
-    (let [args (.getAll t)]
-      (if (not-empty init) (eval-string init))
-      (let [{:keys [pre combinef reducef post]} (eval-string foldf)]
-        (case type
-          :initial
-          (exec-initial pre (combinef) reducef args)
+    (let [args (.getAll t)
+          {:keys [pre combinef reducef post]} foldf]
+      (case type
+        :initial
+        (exec-initial pre (combinef) reducef args)
           
-          :intermed
-          (exec-intermed combinef args)
+        :intermed
+        (exec-intermed combinef args)
           
-          :final
-          (exec-final combinef post args)
+        :final
+        (exec-final combinef post args)
           
-          ;; This is only used locally, so we split the input bag to test combinef
-          :exec
-          (->> args
-            (mapcat split-bag)
-            (map vector)
-            (map (partial exec-initial pre (combinef) reducef))
-            (apply bag)
-            vector
-            (exec-intermed combinef)
-            bag
-            vector
-            (exec-final combinef post)))))
+        ;; This is only used locally, so we split the input bag to test combinef
+        ;; TODO I was wrong, this will be used on the cluster.
+        ;; Need a better fix for using folds in a cogroup
+        :exec
+        (->> args
+          (mapcat split-bag)
+          (map vector)
+          (map (partial exec-initial pre (combinef) reducef))
+          (apply bag)
+          vector
+          (exec-intermed combinef)
+          bag
+          vector
+          (exec-final combinef post))))
     
     (catch Throwable z (throw (PigPenException. z)))))

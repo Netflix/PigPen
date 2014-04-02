@@ -263,6 +263,7 @@ See pigpen.core and pigpen.exec
   (let [pig-parallel (if parallel (str " PARALLEL " parallel))]
     (str pig-parallel)))
 
+;; TODO fix dupes in union
 (defmethod command->script :union
   [{:keys [id ancestors opts]}]
   {:pre [id ancestors]}
@@ -298,6 +299,7 @@ See pigpen.core and pigpen.exec
         pig-parallel (if parallel (str " PARALLEL " parallel))]
     (str pig-using pig-parallel)))
 
+;; TODO fix self-join
 (defmethod command->script :join
   [{:keys [id keys join-types ancestors opts]}]
   {:pre [id keys join-types ancestors]}
