@@ -30,6 +30,7 @@ license {
 
 apply plugin: 'clojure'
 tasks.uberjar.enabled=true
+clojure.aotCompile = true
 
 compileClojure {
     classpath = project.files(
