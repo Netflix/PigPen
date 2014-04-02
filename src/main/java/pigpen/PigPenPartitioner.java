@@ -12,7 +12,7 @@ import clojure.lang.Symbol;
 import clojure.lang.Var;
 
 /**
- * The base class for partitioners in PigPen
+ * The base class for partitioners in PigPen.
  *
  * @author mbossenbroek
  *
@@ -35,10 +35,10 @@ public abstract class PigPenPartitioner extends Partitioner<PigNullableWritable,
         final Configuration jobConf = UDFContext.getUDFContext().getJobConf();
         type = jobConf.get(getClass().getSimpleName() + "_type");
         final String init = jobConf.get(getClass().getSimpleName() + "_init");
-        final String func = jobConf.get(getClass().getSimpleName() + "_func");
+        final String funcString = jobConf.get(getClass().getSimpleName() + "_func");
 
         EVAL_STRING.invoke(init);
-        this.func = EVAL_STRING.invoke(func);
+        this.func = EVAL_STRING.invoke(funcString);
     }
 
     @Override

@@ -42,6 +42,7 @@ reducef and combinef.
       (pig/fold-fn + (fn [acc value] (+ acc (f value)))))
 "
   {:added "0.2.0"}
+  ;; TODO investigate support for threading folds into this
   ([reducef] (fold-fn identity reducef reducef identity))
   ([combinef reducef] (fold-fn identity combinef reducef identity))
   ([combinef reducef post] (fold-fn identity combinef reducef post))

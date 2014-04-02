@@ -33,9 +33,9 @@ import clojure.lang.Var;
 
 /**
  * Used to execute Clojure code from within a Pig UDF. This implements the Algebraic interface.
- * 
+ *
  * @author mbossenbroek
- * 
+ *
  */
 public class PigPenFnAlgebraic extends EvalFunc<DataByteArray> implements Algebraic {
 

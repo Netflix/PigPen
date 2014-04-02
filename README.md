@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.3"]
+[com.netflix.pigpen/pigpen "0.2.4"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.3"
+compile "com.netflix.pigpen:pigpen:0.2.4"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.3</version>
+  <version>0.2.4</version>
 </dependency>
 ```
 
@@ -50,10 +50,23 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 
 # Release Notes
 
-  * 0.2.3 - Added load-json, store-json, load-string, store-string, filter-by, and remove-by
-  * 0.2.2 - Fixed bug in `pigpen.fold/vec`. This would also cause `fold/map` and `fold/filter` to not work when run in the cluster.
-  * 0.2.1 - Fixed bug when using `for` to generate scripts. Fixed local mode bug with `map` followed by `reduce` or `fold`
-  * 0.2.0 - Added pigpen.fold - Note: this includes a breaking change in the join and cogroup syntax as follows:
+  * 0.2.4
+    * Fix arity checking bug (affected varargs fns)
+    * Fix cases where an Algebraic fold function was falling back to the Accumulator interface, which was not supported. This affected using `cogroup` with `fold` over multiple relations. 
+    * Fix debug mode (broken in 0.1.5)
+    * Change UDF initialization to not rely on memoization (caused stale data in REPL)
+    * Enable AOT. Improves cluster perf
+    * Add `:partition-by` option to `distinct`
+  * 0.2.3
+    * Added `load-json`, `store-json`, `load-string`, `store-string`
+    * Added `filter-by`, and `remove-by`
+  * 0.2.2
+    * Fixed bug in `pigpen.fold/vec`. This would also cause `fold/map` and `fold/filter` to not work when run in the cluster.
+  * 0.2.1
+    * Fixed bug when using `for` to generate scripts
+    * Fixed local mode bug with `map` followed by `reduce` or `fold`
+  * 0.2.0
+    * Added pigpen.fold - Note: this includes a breaking change in the join and cogroup syntax as follows:
     
     ``` clj
     ; before
@@ -69,8 +82,17 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
     
     Each of the select clauses must now be wrapped in a vector - there is no longer a varargs overload to either of these forms. Within each of the select clauses, :on is now a keyword instead of a symbol, but a symbol will still work if used. If `optional` or `required` were used, they must be updated to `:type :optional` and `:type :required`, respectively.
     
-  * 0.1.5 - Performance improvements: implemented Pig's Accumulator interface; tuned nippy; reduced number of times data is serialized.
-  * 0.1.4 - Fix sort bug in local mode
-  * 0.1.3 - Change Pig & Hadoop to be transitive dependencies. Add support for consuming user code via closure.
-  * 0.1.2 - Upgrade instaparse to 1.2.14
-  * 0.1.1 - Initial Release
+  * 0.1.5
+    * Performance improvements
+      * Implemented Pig's Accumulator interface
+      * Tuned nippy
+      * Reduced number of times data is serialized
+  * 0.1.4
+    * Fix sort bug in local mode
+  * 0.1.3
+    * Change Pig & Hadoop to be transitive dependencies
+    * Add support for consuming user code via closure
+  * 0.1.2
+    * Upgrade instaparse to 1.2.14
+  * 0.1.1
+    * Initial Release
