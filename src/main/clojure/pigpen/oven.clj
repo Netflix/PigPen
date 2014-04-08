@@ -17,12 +17,9 @@
 ;;
 
 (ns pigpen.oven
-  "Converts an expression tree into an expression graph required for local
-execution or script generation. Applies a number of optimizations and
-transforms to the graph.
-
-Nothing in here will be used directly with normal PigPen usage.
-See pigpen.core and pigpen.exec
+  "Contains functions used to convert an expression tree into an expression
+graph. This is required for local execution or script generation. Applies a
+number of optimizations and transforms to the graph.
 "
   (:refer-clojure :exclude [ancestors])
   (:require [clojure.set]
@@ -32,7 +29,7 @@ See pigpen.core and pigpen.exec
 
 (set! *warn-on-reflection* true)
 
-(defmulti tree->command
+(defmulti ^:private tree->command
   "Converts a tree node into a single edge. This is done by converting the
    reference to another node to that node's id"
   :type)
@@ -85,7 +82,7 @@ See pigpen.core and pigpen.exec
 
 ;; **********
 
-(defmulti command->required-fields
+(defmulti ^:private command->required-fields
   "Returns the fields required for a command. Always a set."
   :type)
 
@@ -102,7 +99,7 @@ See pigpen.core and pigpen.exec
 
 ;; **********
 
-(defmulti remove-fields
+(defmulti ^:private remove-fields
   "Prune unnecessary fields from a command. The default does nothing - add an
    override for commands that have prunable fields."
   (fn [command fields] (:type command)))
@@ -398,19 +395,42 @@ See pigpen.core and pigpen.exec
 ;; **********
 
 (defn bake
-  "Takes a script as a tree of commands and returns a sequence of commands as a
-   directed acyclical graph. This also applies transforms over the data such as
-   extracting references as their own commands and deduping equivalent commands"
-  [script opts]
-  {:pre [(map? script) (map? opts)]}
-  (cond-> script
-    (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
-    true braise
-    true merge-order-rank
-    true extract-options
-    true extract-references
-    (not= false (:dedupe opts)) dedupe
-    (not= false (:prune opts)) trim-fat
-    true expand-load-filters
-    true optimize-binds
-    true clean))
+  "Takes a query as a tree of commands and returns a sequence of commands as a
+directed acyclical graph. Also applies optimizations to the query such as
+deduping. This command is idempotent and can be called many times. The options
+are only honored the first time called.
+
+This is useful for generating multiple outputs with the same ids. Call bake once
+to create a graph with the final ids and then pass that to any command that
+produces a non-pigpen output.
+
+  Example:
+	  (let [command (->>
+	                  (pig/load-tsv \"foo.tsv\")
+	                  (pig/map inc)
+	                  (pig/filter even?))
+	        graph (oven/bake command)]
+	    (pig/show graph)
+	    (pig/generate-script graph))
+
+  See also: pigpen.core/generate-script, pigpen.core/write-script,
+            pigpen.core/dump, pigpen.core/show
+"
+  {:added "0.2.5"} ; since 0.1.0, but exposed 0.2.5
+  ([query] (bake {} query))
+  ([opts query]
+    {:pre [(->> query meta keys (some #{:pig :baked})) (map? opts)]}
+    (if (-> query meta :baked)
+      query
+      (cond-> query
+        (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
+        true braise
+        true merge-order-rank
+        true extract-options
+        true extract-references
+        (not= false (:dedupe opts)) dedupe
+        (not= false (:prune opts)) trim-fat
+        true expand-load-filters
+        true optimize-binds
+        true clean
+        true (with-meta {:baked true})))))

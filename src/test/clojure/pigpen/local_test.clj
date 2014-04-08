@@ -107,7 +107,7 @@
                     (io/store-clj "build/local-test/test-debug-out"))]
       (spit "build/local-test/test-debug-in" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
       #_(exec/write-script "build/local-test/temp.pig" {:debug "build/local-test/"} command)
-      (is (empty? (exec/dump-debug "build/local-test/test-debug-" command)))
+      (is (empty? (exec/dump {:debug "build/local-test/test-debug-"} command)))
       (is (= "class java.lang.String\t{:a 1, :b \"foo\"}\nclass java.lang.String\t{:a 2, :b \"bar\"}\n"
             (slurp "build/local-test/test-debug-load1")))
       (is (= "class clojure.lang.PersistentArrayMap\t{:a 1, :b \"foo\"}\nclass clojure.lang.PersistentArrayMap\t{:a 2, :b \"bar\"}\n"

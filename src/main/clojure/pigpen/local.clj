@@ -107,7 +107,7 @@ See pigpen.core and pigpen.exec
       (let [[id _ :as o] (some (find-next-o (into {} observables)) (vals command-lookup))]
         (recur (dissoc command-lookup id) (conj observables o))))))
 
-(defn ^Observable dereference-all [^Observable o]
+(defn dereference-all ^Observable [^Observable o]
   (.map o #(->> %
              (map (fn [[k v]] [k (dereference v)]))
              (into {}))))
@@ -118,13 +118,15 @@ See pigpen.core and pigpen.exec
     seq
     vec))
 
-(defn ^Observable observable->data [^Observable o]
+(defn observable->data
+  ^Observable [^Observable o]
   (-> o
     (dereference-all)
     (.map (comp 'value pig/thaw-values))
     observable->clj))
 
-(defn ^Observable observable->raw-data [^Observable o]
+(defn observable->raw-data
+  ^Observable [^Observable o]
   (-> o
     (dereference-all)
     (.map pig/thaw-anything)

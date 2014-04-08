@@ -104,8 +104,5 @@ if you have a single output.
 (intern *ns* (with-meta 'generate-script (meta #'pigpen.exec/generate-script)) @#'pigpen.exec/generate-script)
 (intern *ns* (with-meta 'write-script (meta #'pigpen.exec/write-script)) @#'pigpen.exec/write-script)
 (intern *ns* (with-meta 'dump (meta #'pigpen.exec/dump)) @#'pigpen.exec/dump)
-(intern *ns* (with-meta 'dump-async (meta #'pigpen.exec/dump-async)) @#'pigpen.exec/dump-async)
 (intern *ns* (with-meta 'show (meta #'pigpen.exec/show)) @#'pigpen.exec/show)
 (intern *ns* (with-meta 'show+ (meta #'pigpen.exec/show+)) @#'pigpen.exec/show+)
-(intern *ns* (with-meta 'dump&show (meta #'pigpen.exec/dump&show)) @#'pigpen.exec/dump&show)
-(intern *ns* (with-meta 'dump&show+ (meta #'pigpen.exec/dump&show+)) @#'pigpen.exec/dump&show+)
