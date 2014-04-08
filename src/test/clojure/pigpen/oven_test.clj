@@ -567,6 +567,7 @@
                     :ancestors []
                     :fields [foo]
                     :field-type :native
+                    :args []
                     :storage {:type :storage
                               :references []
                               :func "PigStorage"
@@ -580,7 +581,21 @@
                     :expr (= foo 2)
                     :fields [foo]
                     :field-type :native
+                    :args []
                     :opts {:type :filter-native-opts}}]))))
+
+(deftest test-alias-self-joins
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (let [data (pig/return [1 2 3])
+          command (pig/join [(data) (data)] vector)]
+      (test-diff (->> (bake command)
+                   (map #(select-keys % [:fields :ancestors :id :type])))
+                  '[{:type :return,   :id return1,    :ancestors [],                      :fields [value]}
+                    {:type :generate, :id generate8,  :ancestors [return1],               :fields [value]}
+                    {:type :generate, :id generate10, :ancestors [generate8],             :fields [key value]}
+                    {:type :generate, :id generate11, :ancestors [generate8],             :fields [key value]}
+                    {:type :join,     :id join6,      :ancestors [generate10 generate11], :fields [[[generate10 key]] [[generate10 value]] [[generate11 key]] [[generate11 value]]]}
+                    {:type :generate, :id generate9,  :ancestors [join6],                 :fields [value]}]))))
 
 (deftest test-clean
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

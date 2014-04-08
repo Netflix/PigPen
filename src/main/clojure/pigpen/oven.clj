@@ -61,11 +61,15 @@ number of optimizations and transforms to the graph.
   [{:keys [projections] :as command} id-mapping]
   (if-not projections
     command
-    (let [projections' (for [p projections]
-                         (if (= (:type p) :projection-func)
-                           (update-in p [:code :args]
-                                      (fn [args] (mapv #(update-field % id-mapping) args)))
-                           p))]
+    (let [projections' (vec
+                         (for [{:keys [type] :as p} projections]
+                           (case type
+                             (:projection-func :projection-flat)
+                             (update-in p [:code :args]
+                                        (fn [args] (mapv #(update-field % id-mapping) args)))
+                             
+                             :projection-field
+                             (update-in p [:field] #(update-field % id-mapping)))))]
       (assoc command :projections projections'))))
 
 (defn ^:private update-fields
@@ -379,6 +383,57 @@ number of optimizations and transforms to the graph.
 
 ;; **********
 
+(defn ^:private make-join-fields
+  ;; TODO combine with the logic in pigpen.raw
+  ;; Can't use update-fields because of the dupes
+  "Create the fields for new join/cogroup commands"
+  [type ancestors]
+  (case type
+    :join (->> ancestors
+            (mapcat (fn [{id :id}] [[[id 'key]] [[id 'value]]]))
+            vec)
+    :group (->> ancestors
+             (mapcat (fn [{id :id}] [[[id] 'key] [[id] 'value]]))
+             (cons 'group)
+             vec)))
+
+(defn ^:private alias-self-join
+  "Creates new ids for key-selectors for a join or cogroup"
+  [command-lookup {:keys [ancestors type] :as join}]
+  ;; For each ancestor of a join, duplicate it with a new id
+  (let [ancestors' (vec
+                     (for [id ancestors]
+                       (let [ancestor (command-lookup id)
+                             id' (raw/pigsym (name (:type ancestor)))]
+                         (assoc ancestor :id id'))))
+        ;; Create a new join with the new ids
+        join' (-> join
+                (assoc :ancestors (mapv :id ancestors'))
+                (assoc :fields (make-join-fields type ancestors')))]
+    ;; Return both the id->id' mapping and the new commands
+    [(zipmap ancestors (map :id ancestors'))
+     (concat ancestors' [join'])]))
+
+(defn ^:private alias-self-joins
+  "Self-joins create ambiguous fields and are not supported by Pig. This changes
+the alias of each key-selector so that they are unique."
+  [commands]
+  (let [command-lookup (->> commands (map (juxt :id identity)) (into {}))
+        id-map (atom {})]
+    (->> commands
+      (mapcat (fn [{:keys [type ancestors] :as command}]
+                ;; update only joins and cogroups
+                (if (and (type #{:join :group})
+                         (not= (count ancestors) (count (set ancestors))))
+                  (let [[id-map' commands'] (alias-self-join command-lookup command)]
+                    (swap! id-map merge id-map')
+                    commands')
+                  ;; any joins will exist before their consumers, so we just
+                  ;; update id-map as we find them
+                  [(update-fields command @id-map)]))))))
+
+;; **********
+
 (defn ^:private clean
   "Some optimizations produce unused commands. This prunes them from the graph."
   [commands]
@@ -432,5 +487,6 @@ produces a non-pigpen output.
         (not= false (:prune opts)) trim-fat
         true expand-load-filters
         true optimize-binds
+        true alias-self-joins
         true clean
         true (with-meta {:baked true})))))
