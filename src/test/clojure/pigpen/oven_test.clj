@@ -30,7 +30,7 @@
       (->
         (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
         (pig-raw/store$ "bar" pig-raw/default-storage {})
-        (tree->command))
+        (#'pigpen.oven/tree->command))
       '{:type :store
         :id store2
         :description "bar"
@@ -42,17 +42,18 @@
 
 (deftest test-command->required-fields
   (is (= '#{foo bar}
-         (command->required-fields '{:type :generate
-                                     :id generate0
-                                     :projections [{:type :projection-field, :field foo, :alias baz}
-                                                   {:type :projection-func
-                                                    :code {:type :code, :udf "f", :args [foo bar]}
-                                                    :alias bar}]
-                                     :fields [baz bar]
-                                     :ancestors [{:fields [foo bar]}]})))
+         (#'pigpen.oven/command->required-fields
+           '{:type :generate
+             :id generate0
+             :projections [{:type :projection-field, :field foo, :alias baz}
+                           {:type :projection-func
+                            :code {:type :code, :udf "f", :args [foo bar]}
+                            :alias bar}]
+             :fields [baz bar]
+             :ancestors [{:fields [foo bar]}]})))
   
   (is (= nil
-         (command->required-fields
+         (#'pigpen.oven/command->required-fields
            (pig-raw/load$ "foo" '[a0 b0 c0 d0] pig-raw/default-storage {})))))
 
 (deftest test-remove-fields
@@ -67,7 +68,7 @@
                   :ancestors [{:fields [foo bar]}]}]
     
     (test-diff
-      (remove-fields command '#{baz})
+      (#'pigpen.oven/remove-fields command '#{baz})
       '{:type :generate
         :id generate0
         :projections [{:type :projection-func
@@ -77,7 +78,7 @@
         :ancestors [{:fields [foo bar]}]})
       
     (test-diff
-      (remove-fields command '#{bar})
+      (#'pigpen.oven/remove-fields command '#{bar})
       '{:type :generate
         :id generate0
         :projections [{:type :projection-field, :field foo, :alias baz}]
@@ -386,9 +387,9 @@
                    (pig-raw/script$))]
       
       (test-diff
-        (as-> script %
-              (bake % {:debug "/out/"})
-              (map #(select-keys % [:type :id :ancestors :location]) %))
+        (->> script
+          (bake {:debug "/out/"})
+          (map #(select-keys % [:type :id :ancestors :location])))
         '[{:type :register, :id nil,       :ancestors []}
           {:type :load,     :id load1,     :ancestors []            :location "foo"}
           {:type :generate, :id generate10,:ancestors [load1]}
@@ -558,7 +559,7 @@
 (deftest test-expand-load-filters
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [command (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {:filter '(= foo 2)})]
-      (test-diff (bake command {})
+      (test-diff (bake command)
                  '[{:type :load
                     :id load1_0
                     :description "foo"
@@ -614,9 +615,9 @@
                (pig-raw/store$ "bar2" test-storage {}))]
 
       (test-diff
-        (as-> (pig/script s1 s2) %
-          (#'pigpen.oven/bake % {})
-          (map #(select-keys % [:type :id :ancestors]) %))
+        (->> (pig/script s1 s2)
+          (#'pigpen.oven/bake)
+          (map #(select-keys % [:type :id :ancestors])))
         ;; Should merge the load commands & produce a register command
         '[{:type :register, :id nil,   :ancestors []}
           {:type :load,   :id load3,   :ancestors []}

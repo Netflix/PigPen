@@ -56,9 +56,9 @@ combine them. Optionally takes a map of options.
   See also: pigpen.core/write-script, pigpen.core/script
 "
   {:added "0.1.0"}
-  ([script] (generate-script {} script))
-  ([opts script]
-    (-> script
+  ([query] (generate-script {} query))
+  ([opts query]
+    (->> query
       (oven/bake opts)
       script/commands->script)))
 
@@ -84,24 +84,24 @@ combine them. Optionally takes a map of options.
   See also: pigpen.core/generate-script, pigpen.core/script
 "
   {:added "0.1.0"}
-  ([location script] (write-script location {} script))
-  ([location opts script]
-    (spit location (generate-script opts script))))
+  ([location query] (write-script location {} query))
+  ([location opts query]
+    (spit location (generate-script opts query))))
 
-(defn ^Observable script->observable
-  ([script] (script->observable {} script))
-  ([opts script]
-    (-> script
+(defn query->observable
+  (^Observable [query] (query->observable {} query))
+  (^Observable [opts query]
+    (->> query
       (oven/bake opts)
       (local/graph->observable))))
 
-(defn debug-script-raw [script]
-  (->> script
-    script->observable
+(defn debug-script-raw [query]
+  (->> query
+    query->observable
     local/observable->raw-data))
 
-(defn debug-script [script]
-  (map 'value (debug-script-raw script)))
+(defn debug-script [query]
+  (map 'value (debug-script-raw query)))
 
 ;; TODO add a version that returns a multiset
 (defn dump
@@ -132,24 +132,11 @@ sequence. This command is very useful for unit tests.
   See also: pigpen.core/show, pigpen.core/dump&show
 "
   {:added "0.1.0"}
-  [script]
-  (->> script
-    script->observable
-    local/observable->data))
-
-(defn dump-async
-  "Executes a script asynchronously and prints the results to the console."
-  {:added "0.1.0"}
-  [script]
-  (-> script
-    script->observable
-    local/observable->data
-    (.subscribe prn prn prn)))
-
-(defn dump-debug [location script]
-  (->> script
-    (script->observable {:debug location})
-    local/observable->data))
+  ([query] (dump {} query))
+  ([opts query]
+    (->> query
+      (query->observable opts)
+      local/observable->data)))
 
 (defn show
   "Generates a graph image for a PigPen query. This allows you to see what steps
@@ -163,8 +150,8 @@ This command uses a terse description for each operation.
   See also: pigpen.core/show+, pigpen.core/dump&show
 "
   {:added "0.1.0"}
-  [script]
-  (-> script
+  [query]
+  (->> query
     (oven/bake {})
     (viz/view-graph viz/command->description)))
 
@@ -180,24 +167,7 @@ This command uses a verbose description for each operation, including user code.
   See also: pigpen.core/show, pigpen.core/dump&show+
 "
   {:added "0.1.0"}
-  [script]
-  (-> script
+  [query]
+  (->> query
     (oven/bake {})
     (viz/view-graph viz/command->description+)))
-
-(defn ^:private dump&show* [command->description script]
-  (let [g (oven/bake script {})]
-    (viz/view-graph g command->description)
-    (->> g
-      local/graph->observable
-      local/observable->data)))
-
-(def ^{:arglists '([script]) :added "0.1.0"} dump&show
-  "Combines pig/show and pig/dump. This is useful so that the graph & resulting
-script have the same ids."
-  (partial dump&show* viz/command->description))
-
-(def ^{:arglists '([script]) :added "0.1.0"} dump&show+
-  "Combines pig/show+ and pig/dump. This is useful so that the graph & resulting
-script have the same ids."
-  (partial dump&show* viz/command->description+))

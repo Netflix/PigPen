@@ -49,7 +49,7 @@ See pigpen.core and pigpen.exec
       (str label' "\\l...")
       label')))
 
-(defn view-graph [commands command->description]
+(defn view-graph [command->description commands]
   (viz/view-graph (filter #(contains? % :id) commands)
                   (fn [parent] (filter (fn [child] ((-> child :ancestors set) (:id parent))) commands))
                   :node->descriptor (fn [c] {:label (fix-label (command->description c))
