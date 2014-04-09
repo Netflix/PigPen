@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.4"]
+[com.netflix.pigpen/pigpen "0.2.5"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.4"
+compile "com.netflix.pigpen:pigpen:0.2.5"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.4</version>
+  <version>0.2.5</version>
 </dependency>
 ```
 
@@ -50,6 +50,12 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 
 # Release Notes
 
+  * 0.2.5
+    * Remove `dump&show` and `dump&show+` in favor of `pigpen.oven/bake`. Call `bake` once and pass to as many outputs as you want. This is a breaking change, but I didn't increment the version because `dump&show` was just a tool to be used in the REPL. No scripts should break because of this change.
+    * Remove `dymp-async`. It appeared to be broken and was a bad idea from the start.
+    * Fix self-joins. This was a rare issue as a self join (with the same key) just duplicates data in a very expensive way.
+    * Clean up functional tests
+    * Fix `pigpen.oven/clean`. When it was pruning the graph, it was also removing REGISTER commands.
   * 0.2.4
     * Fix arity checking bug (affected varargs fns)
     * Fix cases where an Algebraic fold function was falling back to the Accumulator interface, which was not supported. This affected using `cogroup` with `fold` over multiple relations. 
