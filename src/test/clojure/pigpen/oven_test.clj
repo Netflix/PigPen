@@ -590,7 +590,8 @@
           command (pig/join [(data) (data)] vector)]
       (test-diff (->> (bake command)
                    (map #(select-keys % [:fields :ancestors :id :type])))
-                  '[{:type :return,   :id return1,    :ancestors [],                      :fields [value]}
+                  '[{:type :register, :id nil,        :ancestors [],                      :fields []}
+                    {:type :return,   :id return1,    :ancestors [],                      :fields [value]}
                     {:type :generate, :id generate8,  :ancestors [return1],               :fields [value]}
                     {:type :generate, :id generate10, :ancestors [generate8],             :fields [key value]}
                     {:type :generate, :id generate11, :ancestors [generate8],             :fields [key value]}
