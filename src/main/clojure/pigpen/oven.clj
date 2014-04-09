@@ -430,22 +430,24 @@ the alias of each key-selector so that they are unique."
                     commands')
                   ;; any joins will exist before their consumers, so we just
                   ;; update id-map as we find them
-                  [(update-fields command @id-map)]))))))
+                  [(update-fields command @id-map)])))
+      vec)))
 
 ;; **********
 
 (defn ^:private clean
   "Some optimizations produce unused commands. This prunes them from the graph."
   [commands]
-  (let [register-commands (filter #(-> % :type #{:register :option}) commands)
-        referenced-commands (->> commands
+  (let [referenced-commands (->> commands
                               (mapcat :ancestors) ;; Get all referenced commands
-                              (concat register-commands) ;; Add register commands
                               (cons (-> commands last :id)) ;; Add the last command
-                              set)]
-    (if (= (count commands) (count referenced-commands))
+                              set)
+        command-valid? (fn [{:keys [id type]}]
+                         (or (type #{:register :option})
+                             (referenced-commands id)))]
+    (if (every? command-valid? commands)
       commands
-      (recur (filter #(-> % :id referenced-commands) commands)))))
+      (recur (filter command-valid? commands)))))
 
 ;; **********
 
