@@ -95,14 +95,6 @@ combine them. Optionally takes a map of options.
       (oven/bake opts)
       (local/graph->observable))))
 
-(defn debug-script-raw [query]
-  (->> query
-    query->observable
-    local/observable->raw-data))
-
-(defn debug-script [query]
-  (map 'value (debug-script-raw query)))
-
 ;; TODO add a version that returns a multiset
 (defn dump
   "Executes a script locally and returns the resulting values as a clojure
