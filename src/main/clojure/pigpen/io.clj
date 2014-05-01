@@ -213,6 +213,7 @@ Single string values are not quoted. You may optionally pass a different delimit
   {:added "0.1.0"}
   ([location relation] (store-tsv location "\t" relation))
   ([location delimiter relation]
+    ;; TODO is there a more efficient way to split strings? Something without a regex.
     (store-string* location [] `(fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))) relation)))
 
 (defn store-clj
