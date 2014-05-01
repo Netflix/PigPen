@@ -48,10 +48,15 @@ See pigpen.core and pigpen.exec
       (.get ^Tuple value index)
       value)))
 
+(def create-udf
+  (memoize
+    (fn ^EvalFunc [return init func]
+      (eval `(new ~(symbol (str "pigpen.PigPenFn" return)) ~(str init) ~(str func))))))
+
 ;; TODO add option to skip this for faster execution
 (defn ^:private eval-code [{:keys [return expr args]} values]
   (let [{:keys [init func]} expr
-        ^EvalFunc instance (eval `(new ~(symbol (str "pigpen.PigPenFn" return)) ~(str init) ~(str func)))
+        ^EvalFunc instance (create-udf return init func)
         ^Tuple tuple (->> args
                        (map #(if ((some-fn symbol? vector?) %) (dereference (values %)) %))
                        (apply pig/tuple))]
