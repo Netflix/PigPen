@@ -253,17 +253,18 @@ written as a single line. Options can be passed to write-str as a map.
 (defn return
   "Returns a constant set of data as a pigpen relation. This is useful for
 testing, but not supported in generated scripts. The parameter 'data' must be a
-sequence. The values of 'data' can be any clojure type.
+*non-empty* sequence. The values of 'data' can be any clojure type.
 
   Example:
 
-    (pig/constantly [1 2 3])
-    (pig/constantly [{:a 123} {:b 456}])
+    (pig/return [1 2 3])
+    (pig/return [{:a 123} {:b 456}])
 
-  See also: pigpen.core/constantly
+  See also: pigpen.core/return
 "
   {:added "0.1.0"}
   [data]
+  {:pre [(not (empty? data))]}
   (raw/return$
     (for [d data]
       (pig/freeze-vals {'value d}))))
