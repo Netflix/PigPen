@@ -40,7 +40,15 @@
 
     (test-diff
       (pig/dump command)
-      '[[2 4 6]])))
+      '[[2 4 6]]))
+  
+  (testing "empty seq returns nothing"
+    (let [data (pig/return [])
+          command (pig/into {} data)]
+
+      (test-diff
+        (pig/dump command)
+        '[]))))
 
 (deftest test-reduce
   (testing "conj"
@@ -57,7 +65,15 @@
 
       (test-diff
         (pig/dump command)
-        '[12]))))
+        '[12])))
+  
+  (testing "empty seq returns nothing"
+    (let [data (pig/return [])
+          command (pig/reduce + data)]
+
+      (test-diff
+        (pig/dump command)
+        '[]))))
 
 (deftest test-fold
   (let [data (pig/return [{:k :foo, :v 1}
@@ -122,7 +138,13 @@
     (let [data (pig/return [1 2 3 4])
           command (pig/fold (fold/count) data)]
      (is (= (pig/dump command)
-            '[4])))))
+            '[4]))))
+  
+  (testing "empty seq returns nothing"
+    (let [data (pig/return [])
+          command (pig/fold (fold/count) data)]
+     (is (= (pig/dump command)
+            '[])))))
 
 (deftest test-cogroup
   (let [data1 (pig/return [{:k nil, :v 1}
