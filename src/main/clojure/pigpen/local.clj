@@ -48,15 +48,17 @@ See pigpen.core and pigpen.exec
       (.get ^Tuple value index)
       value)))
 
+(def ^:dynamic udf-scope nil)
+
 (def create-udf
   (memoize
-    (fn ^EvalFunc [return init func]
+    (fn ^EvalFunc [scope return init func]
       (eval `(new ~(symbol (str "pigpen.PigPenFn" return)) ~(str init) ~(str func))))))
 
 ;; TODO add option to skip this for faster execution
 (defn ^:private eval-code [{:keys [return expr args]} values]
   (let [{:keys [init func]} expr
-        ^EvalFunc instance (create-udf return init func)
+        ^EvalFunc instance (create-udf udf-scope return init func)
         ^Tuple tuple (->> args
                        (map #(if ((some-fn symbol? vector?) %) (dereference (values %)) %))
                        (apply pig/tuple))]
@@ -102,11 +104,12 @@ See pigpen.core and pigpen.exec
 (defn graph->observable
   ([commands]
     {:pre [(sequential? commands)]}
-    (let [observable (graph->observable (->> commands
-                                          (map (juxt :id identity))
-                                          (into {}))
-                                        [])]
-      (observable)))
+    (binding [udf-scope (gensym)]
+      (let [observable (graph->observable (->> commands
+                                            (map (juxt :id identity))
+                                            (into {}))
+                                          [])]
+        (observable))))
   ([command-lookup observables]
     (if (empty? command-lookup) (second (last observables))
       (let [[id _ :as o] (some (find-next-o (into {} observables)) (vals command-lookup))]
@@ -237,12 +240,15 @@ See pigpen.core and pigpen.exec
                      (str "Don't know how to flatten a " (type result)))))))
   
 (defmethod graph->local :generate [{:keys [projections] :as command} data]
-  (let [^Observable data (first data)]
+  (let [udf-scope' udf-scope ; yes this is ugly, but passing this as an explicit parameter breaks a lot of other code
+        ^Observable data (first data)]
     (.mapMany data
       (fn [values]
         (let [^Iterable result (->> projections
-                             (map (fn [p] (graph->local p values)))
-                             (cross-product))]
+                                 (map (fn [p]
+                                        (binding [udf-scope udf-scope']
+                                          (graph->local p values))))
+                                 (cross-product))]
           (Observable/from result))))))
 
 (defn ^:private pig-compare [[key order & sort-keys] x y]
