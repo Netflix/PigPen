@@ -132,15 +132,14 @@ number of optimizations and transforms to the graph.
 
 (defn ^:private command->references
   "Gets any references required for a command"
-  [command]
+  [jar-location command]
   (case (:type command)
-    ;; TODO make this name dynamic
-    :code ["pigpen.jar"]
-    :bind ["pigpen.jar"]
+    :code [jar-location]
+    :bind [jar-location]
     :storage (:references command)
-    (:load :store) (command->references (:storage command))
-    (:projection-func filter) (command->references (:code command))
-    :generate (->> command :projections (mapcat command->references))
+    (:load :store) (command->references jar-location (:storage command))
+    (:projection-func filter) (command->references jar-location (:code command))
+    :generate (->> command :projections (mapcat (partial command->references jar-location)))
     nil))
 
 (defn ^:private command->options
@@ -151,8 +150,8 @@ number of optimizations and transforms to the graph.
 (defn ^:private extract-references
   "Extract all references from commands and create new reference commands at
    the head of the list."
-  [commands]
-  (extract-* command->references raw/register$ commands))
+  [jar-location commands]
+  (extract-* (partial command->references jar-location) raw/register$ commands))
 
 (defn ^:private extract-options
   "Extract all options from commands and create new option commands at
@@ -477,18 +476,20 @@ produces a non-pigpen output.
   ([query] (bake {} query))
   ([opts query]
     {:pre [(->> query meta keys (some #{:pig :baked})) (map? opts)]}
-    (if (-> query meta :baked)
-      query
-      (cond-> query
-        (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
-        true braise
-        true merge-order-rank
-        true extract-options
-        true extract-references
-        (not= false (:dedupe opts)) dedupe
-        (not= false (:prune opts)) trim-fat
-        true expand-load-filters
-        true optimize-binds
-        true alias-self-joins
-        true clean
-        true (with-meta {:baked true})))))
+    (let [jar-location (or (:pigpen-jar-location opts) "pigpen.jar")
+          extract-references (partial extract-references jar-location)]
+      (if (-> query meta :baked)
+        query
+        (cond-> query
+          (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
+          true braise
+          true merge-order-rank
+          true extract-options
+          true extract-references
+          (not= false (:dedupe opts)) dedupe
+          (not= false (:prune opts)) trim-fat
+          true expand-load-filters
+          true optimize-binds
+          true alias-self-joins
+          true clean
+          true (with-meta {:baked true}))))))
