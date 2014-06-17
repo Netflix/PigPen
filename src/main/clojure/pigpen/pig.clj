@@ -55,6 +55,13 @@ possible as it's used at runtime."
     (.newDefaultBag (BagFactory/getInstance) vals)
     (.newDefaultBag (BagFactory/getInstance))))
 
+(defn ^:private pig-freeze [value]
+  (DataByteArray. (freeze value {:skip-header? true, :legacy-mode true})))
+
+(defn ^:private pig-freeze-with-nils [value]
+  (if value
+    (pig-freeze value)))
+
 ;; **********
 
 (defn byte->hex-digit
@@ -319,7 +326,7 @@ STRING    = #'[^\\,\\)\\}\\]\\#]+'
 
 (defn freeze-vals [value]
   {:pre [(map? value)]}
-  (reduce-kv (fn [m k v] (assoc m k (DataByteArray. (freeze v)))) {} value))
+  (reduce-kv (fn [m k v] (assoc m k (pig-freeze v))) {} value))
 
 (defmulti thaw-anything
   "Attempts to thaw any child value. Returns it as '(freeze ...)"
@@ -508,13 +515,6 @@ as the initial state for the next accumulation."
     (catch Throwable z (throw (RuntimeException. z)))))
 
 ;; **********
-
-(defn ^:private pig-freeze [value]
-  (DataByteArray. (freeze value {:skip-header? true, :legacy-mode true})))
-
-(defn ^:private pig-freeze-with-nils [value]
-  (if value
-    (pig-freeze value)))
 
 (defn args->map
   "Returns a fn that converts a list of args into a map of named parameter

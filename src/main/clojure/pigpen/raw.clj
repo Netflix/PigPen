@@ -144,13 +144,14 @@ building blocks for more complex operations.")
            :description location)))
 
 (defn return$
-  [data]
+  [data fields]
   {:pre [(sequential? data)
          (every? map? data)
-         (every? symbol? (mapcat keys data))]}
+         (sequential? fields)
+         (every? symbol? fields)]}
   ^:pig {:type :return
          :id (pigsym "return")
-         :fields (vec (keys (first data)))
+         :fields (vec fields)
          :data data})
 
 ;; ********** Map **********

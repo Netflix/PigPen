@@ -160,4 +160,11 @@
         command (pig/return data)]
     (test-diff
       (pig/dump command)
-      '[1 2])))
+      '[1 2]))
+  
+  (let [command (->>
+                  (pig/return [])
+                  (pig/map inc))]
+    (test-diff
+      (pig/dump command)
+      '[])))
