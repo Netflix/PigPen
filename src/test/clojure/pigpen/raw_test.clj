@@ -118,7 +118,7 @@
 (deftest test-return$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (return$ [{'value "foo"}])
+      (return$ [{'value "foo"}] ['value])
       '{:type :return
         :id return0
         :fields [value]
