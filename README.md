@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.5"]
+[com.netflix.pigpen/pigpen "0.2.6"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.5"
+compile "com.netflix.pigpen:pigpen:0.2.6"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.5</version>
+  <version>0.2.6</version>
 </dependency>
 ```
 
@@ -50,6 +50,13 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 
 # Release Notes
 
+  * 0.2.6
+    * Minor optimization for local mode. The creation of a UDF was occurring for every value processed, causing it to run out of perm-gen space when processing large collections locally.
+    * Fix `(pig/return [])`
+    * Fix `(pig/dump (pig/reduce + (pig/return [])))`
+    * Fix `Long`s in scripts that are larger than an Integer
+    * Memoize local UDF instances per use of `pig/dump`
+    * The jar location in the generated script is now configurable. Use the `:pigpen-jar-location` option with `pig/generate-script` or `pig/write-script`.
   * 0.2.5
     * Remove `dump&show` and `dump&show+` in favor of `pigpen.oven/bake`. Call `bake` once and pass to as many outputs as you want. This is a breaking change, but I didn't increment the version because `dump&show` was just a tool to be used in the REPL. No scripts should break because of this change.
     * Remove `dymp-async`. It appeared to be broken and was a bad idea from the start.
