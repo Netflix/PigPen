@@ -62,7 +62,13 @@ See pigpen.core and pigpen.exec
  ([scope expr]
    (cond
      (nil? expr)    nil
-     (number? expr) (str expr)
+     (number? expr) (cond
+                      ;; This is not ideal, but it prevents Pig from blowing up when you use big numbers
+                      (and (instance? Long expr)
+                           (not (< Integer/MIN_VALUE expr Integer/MAX_VALUE)))
+                      (str expr "L")
+                      
+                      :else (str expr))
      (string? expr) (escape+quote expr)
      (symbol? expr) (if-let [v (scope expr)]
                       (expr->script scope v)

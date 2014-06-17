@@ -33,6 +33,7 @@
   (is (= (#'pigpen.script/expr->script nil) nil))
   (is (= (#'pigpen.script/expr->script "a'b\\c") "'a\\'b\\\\c'"))
   (is (= (#'pigpen.script/expr->script 42) "42"))
+  (is (= (#'pigpen.script/expr->script 2147483648) "2147483648L"))
   (is (= (#'pigpen.script/expr->script 'foo) "foo"))
   (is (= (#'pigpen.script/expr->script '(clojure.core/let [foo '2] foo)) "2"))
   (is (= (#'pigpen.script/expr->script '(clojure.core/let [foo '2] (and (= bar foo) (> baz 3)))) "((bar == 2) AND (baz > 3))")))
