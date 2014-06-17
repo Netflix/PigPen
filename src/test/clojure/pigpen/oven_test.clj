@@ -88,15 +88,17 @@
 (deftest test-command->references
   
   (test-diff
-    (#'pigpen.oven/command->references (pig-raw/generate$ {}
+    (#'pigpen.oven/command->references "s3://bucket/pigpen.jar"
+                                       (pig-raw/generate$ {}
                                          [(pig-raw/projection-func$ 'foo
                                             (pig-raw/code$ String ['foo]
                                               (pig-raw/expr$ '(require '[pigpen.pig])
                                                              '(var clojure.core/prn))))] {}))
-    ["pigpen.jar"])
+    ["s3://bucket/pigpen.jar"])
   
   (test-diff
-    (#'pigpen.oven/command->references (pig-raw/store$ {} "" (pig-raw/storage$ ["my-jar.jar"] "f" []) {}))
+    (#'pigpen.oven/command->references "pigpen.jar"
+                                       (pig-raw/store$ {} "" (pig-raw/storage$ ["my-jar.jar"] "f" []) {}))
     ["my-jar.jar"]))
 
 (deftest test-braise
@@ -126,7 +128,7 @@
           (pig-raw/load$ "foo" '[foo] test-storage {})
           (pig-raw/store$ % "bar" test-storage {})
           (#'pigpen.oven/braise %)
-          (#'pigpen.oven/extract-references %)
+          (#'pigpen.oven/extract-references "pigpen.jar" %)
           (map #(select-keys % [:type :id :ancestors :references :jar]) %))
         '[{:type :register
            :jar "ref"}

@@ -53,6 +53,9 @@ combine them. Optionally takes a map of options.
 
     :dedupe - Set to false to disable command deduping.
 
+    :pigpen-jar-location - The location where your uberjar resides.
+                           Defaults to 'pigpen.jar'.
+
   See also: pigpen.core/write-script, pigpen.core/script
 "
   {:added "0.1.0"}
@@ -80,6 +83,9 @@ combine them. Optionally takes a map of options.
              The value is a path to place the debug output.
 
     :dedupe - Set to false to disable command deduping.
+
+    :pigpen-jar-location - The location where your uberjar resides.
+                           Defaults to 'pigpen.jar'.
 
   See also: pigpen.core/generate-script, pigpen.core/script
 "
