@@ -657,7 +657,7 @@ result is wrapped in a tuple and bag."
 (defn split-bag
   "Splits a single databag into multiple bags"
   [^DataBag b]
-  (->> b
+  (some->> b
     (.iterator)
     iterator-seq
     (split-at (/ (.size b) 2))

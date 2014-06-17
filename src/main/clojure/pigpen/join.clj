@@ -154,6 +154,14 @@ Optionally takes a map of options, including :parallel and :fold.
   Note: This operation uses a single reducer and won't work for large datasets.
 
   See also: pigpen.core/reduce
+
+  Note: Reducing an empty sequence will always return an empty sequence:
+
+		=> (->>
+		     (pig/return [])
+		     (pig/into {})
+		     (pig/dump))
+		[]
 "
   {:added "0.1.0"}
   [to relation]
@@ -174,6 +182,14 @@ for further processing.
         Use pig/fold to do a parallel reduce.
 
   See also: pigpen.core/fold, pigpen.core/into
+
+  Note: Reducing an empty sequence will always return an empty sequence:
+
+		=> (->>
+		     (pig/return [])
+		     (pig/reduce +)
+		     (pig/dump))
+		[]
 "
   {:added "0.1.0"}
   ([f relation]
@@ -200,6 +216,14 @@ pigpen.fold/fold-fn can also be used.
     (pig/fold (fold/fold-fn + (fn [acc _] (inc acc))) foo)
 
   See pigpen.fold for more info on fold functions.
+
+  Note: Folding an empty sequence will always return an empty sequence:
+
+		=> (->>
+		     (pig/return [])
+		     (pig/fold (fold/count))
+		     (pig/dump))
+		[]
 "
   {:added "0.2.0"}
   ([reducef relation]
