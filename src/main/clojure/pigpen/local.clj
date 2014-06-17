@@ -364,7 +364,8 @@ See pigpen.core and pigpen.exec
                  (.map (fn [v] [(.getKey ^GroupedObservable %) (apply pig/bag (mapv :values v))]))))
     (.reduce {(first fields) nil}
       (fn [values [k v]]
-        (assoc values k v)))))
+        (assoc values k v)))
+    (.filter (fn [v] (< 1 (count v))))))
 
 (defmethod graph->local :group [{:keys [keys] :as command} data]
   (if (= keys [:pigpen.raw/group-all])
