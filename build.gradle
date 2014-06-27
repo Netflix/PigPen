@@ -13,9 +13,11 @@ buildscript {
     apply from: file('gradle/buildscript.gradle'), to: buildscript 
 }
 
-repositories { 
-    mavenCentral()
-    maven { url 'http://clojars.org/repo' }
+allprojects {
+    repositories { 
+        mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
+	    maven { url 'http://clojars.org/repo' }
+    }
 }
 
 apply from: file('gradle/convention.gradle')
@@ -24,63 +26,68 @@ apply from: file('gradle/check.gradle')
 apply from: file('gradle/license.gradle')
 apply from: file('gradle/release.gradle')
 
-license {
-    mapping('clj', 'SEMICOLON_STYLE')
+subprojects {
+
+	license {
+	    mapping('clj', 'SEMICOLON_STYLE')
+	}
+	
+	apply plugin: 'clojure'
+	tasks.uberjar.enabled=true
+	clojure.aotCompile = true
+	
+	compileClojure {
+	    classpath = project.files(
+	        project.compileJava.outputs,
+	        classpath
+	    )
+	}
+
+	clojureTest {
+	    // this is here because pig and hadoop are provided dependencies
+	    // without this, clojureTest doesn't work
+	    classpath = sourceSets.test.runtimeClasspath
+	}
+	
+	clojuredoc {
+	    includeNamespace 'pigpen.core'
+	    includeNamespace 'pigpen.fold'
+	    codox = [
+	        srcDirUri: 'https://github.com/Netflix/PigPen/blob/master/',
+	        srcLinenumAnchorPrefix: 'L'
+	    ]
+	}
+	
+	javadoc {
+	    // this is here because pig and hadoop are provided dependencies
+	    // without this, javadoc doesn't work
+	    classpath = sourceSets.test.runtimeClasspath
+	}
+	
+	apply plugin: 'eclipse'
+	eclipse {
+	    // this is here because pig and hadoop are provided dependencies
+	    // without this, counterclockwise doesn't work
+	    classpath {
+	    	plusConfigurations += configurations.provided
+	    }
+	}
 }
 
-apply plugin: 'clojure'
-tasks.uberjar.enabled=true
-clojure.aotCompile = true
-
-compileClojure {
-    classpath = project.files(
-        project.compileJava.outputs,
-        classpath
-    )
-}
-
-clojureTest {
-    // this is here because pig and hadoop are provided dependencies
-    // without this, clojureTest doesn't work
-    classpath = sourceSets.test.runtimeClasspath
-}
-
-clojuredoc {
-    includeNamespace 'pigpen.core'
-    includeNamespace 'pigpen.fold'
-    codox = [
-        srcDirUri: 'https://github.com/Netflix/PigPen/blob/master/',
-        srcLinenumAnchorPrefix: 'L'
-    ]
-}
-
-javadoc {
-    // this is here because pig and hadoop are provided dependencies
-    // without this, javadoc doesn't work
-    classpath = sourceSets.test.runtimeClasspath
-}
-
-apply plugin: 'eclipse'
-eclipse {
-    // this is here because pig and hadoop are provided dependencies
-    // without this, counterclockwise doesn't work
-    classpath {
-    	plusConfigurations += configurations.provided
-    }
-}
-
-dependencies {
-
-    compile 'org.clojure:clojure:1.5.1'
-    compile 'org.clojure:data.json:0.2.2'
-    compile 'org.clojure:core.async:0.1.267.0-0d7780-alpha'
-    compile 'clj-time:clj-time:0.5.0'
-    compile 'instaparse:instaparse:1.2.14'
-    compile 'com.taoensso:nippy:2.6.0-RC1'
-    compile 'rhizome:rhizome:0.1.9'
-    compile 'com.netflix.rxjava:rxjava-core:0.9.2'
-    compile 'com.netflix.rxjava:rxjava-clojure:0.9.2'
-    
-    provided 'org.apache.pig:pig:0.11.1'
-    provided 'org.apache.hadoop:hadoop-core:1.1.2'
+project('pigpen') {
+	dependencies {
+	
+	    compile 'org.clojure:clojure:1.5.1'
+	    compile 'org.clojure:data.json:0.2.2'
+	    compile 'org.clojure:core.async:0.1.267.0-0d7780-alpha'
+	    compile 'clj-time:clj-time:0.5.0'
+	    compile 'instaparse:instaparse:1.2.14'
+	    compile 'com.taoensso:nippy:2.6.0-RC1'
+	    compile 'rhizome:rhizome:0.1.9'
+	    compile 'com.netflix.rxjava:rxjava-core:0.9.2'
+	    compile 'com.netflix.rxjava:rxjava-clojure:0.9.2'
+	    
+	    provided 'org.apache.pig:pig:0.11.1'
+	    provided 'org.apache.hadoop:hadoop-core:1.1.2'
+	}
 }
