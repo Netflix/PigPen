@@ -1,6 +1,5 @@
 // Establish version and status
 ext.githubProjectName = rootProject.name // Change if github project name is not the same as the root project's name
-group = 'com.netflix.pigpen'
 
 buildscript {
     repositories {
@@ -28,6 +27,8 @@ apply from: file('gradle/release.gradle')
 
 subprojects {
 
+	group = 'com.netflix.pigpen'
+	
 	license {
 	    mapping('clj', 'SEMICOLON_STYLE')
 	}
@@ -74,20 +75,3 @@ subprojects {
 	}
 }
 
-project('pigpen') {
-	dependencies {
-	
-	    compile 'org.clojure:clojure:1.5.1'
-	    compile 'org.clojure:data.json:0.2.2'
-	    compile 'org.clojure:core.async:0.1.267.0-0d7780-alpha'
-	    compile 'clj-time:clj-time:0.5.0'
-	    compile 'instaparse:instaparse:1.2.14'
-	    compile 'com.taoensso:nippy:2.6.0-RC1'
-	    compile 'rhizome:rhizome:0.1.9'
-	    compile 'com.netflix.rxjava:rxjava-core:0.9.2'
-	    compile 'com.netflix.rxjava:rxjava-clojure:0.9.2'
-	    
-	    provided 'org.apache.pig:pig:0.11.1'
-	    provided 'org.apache.hadoop:hadoop-core:1.1.2'
-	}
-}
