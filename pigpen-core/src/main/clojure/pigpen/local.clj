@@ -35,7 +35,7 @@ See pigpen.core and pigpen.exec
            [rx.observables GroupedObservable BlockingObservable]
            [rx.util.functions Action0]
            [java.util.regex Pattern]
-           [java.io Writer]
+           [java.io Reader Writer]
            [java.util List]))
 
 (set! *warn-on-reflection* true)
@@ -150,24 +150,30 @@ See pigpen.core and pigpen.exec
 
 ;; ********** IO **********
 
-(defn load* [description read-fn]
-  (->
-    (Observable/create
-      (fn [^Observer o]
-        (let [cancel (atom false)]
-          (future
-            (try
-              (do
-                (println "Start reading from " description)
-                (read-fn #(.onNext o %) (fn [_] @cancel))
-                (.onCompleted o))
-              (catch Exception e (.onError o e))))
-          (reify Subscription
-            (unsubscribe [this] (reset! cancel true))))))
-    (.finallyDo
-      (reify Action0
-        (call [this] (println "Stop reading from " description))))
-    (.observeOn (Schedulers/threadPoolForIO))))
+(defn load* [location init read close]
+  (let [reader (delay
+                 (println "Start reading from " location)
+                 (init))]
+    (->
+      (Observable/create
+        (fn [^Observer o]
+          (let [cancel (atom false)]
+            (future
+              (try
+                (doseq [value (->> (read @reader)
+                                (take-while (complement (fn [_] @cancel)))
+                                (take 1000))]
+                  (.onNext o value))
+                (when (realized? reader)
+                  (close @reader))
+                (.onCompleted o)
+                (catch Exception e (.onError o e))))
+            (reify Subscription
+              (unsubscribe [this] (reset! cancel true))))))
+      (.finallyDo
+        (reify Action0
+          (call [this] (println "Stop reading from " location))))
+      (.observeOn (Schedulers/threadPoolForIO)))))
 
 (defmulti load #(get-in % [:storage :func]))
 
@@ -175,34 +181,45 @@ See pigpen.core and pigpen.exec
   (let [{:keys [cast]} opts
         delimiter (-> storage :args first edn/read-string)
         delimiter (if delimiter (Pattern/compile (str delimiter)) #"\t")]
-    (load* (str "PigStorage:" location)
-      (fn [on-next cancel?]
-        (with-open [rdr (io/reader location)]
-          (doseq [line (take-while (complement cancel?) (line-seq rdr))]
-            (on-next
-              (->>
-                (clojure.string/split line delimiter)
-                (map (fn [^String s] (pig/cast-bytes cast (.getBytes s))))
-                (zipmap fields)))))))))
+    (load* location
+           #(io/reader location)
+           (fn [reader]
+             (->> reader
+               (line-seq)
+               (map (fn [line]
+                      (->>
+                        (clojure.string/split line delimiter)
+                        (map (fn [^String s] (pig/cast-bytes cast (.getBytes s))))
+                        (zipmap fields))))))
+           (fn [^Reader reader] (.close reader)))))
 
-(defmulti store (fn [command data] (get-in command [:storage :func])))
-
-(defmethod store "PigStorage" [{:keys [location fields]} ^Observable data]
+(defn store*
+  [^Observable data location init write close]
   (let [writer (delay
-                 (println "Start writing to PigStorage:" location)
-                 (io/writer location))]
+                 (println "Start writing to " location)
+                 (init))]
     (-> data
       (dereference-all)
       (.filter
         (fn [value]
-          (let [line (str (clojure.string/join "\t" (for [f fields] (str (f value)))) "\n")]
-            (.write ^Writer @writer line))
+          (write @writer value)
           false))
       (.finallyDo
         (reify Action0
           (call [this] (when (realized? writer)
-                         (println "Stop writing to PigStorage:" location)
-                         (.close ^Writer @writer))))))))
+                         (println "Stop writing to " location)
+                         (close @writer))))))))
+
+(defmulti store (fn [command data] (get-in command [:storage :func])))
+
+(defmethod store "PigStorage" [{:keys [location fields]} data]
+  (store* data location
+          (fn [] (io/writer location))
+          (fn [^Writer writer value]
+            (let [line (str (clojure.string/join "\t" (for [f fields] (str (f value)))) "\n")]
+              (.write writer line)))
+          (fn [^Writer writer]
+            (.close writer))))
 
 (defmethod graph->local :load [command _]
   (load command))
