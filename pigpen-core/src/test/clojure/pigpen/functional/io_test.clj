@@ -116,7 +116,8 @@
   (let [data (pig/return [{:a 1, :b "foo"}
                          {:a 2, :b "bar"}])
         command (pig/store-pig "build/functional/io-test/test-store-pig" data)]
-    (is (empty? (pig/dump command)))
+    (is (= (pig/dump command)
+           ["[a#1,b#foo]" "[a#2,b#bar]"]))
     (is (= "[a#1,b#foo]\n[a#2,b#bar]\n"
            (slurp "build/functional/io-test/test-store-pig")))))
 
@@ -126,7 +127,8 @@
                          42
                          :foo])
         command (pig/store-string "build/functional/io-test/test-store-string" data)]
-    (is (empty? (pig/dump command)))
+    (is (= (pig/dump command)
+           ["The quick brown fox" "jumps over the lazy dog" "42" ":foo"]))
     (is (= "The quick brown fox\njumps over the lazy dog\n42\n:foo\n"
            (slurp "build/functional/io-test/test-store-string")))))
 
@@ -134,7 +136,8 @@
   (let [data (pig/return [[1 "foo" :a]
                          [2 "bar" :b]])
         command (pig/store-tsv "build/functional/io-test/test-store-tsv" data)]
-    (is (empty? (pig/dump command)))
+    (is (= (pig/dump command)
+           ["1\tfoo\t:a" "2\tbar\t:b"]))
     (is (= "1\tfoo\t:a\n2\tbar\t:b\n"
            (slurp "build/functional/io-test/test-store-tsv")))))
 
@@ -142,7 +145,8 @@
   (let [data (pig/return [{:a 1, :b "foo"}
                          {:a 2, :b "bar"}])
         command (pig/store-clj "build/functional/io-test/test-store-clj" data)]
-    (is (empty? (pig/dump command)))
+    (is (= (pig/dump command)
+           ["{:a 1, :b \"foo\"}" "{:a 2, :b \"bar\"}"]))
     (is (= "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}\n"
            (slurp "build/functional/io-test/test-store-clj")))))
 
@@ -150,7 +154,8 @@
   (let [data (pig/return [{:a 1, :b "foo"}
                          {:a 2, :b "bar"}])
         command (pig/store-json "build/functional/io-test/test-store-json" data)]
-    (is (empty? (pig/dump command)))
+    (is (= (pig/dump command)
+           ["{\"a\":1,\"b\":\"foo\"}" "{\"a\":2,\"b\":\"bar\"}"]))
     (is (= "{\"a\":1,\"b\":\"foo\"}\n{\"a\":2,\"b\":\"bar\"}\n"
            (slurp "build/functional/io-test/test-store-json")))))
 

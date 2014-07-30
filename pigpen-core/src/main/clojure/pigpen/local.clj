@@ -22,10 +22,11 @@
 Nothing in here will be used directly with normal PigPen usage.
 See pigpen.core and pigpen.exec
 "
-  (:refer-clojure :exclude [load])
+  (:refer-clojure :exclude [load load-reader read])
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [pigpen.rx.extensions.core :refer [multicast]]
+            [pigpen.extensions.io :refer [list-files]]
             [pigpen.pig :as pig])
   (:import [pigpen PigPenException]
            [org.apache.pig EvalFunc]
@@ -35,8 +36,9 @@ See pigpen.core and pigpen.exec
            [rx.observables GroupedObservable BlockingObservable]
            [rx.util.functions Action0]
            [java.util.regex Pattern]
-           [java.io Writer]
-           [java.util List]))
+           [java.io Reader Writer]
+           [java.util List]
+           [java.io Closeable]))
 
 (set! *warn-on-reflection* true)
 
@@ -150,68 +152,119 @@ See pigpen.core and pigpen.exec
 
 ;; ********** IO **********
 
-(defn load* [description read-fn]
-  (->
-    (Observable/create
-      (fn [^Observer o]
-        (let [cancel (atom false)]
-          (future
-            (try
-              (do
-                (println "Start reading from " description)
-                (read-fn #(.onNext o %) (fn [_] @cancel))
-                (.onCompleted o))
-              (catch Exception e (.onError o e))))
-          (reify Subscription
-            (unsubscribe [this] (reset! cancel true))))))
-    (.finallyDo
-      (reify Action0
-        (call [this] (println "Stop reading from " description))))
-    (.observeOn (Schedulers/threadPoolForIO))))
+(defmulti load
+  "Defines a local implementation of a loader. Should return a PigPenLocalLoader."
+  (fn [command] (get-in command [:storage :func])))
 
-(defmulti load #(get-in % [:storage :func]))
+(defprotocol PigPenLocalLoader
+  (locations [this])
+  (init-reader [this file])
+  (read [this reader])
+  (close-reader [this reader]))
+
+(defmulti store
+  "Defines a local implementation of storage. Should return a PigPenLocalStorage."
+  (fn [command] (get-in command [:storage :func])))
+
+(defprotocol PigPenLocalStorage
+  (init-writer [this])
+  (write [this writer value])
+  (close-writer [this writer]))
+
+;; unsubscribe doesn't seem to work with this version of rx
+;; This caps the maximum number of records read from a file/stream
+(def ^:dynamic *max-load-records* 1000)
+
+(defmethod graph->local :load
+  [{:keys [location], :as command} _]
+  (let [local-loader (load command)]
+    (->
+      (Observable/create
+        (fn [^Observer o]
+          (let [cancel (atom false)
+                read-count (atom 0)]
+            (future
+              (try
+                (println "Start reading from " location)
+                (doseq [file (locations local-loader)
+                        :while (not @cancel)
+                        :while (< @read-count *max-load-records*)]
+                  (let [reader (init-reader local-loader file)]
+                    (doseq [value (read local-loader reader)
+                            :while (not @cancel)
+                            :while (< @read-count *max-load-records*)]
+                      (swap! read-count inc)
+                      (.onNext o value))
+                    (close-reader local-loader reader)))
+                (.onCompleted o)
+                (catch Exception e (.onError o e))))
+            (reify Subscription
+              (unsubscribe [this]
+                (reset! cancel true))))))
+      (.finallyDo
+        (reify Action0
+          (call [this] (println "Stop reading from " location))))
+      (.observeOn (Schedulers/threadPoolForIO)))))
+
+(defmethod graph->local :store
+  [{:keys [location], :as command} data]
+  (let [local-storage (store command)
+        writer (delay
+                 (println "Start writing to " location)
+                 (init-writer local-storage))]
+    (-> data
+      first
+      (dereference-all)
+      (.map
+        (fn [value]
+          (write local-storage @writer value)
+          value))
+      (.finallyDo
+        (reify Action0
+          (call [this] (when (realized? writer)
+                         (println "Stop writing to " location)
+                         (close-writer local-storage @writer))))))))
+
+(defmethod graph->local :return [{:keys [^Iterable data]} _]
+  (Observable/from data))
+
+(defmulti load-list (fn [location] (re-find #"^([a-z0-9]+)://" location)))
+
+(defmethod load-list :default [location]
+  (list-files location))
+
+(defmulti load-reader (fn [location] (re-find #"^([a-z0-9]+)://" location)))
+
+(defmethod load-reader :default [location]
+  (io/reader location))
 
 (defmethod load "PigStorage" [{:keys [location fields storage opts]}]
   (let [{:keys [cast]} opts
         delimiter (-> storage :args first edn/read-string)
         delimiter (if delimiter (Pattern/compile (str delimiter)) #"\t")]
-    (load* (str "PigStorage:" location)
-      (fn [on-next cancel?]
-        (with-open [rdr (io/reader location)]
-          (doseq [line (take-while (complement cancel?) (line-seq rdr))]
-            (on-next
-              (->>
-                (clojure.string/split line delimiter)
-                (map (fn [^String s] (pig/cast-bytes cast (.getBytes s))))
-                (zipmap fields)))))))))
+    (reify PigPenLocalLoader
+      (locations [_]
+        (load-list location))
+      (init-reader [_ file]
+        (load-reader location))
+      (read [_ reader]
+        (for [line (line-seq reader)]
+          (->>
+            (clojure.string/split line delimiter)
+            (map (fn [^String s] (pig/cast-bytes cast (.getBytes s))))
+            (zipmap fields))))
+      (close-reader [_ reader]
+        (.close ^Closeable reader)))))
 
-(defmulti store (fn [command data] (get-in command [:storage :func])))
-
-(defmethod store "PigStorage" [{:keys [location fields]} ^Observable data]
-  (let [writer (delay
-                 (println "Start writing to PigStorage:" location)
-                 (io/writer location))]
-    (-> data
-      (dereference-all)
-      (.filter
-        (fn [value]
-          (let [line (str (clojure.string/join "\t" (for [f fields] (str (f value)))) "\n")]
-            (.write ^Writer @writer line))
-          false))
-      (.finallyDo
-        (reify Action0
-          (call [this] (when (realized? writer)
-                         (println "Stop writing to PigStorage:" location)
-                         (.close ^Writer @writer))))))))
-
-(defmethod graph->local :load [command _]
-  (load command))
-
-(defmethod graph->local :store [command data]
-  (store command (first data)))
-
-(defmethod graph->local :return [{:keys [^Iterable data]} _]
-  (Observable/from data))
+(defmethod store "PigStorage" [{:keys [location fields]}]
+  (reify PigPenLocalStorage
+    (init-writer [_]
+      (io/writer location))
+    (write [_ writer value]
+      (let [line (str (clojure.string/join "\t" (for [f fields] (str (f value)))) "\n")]
+        (.write ^Writer writer line)))
+    (close-writer [_ writer]
+      (.close ^Writer writer))))
 
 ;; ********** Map **********
 
