@@ -1,1 +1,3 @@
-rootProject.name='pigpen'
+rootProject.name='pigpen-multi'
+include 'pigpen-core','pigpen-parquet'
+project(':pigpen-core').name = 'pigpen'
