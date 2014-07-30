@@ -19,7 +19,7 @@
 (ns pigpen.local-test
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff pigsym-inc]]
-            [pigpen.local :as local]
+            [pigpen.local :as local :refer [PigPenLocalLoader]]
             [pigpen.pig :refer [freeze-vals thaw-anything]]
             [pigpen.raw :as raw]
             [pigpen.core :as pig]
@@ -108,7 +108,7 @@
                     (pig/store-clj "build/local-test/test-debug-out"))]
       (spit "build/local-test/test-debug-in" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
       #_(exec/write-script "build/local-test/temp.pig" {:debug "build/local-test/"} command)
-      (is (empty? (exec/dump {:debug "build/local-test/test-debug-"} command)))
+      (exec/dump {:debug "build/local-test/test-debug-"} command)
       (is (= "class java.lang.String\t{:a 1, :b \"foo\"}\nclass java.lang.String\t{:a 2, :b \"bar\"}\n"
             (slurp "build/local-test/test-debug-load1")))
       (is (= "class clojure.lang.PersistentArrayMap\t{:a 1, :b \"foo\"}\nclass clojure.lang.PersistentArrayMap\t{:a 2, :b \"bar\"}\n"
@@ -130,11 +130,50 @@
       '[{a "a", b "b", c "c"}
         {a "1", b "2", c "3"}])))
 
+(defmethod local/load "BadStorage" [command]
+  (let [fail (get-in command [:opts :fail])]
+    (reify PigPenLocalLoader
+      (locations [_]
+        (if (= fail :locations)
+          (throw (Exception. "locations"))
+          ["foo" "bar"]))
+      (init-reader [_ _]
+        (if (= fail :init-reader)
+          (throw (Exception. "init-reader"))
+          :reader))
+      (read [_ _]
+        (if (= fail :read)
+          (throw (Exception. "read"))
+          [{'value 1}
+           {'value 2}
+           {'value 3}]))
+      (close-reader [_ _]
+        (when (= fail :close)
+          (throw (Exception. "close-reader")))))))
+
+(deftest test-load-exception-handling
+  (let [storage (raw/storage$ [] "BadStorage" [])]
+    (testing "normal"
+      (let [command (raw/load$ "nothing" ['value] storage {:fail nil})]
+        (is (= (exec/dump command) [1 2 3 1 2 3]))))
+    (testing "fail locations"
+      (let [command (raw/load$ "nothing" ['value] storage {:fail :locations})]
+        (is (thrown? Exception (exec/dump command)))))
+    (testing "fail init-reader"
+      (let [command (raw/load$ "nothing" ['value] storage {:fail :init-reader})]
+        (is (thrown? Exception (exec/dump command)))))
+    (testing "fail read"
+      (let [command (raw/load$ "nothing" ['value] storage {:fail :read})]
+        (is (thrown? Exception (exec/dump command)))))
+    (testing "fail close"
+      (let [command (raw/load$ "nothing" ['value] storage {:fail :close})]
+        (is (thrown? Exception (exec/dump command)))))))
+
 (deftest test-store
   (let [data (io/return-raw '[{a "a", b "b", c "c"}
                               {a "1", b "2", c "3"}])
         command (raw/store$ data "build/local-test/test-store" raw/default-storage {})]
-    (is (empty? (debug-script command)))
+    (debug-script command)
     (is (= "a\tb\tc\n1\t2\t3\n"
            (slurp "build/local-test/test-store")))))
 

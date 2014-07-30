@@ -45,3 +45,8 @@ Useful for unit tests."
 (defn regex->string [command]
   ;; regexes don't implement value equality so we make them strings for tests
   (clojure.walk/postwalk #(if (instance? java.util.regex.Pattern %) (str %) %) command))
+
+(defmacro debug [body]
+  `(let [x# ~body]
+     (println "debug:" '~body " => " x#)
+     x#))
