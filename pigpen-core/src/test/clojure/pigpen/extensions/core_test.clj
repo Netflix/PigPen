@@ -47,3 +47,33 @@
           "a" :bar "a:bar"
           "b" :foo "b:foo"
           "b" :bar "b:bar"])))
+
+(deftest test-lazy-split
+  (testing "split on pattern"
+    (is (not (realized? (rest (lazy-split "\tabc\t\t123\t" #"\t")))))
+    (is (= ["" "abc" "" "123" ""] (lazy-split "\tabc\t\t123\t" #"\t")))
+    (is (= ["^" "abc" "" "123" ""] (lazy-split "^\tabc\t\t123\t" #"\t")))
+    (is (= ["" "abc" "" "123" "$"] (lazy-split "\tabc\t\t123\t$" #"\t")))
+    (is (= ["Escaped comma\\, does not" "break up fields" "with the right regex"] (lazy-split "Escaped comma\\, does not,break up fields,with the right regex" #"(?<!\\),")))
+    (is (= ["\tdifferent\t" "\tdelimiter\t"] (lazy-split "\tdifferent\t<==>\tdelimiter\t" #"<==>"))))
+
+  (testing "split on string"
+    (is (not (realized? (rest (lazy-split "\tabc\t\t123\t" "\t")))))
+    (is (= ["" "abc" "" "123" ""] (lazy-split "\tabc\t\t123\t" "\t")))
+    (is (= ["^" "abc" "" "123" ""] (lazy-split "^\tabc\t\t123\t" "\t")))
+    (is (= ["" "abc" "" "123" "$"] (lazy-split "\tabc\t\t123\t$" "\t")))
+    (is (= ["\tdifferent\t" "\tdelimiter\t"] (lazy-split "\tdifferent\t<==>\tdelimiter\t" "<==>")))))
+
+(deftest test-structured-split
+  (testing "split on pattern"
+    (is (= ["" "abc" "" "123" ""] (structured-split "\tabc\t\t123\t" #"\t")))
+    (is (= ["^" "abc" "" "123" ""] (structured-split "^\tabc\t\t123\t" #"\t")))
+    (is (= ["" "abc" "" "123" "$"] (structured-split "\tabc\t\t123\t$" #"\t")))
+    (is (= ["Escaped comma\\, does not" "break up fields" "with the right regex"] (structured-split "Escaped comma\\, does not,break up fields,with the right regex" #"(?<!\\),")))
+    (is (= ["\tdifferent\t" "\tdelimiter\t"] (structured-split "\tdifferent\t<==>\tdelimiter\t" #"<==>"))))
+
+  (testing "split on string"
+    (is (= ["" "abc" "" "123" ""] (structured-split "\tabc\t\t123\t" "\t")))
+    (is (= ["^" "abc" "" "123" ""] (structured-split "^\tabc\t\t123\t" "\t")))
+    (is (= ["" "abc" "" "123" "$"] (structured-split "\tabc\t\t123\t$" "\t")))
+    (is (= ["\tdifferent\t" "\tdelimiter\t"] (structured-split "\tdifferent\t<==>\tdelimiter\t" "<==>")))))

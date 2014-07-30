@@ -66,3 +66,41 @@
   [seq-exprs body-expr]
   `(apply concat
      (for ~seq-exprs ~body-expr)))
+
+(defn lazy-split
+  "Returns a lazy sequence of the string split on the delimiter."
+  [^String s delimiter]
+  (if (instance? java.util.regex.Pattern delimiter)
+    (let [^java.util.regex.Pattern delimiter delimiter
+          step (fn step [index]
+                 (when (<= index (.length s))
+                   (let [matcher (.matcher delimiter s)
+                         is-found (.find matcher index)
+                         end (if is-found (.start matcher) (.length s))
+                         next-step (if is-found (.end matcher) (inc (.length s)))]
+                     (cons (subs s index end) (lazy-seq (step next-step))))))]
+      (step 0))
+    (let [^String delimiter (if (clojure.string/blank? delimiter) "\t" delimiter)
+          step (fn step [index]
+                 (when (<= index (.length s))
+                   (let [index-of-delimiter (.indexOf s delimiter (int index))
+                         end (if (<= 0 index-of-delimiter) index-of-delimiter (.length s))
+                         next-step (+ end (.length delimiter))]
+                     (cons (subs s index end) (lazy-seq (step next-step))))))]
+      (step 0))))
+
+(defn structured-split
+  "Returns a vector of the string split on the delimiter."
+  [^String s delimiter]
+  (if (instance? java.util.regex.Pattern delimiter)
+    (clojure.string/split s delimiter -1)
+    (let [^String delimiter (if (clojure.string/blank? delimiter) "\t" delimiter)
+          step (fn step [v index]
+                 (if (> index (.length s))
+                   v
+                   (let [index-of-delimiter (.indexOf s delimiter (int index))
+                         end (if (<= 0 index-of-delimiter) index-of-delimiter (.length s))
+                         next-step (+ end (.length delimiter))
+                         next-vec (conj v (subs s index end))]
+                     (recur next-vec next-step))))]
+      (step [] 0))))

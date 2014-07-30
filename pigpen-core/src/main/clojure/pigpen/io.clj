@@ -92,9 +92,9 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
   See also: pigpen.core/load-string, pigpen.core/load-clj, pigpen.core/load-json
 "
   {:added "0.1.0"}
-  ([location] (load-tsv location #"\t"))
+  ([location] (load-tsv location "\t"))
   ([location delimiter]
-    (load-string* location [] `(fn [~'s] (if ~'s (clojure.string/split ~'s ~delimiter))))))
+    (load-string* location [] `(fn [~'s] (if ~'s (pigpen.extensions.core/structured-split ~'s ~delimiter))))))
 
 (defn load-clj
   "Loads clojure data from a file. Each line should contain one value and will
@@ -137,19 +137,15 @@ read-str as a map. The default options used are {:key-fn keyword}.
 Loads data from a tsv file. Each line is returned as a lazy seq, split by
 the specified delimiter. The default delimiter is \\t.
 
-  Note: The delimiter is wrapped with [^ ]+ to negate it for use with re-seq.
-        Thus, only simple delimiters are supported. Experimental & might not work.
-
   Note: Internally this uses \\u0000 as the split char so Pig won't split the line.
         This won't work for files that actually have that char
 
   See also: pigpen.core/load-tsv
 "
   {:added "0.1.0"}
-  ([location] (load-lazy location #"\t"))
+  ([location] (load-lazy location "\t"))
   ([location delimiter]
-    (let [delimiter (java.util.regex.Pattern/compile (str "[^" delimiter "]"))]
-      (load-string* location [] `(fn [~'s] (re-seq ~delimiter ~'s))))))
+    (load-string* location [] `(fn [~'s] (pigpen.extensions.core/lazy-split ~'s ~delimiter)))))
 
 (defn store-binary
   "Stores data in the PigPen binary format. This is generally not used

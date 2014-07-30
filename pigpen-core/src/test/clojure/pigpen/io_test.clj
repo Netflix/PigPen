@@ -98,7 +98,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind (clojure.core/fn [s] (if s (clojure.string/split s "\\t"))))
+        :func (pigpen.pig/map->bind (clojure.core/fn [s] (if s (pigpen.extensions.core/structured-split s "\t"))))
         :args [value]
         :requires []
         :fields [value]
@@ -183,7 +183,7 @@
       '{:type :bind
        :id bind2
        :description nil
-       :func (pigpen.pig/map->bind (clojure.core/fn [s] (clojure.core/re-seq "[^\\t]" s)))
+       :func (pigpen.pig/map->bind (clojure.core/fn [s] (pigpen.extensions.core/lazy-split s "\t")))
        :args [value]
        :requires []
        :fields [value]
