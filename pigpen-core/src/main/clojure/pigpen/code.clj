@@ -84,14 +84,20 @@ or reduce."
     ;(nippy/freezeable? v) [k `(thaw (decode ~(encode (freeze v))))]
     :else [k `(quote ~v)]))
 
+(defn resource-exists
+  "Converts a ns to a resource with the specified ext and checks for existence"
+  [ns ext]
+  (as-> ns %
+    (clojure.string/replace % "." "/")
+    (clojure.string/replace % "-" "_")
+    (str % ext)
+    (clojure.java.io/resource %)))
+
 (defn ns-exists
   "Returns the ns if it exists as a resource"
   [ns]
-  (when (and ns (as-> ns %
-                 (clojure.string/replace % "." "/")
-                 (clojure.string/replace % "-" "_")
-                 (str % ".clj")
-                 (clojure.java.io/resource %)))
+  (when (and ns (or (resource-exists ns ".clj")
+                    (resource-exists ns "__init.class")))
     ns))
 
 (defn build-requires [nss]
