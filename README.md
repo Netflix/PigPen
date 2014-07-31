@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.7"]
+[com.netflix.pigpen/pigpen "0.2.8"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.7"
+compile "com.netflix.pigpen:pigpen:0.2.8"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.7</version>
+  <version>0.2.8</version>
 </dependency>
 ```
 
@@ -53,15 +53,15 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 To use the parquet loader, add this to your dependencies:
 
 ``` clj
-[com.netflix.pigpen/pigpen-parquet "0.2.7"]
+[com.netflix.pigpen/pigpen-parquet "0.2.8"]
 ```
 
 And because of the weird way Pig handles dependencies, you'll also need to add antlr and log4j for local mode to work properly:
 
 ``` clj
 :dependencies [[org.clojure/clojure "1.5.1"]
-               [com.netflix.pigpen/pigpen "0.2.7"]
-               [com.netflix.pigpen/pigpen-parquet "0.2.7"]]
+               [com.netflix.pigpen/pigpen "0.2.8"]
+               [com.netflix.pigpen/pigpen-parquet "0.2.8"]]
 :profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
                                 [org.apache.hadoop/hadoop-core "1.1.2"]
                                 [org.antlr/antlr "3.5.2"]
@@ -70,7 +70,9 @@ And because of the weird way Pig handles dependencies, you'll also need to add a
 
 # Release Notes
 
-  * 0.2.7
+  * 0.2.8
+    * Fix a bug in `load-tsv` and `load-lazy`
+  * 0.2.7 *** Don't use ***
     * Fix `load-lazy` and speed up both `load-tsv` and `load-lazy`
     * Convert to multi-project build
     * Added pigpen-parquet with initial support for loading the Parquet format: https://github.com/apache/incubator-parquet-mr
