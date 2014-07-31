@@ -100,7 +100,7 @@
         :description nil
         :func (pigpen.pig/map->bind (clojure.core/fn [s] (if s (pigpen.extensions.core/structured-split s "\t"))))
         :args [value]
-        :requires []
+        :requires [pigpen.extensions.core]
         :fields [value]
         :field-type-in :native
         :field-type-out :frozen
@@ -185,7 +185,7 @@
        :description nil
        :func (pigpen.pig/map->bind (clojure.core/fn [s] (pigpen.extensions.core/lazy-split s "\t")))
        :args [value]
-       :requires []
+       :requires [pigpen.extensions.core]
        :fields [value]
        :field-type-in :native
        :field-type-out :frozen

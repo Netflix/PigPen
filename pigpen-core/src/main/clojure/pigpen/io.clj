@@ -94,7 +94,7 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
   {:added "0.1.0"}
   ([location] (load-tsv location "\t"))
   ([location delimiter]
-    (load-string* location [] `(fn [~'s] (if ~'s (pigpen.extensions.core/structured-split ~'s ~delimiter))))))
+    (load-string* location '[pigpen.extensions.core] `(fn [~'s] (if ~'s (pigpen.extensions.core/structured-split ~'s ~delimiter))))))
 
 (defn load-clj
   "Loads clojure data from a file. Each line should contain one value and will
@@ -130,7 +130,6 @@ read-str as a map. The default options used are {:key-fn keyword}.
       `(load-string* ~location '[clojure.data.json]
                      `(fn [~'~'s] (clojure.data.json/read-str ~'~'s ~@~@opts'))))))
 
-;; TODO fix the regex inversion
 (defn load-lazy
   "ALPHA / EXPERIMENTAL - May be removed
 
@@ -145,7 +144,7 @@ the specified delimiter. The default delimiter is \\t.
   {:added "0.1.0"}
   ([location] (load-lazy location "\t"))
   ([location delimiter]
-    (load-string* location [] `(fn [~'s] (pigpen.extensions.core/lazy-split ~'s ~delimiter)))))
+    (load-string* location '[pigpen.extensions.core] `(fn [~'s] (pigpen.extensions.core/lazy-split ~'s ~delimiter)))))
 
 (defn store-binary
   "Stores data in the PigPen binary format. This is generally not used
