@@ -16,6 +16,7 @@ allprojects {
     repositories { 
         mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
 	    maven { url 'http://clojars.org/repo' }
+      maven { url 'http://conjars.org/repo' }
     }
 }
 

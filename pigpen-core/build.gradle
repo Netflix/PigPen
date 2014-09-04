@@ -12,4 +12,6 @@ dependencies {
 
     provided 'org.apache.pig:pig:0.11.1'
     provided 'org.apache.hadoop:hadoop-core:1.1.2'
+    provided 'cascading:cascading-core:2.5.1'
+    provided 'cascading:cascading-hadoop:2.5.1'
 }
