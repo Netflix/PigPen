@@ -14,6 +14,9 @@
           "Converts an individual command into the equivalent Cascading flow definition."
           (fn [{:keys [type]} flowdef] type))
 
+(defmethod command->flowdef :register
+           [commands flowdef]
+  flowdef)
 
 (defmethod command->flowdef :load
            [{:keys [id location storage fields opts]} flowdef]
