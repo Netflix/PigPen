@@ -18,8 +18,7 @@
 (defmethod command->flowdef :load
            [{:keys [id location storage fields opts]} flowdef]
   {:pre [id location storage fields]}
-  (update-in flowdef [:sources] (partial merge {id ((get-tap-fn (:func storage)) location)}))
-  )
+  (update-in flowdef [:sources] (partial merge {id ((get-tap-fn (:func storage)) location)})))
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
