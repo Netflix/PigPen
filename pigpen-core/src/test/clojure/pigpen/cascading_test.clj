@@ -3,7 +3,7 @@
   (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]))
 
 (deftest test-taps
-  (println (command->flow '{:type     :load
+  (println (command->flowdef '{:type     :load
                             :id       load0
                             :location "some/path"
                             :storage  {:type :storage
@@ -15,4 +15,10 @@
   (is (= 1 1)))
 
 (deftest test-load-text
-  (println (load-text "the-location")))
+  (let [load-cmd (load-text "the/location")]
+    (println "load-cmd:" load-cmd)
+    (println (command->flowdef load-cmd {}))))
+
+(deftest test-commands->flow
+  (println (commands->flow [(load-text "the/location1")
+                           (load-text "the/location2")])))

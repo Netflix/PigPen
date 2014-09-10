@@ -8,18 +8,22 @@
    name))
 
 (defn load-text [location]
-  (raw/load$ location ["offset" "line"] (raw/storage$ [] "asdf" #_(Hfs. (TextLine.) location) {}) {}))
+  (raw/load$ location ["offset" "line"] (raw/storage$ [] "text" {}) {}))
 
-(defmulti command->flow
+(defmulti command->flowdef
           "Converts an individual command into the equivalent Cascading flow definition."
-          (fn [{:keys [type]} flow-def] type))
+          (fn [{:keys [type]} flowdef] type))
 
 
-(defmethod command->flow :load
-           [{:keys [id location storage fields opts]} flow-def]
+(defmethod command->flowdef :load
+           [{:keys [id location storage fields opts]} flowdef]
   {:pre [id location storage fields]}
-  ;(println id location storage fields)
-  (assoc flow-def :sources {id ((get-tap-fn (:func storage)) location)})
+  (update-in flowdef [:sources] (partial merge {id ((get-tap-fn (:func storage)) location)}))
   )
 
+(defn commands->flow
+  "Transforms a series of commands into a Cascading flow"
+  [commands]
+  (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} commands)]
+    flowdef))
 
