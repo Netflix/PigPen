@@ -23,6 +23,11 @@
   {:pre [id location storage fields]}
   (update-in flowdef [:sources] (partial merge {id ((get-tap-fn (:func storage)) location)})))
 
+(defmethod command->flowdef :generate
+           [{:keys [id ancestors projections opts]} flowdef]
+  {:pre [id ancestors (not-empty projections)]}
+  (update-in flowdef [:source-to-pipe] (partial merge {(first ancestors) "pipe"})))
+
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
   [commands]

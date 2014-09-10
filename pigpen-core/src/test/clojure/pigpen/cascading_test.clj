@@ -88,4 +88,4 @@
                             (load-text "the/location2")])))
 
 (deftest test-commands->flow2
-  (println (commands->flow (take 2 commands))))
+  (println (commands->flow (take 3 commands))))
