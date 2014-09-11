@@ -74,7 +74,7 @@
                 :opts       {:type :generate-opts, :implicit-schema nil}}
                {:args [],
                 :storage
-                             {:type :storage, :references [], :func "PigStorage", :args []},
+                             {:type :storage, :references [], :func "text", :args []},
                 :location    "output",
                 :fields      [value],
                 :ancestors   [generate3614],
@@ -88,4 +88,4 @@
                             (load-text "the/location2")])))
 
 (deftest test-commands->flow2
-  (println (commands->flow (take 3 commands))))
+  (println (commands->flow (take 4 commands))))
