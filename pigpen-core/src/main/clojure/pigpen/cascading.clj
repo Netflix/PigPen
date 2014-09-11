@@ -57,10 +57,8 @@
         sources-map (into {} (map (fn [[p s]] [(str p) (sources s)]) pipe-to-source))
         sinks-map (into {} (map (fn [[p s]] [(str p) (sinks s)]) pipe-to-sink))
         tail-pipes (into-array Pipe (map #(pipes %) (keys pipe-to-sink)))]
-
     (println sources-map)
     (println sinks-map)
     (println tail-pipes)
-    (.connect (HadoopFlowConnector.) sources-map sinks-map tail-pipes)
-    flowdef))
+    (.connect (HadoopFlowConnector.) sources-map sinks-map tail-pipes)))
 

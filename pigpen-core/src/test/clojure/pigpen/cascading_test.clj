@@ -1,4 +1,7 @@
 (ns pigpen.cascading-test
+  (:import (java.io File)
+           (org.apache.hadoop.fs FileSystem Path)
+           (org.apache.hadoop.conf Configuration))
   (:use clojure.test pigpen.cascading)
   (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]))
 
@@ -38,7 +41,7 @@
                               :references [],
                               :func       "text",
                               :args       ["\\u0000"]},
-                :location    "input"}
+                :location    "/tmp/input"}
                {:args      [],
                 :fields    [value],
                 :ancestors [load3596],
@@ -75,7 +78,7 @@
                {:args [],
                 :storage
                              {:type :storage, :references [], :func "text", :args []},
-                :location    "output",
+                :location    "/tmp/output",
                 :fields      [value],
                 :ancestors   [generate3614],
                 :type        :store,
@@ -84,8 +87,10 @@
                 :opts        {:type :store-opts}}])
 
 (deftest test-commands->flow
-  (println (commands->flow [(load-text "the/location1")
-                            (load-text "the/location2")])))
+  (spit "/tmp/input" "1\t2\tfoo\n4\t5\tbar")
+  (.delete (FileSystem/get (Configuration.)) (Path. "/tmp/output") true)
+  (let [flow (commands->flow commands)]
+    (println flow)
+    (.complete flow)))
 
-(deftest test-commands->flow2
-  (println (commands->flow (take 4 commands))))
+;(run-tests 'pigpen.cascading-test)
