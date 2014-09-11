@@ -1,7 +1,8 @@
 (ns pigpen.cascading
   (:import (cascading.tap.hadoop Hfs)
            (cascading.scheme.hadoop TextLine)
-           (cascading.pipe Pipe))
+           (cascading.pipe Pipe)
+           (cascading.flow.hadoop HadoopFlowConnector))
   (:require [pigpen.raw :as raw]))
 
 (defn- get-tap-fn [name]
@@ -30,10 +31,9 @@
 (defmethod command->flowdef :store
            [{:keys [id ancestors location storage opts]} flowdef]
   {:pre [id ancestors location storage]}
-  (let [tap ((get-tap-fn (:func storage)) location)]
-    (-> flowdef
-        (update-in [:pipe-to-sink] (partial merge {(first ancestors) tap}))
-        (update-in [:sinks] (partial merge {id tap})))))
+  (-> flowdef
+      (update-in [:pipe-to-sink] (partial merge {(first ancestors) id}))
+      (update-in [:sinks] (partial merge {id ((get-tap-fn (:func storage)) location)}))))
 
 (defmethod command->flowdef :generate
            [{:keys [id ancestors projections opts]} flowdef]
@@ -41,7 +41,7 @@
   (if (contains? (:sources flowdef) (first ancestors))
     (let [pipe (Pipe. (str id))]
       (-> flowdef
-          (update-in [:source-to-pipe] (partial merge {(first ancestors) pipe}))
+          (update-in [:pipe-to-source] (partial merge {id (first ancestors)}))
           (update-in [:pipes] (partial merge {id pipe}))))
     (throw (Exception. "not implemented"))))
 
@@ -52,6 +52,15 @@
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
   [commands]
-  (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} commands)]
+  (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} commands)
+        {:keys [pipe-to-source sources pipe-to-sink sinks pipes]} flowdef
+        sources-map (into {} (map (fn [[p s]] [(str p) (sources s)]) pipe-to-source))
+        sinks-map (into {} (map (fn [[p s]] [(str p) (sinks s)]) pipe-to-sink))
+        tail-pipes (into-array Pipe (map #(pipes %) (keys pipe-to-sink)))]
+
+    (println sources-map)
+    (println sinks-map)
+    (println tail-pipes)
+    (.connect (HadoopFlowConnector.) sources-map sinks-map tail-pipes)
     flowdef))
 
