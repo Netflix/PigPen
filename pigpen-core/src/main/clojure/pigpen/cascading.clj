@@ -13,7 +13,10 @@
       tap)))
 
 (defn load-text [location]
-  (raw/load$ location ["offset" "line"] (raw/storage$ [] "text" {}) {}))
+  (raw/load$ location ["value"] (raw/storage$ [] "text" {}) {}))
+
+(defn store-text [location relation]
+  (raw/store$ relation location (raw/storage$ [] "text" {}) {}))
 
 (defmulti command->flowdef
           "Converts an individual command into the equivalent Cascading flow definition."
