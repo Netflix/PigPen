@@ -13,7 +13,11 @@
       tap)))
 
 (defn load-text [location]
-  (raw/load$ location ["value"] (raw/storage$ [] "text" {}) {}))
+  (-> (raw/load$ location '[offset line] (raw/storage$ [] "text" {}) {})
+      (raw/bind$
+        '(pigpen.pig/map->bind (fn [_ line] line))
+        {:args '[offset line]
+         :field-type-in :native})))
 
 (defn store-text [location relation]
   (raw/store$ relation location (raw/storage$ [] "text" {}) {}))

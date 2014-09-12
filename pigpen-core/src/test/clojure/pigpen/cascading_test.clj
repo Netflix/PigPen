@@ -37,7 +37,6 @@
                 (load-text input-file)
                 (func)
                 (store-text output-file)))]
-    (println (query "/tmp/input" "/tmp/output"))
     (pigpen.oven/bake (query "/tmp/input" "/tmp/output"))))
 
 (deftest test-commands->flow
