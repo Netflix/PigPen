@@ -37,6 +37,9 @@
   ([location delimiter relation]
    (store-text location `(fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))) relation)))
 
+(defn store-clj [location relation]
+  (store-text location `clojure.core/pr-str relation))
+
 (defmulti command->flowdef
           "Converts an individual command into the equivalent Cascading flow definition."
           (fn [{:keys [type]} flowdef] type))

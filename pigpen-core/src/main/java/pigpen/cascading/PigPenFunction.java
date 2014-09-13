@@ -5,6 +5,7 @@ import java.util.List;
 
 import clojure.lang.IFn;
 import clojure.lang.RT;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 
 import cascading.flow.FlowProcess;
@@ -39,9 +40,19 @@ public class PigPenFunction extends BaseOperation implements Function {
   public void operate(FlowProcess flowProcess, FunctionCall functionCall) {
     TupleEntry tupleEntry = functionCall.getArguments();
     IFn fn = (IFn)functionCall.getContext();
-    DataBag result = (DataBag)fn.invoke(tupleEntry.getTuple());
-    System.out.println("tupleEntry = " + tupleEntry);
-    System.out.println("result = " + result);
-    functionCall.getOutputCollector().add(new Tuple(result));
+    Object result = fn.invoke(tupleEntry.getTuple());
+    emitOutput(functionCall, result);
+  }
+
+  // TODO: this should not use DataBag or any other Pig class.
+  private void emitOutput(FunctionCall functionCall, Object result) {
+    for (org.apache.pig.data.Tuple tuple : (DataBag) result) {
+      try {
+        Object val = tuple.get(0);
+        functionCall.getOutputCollector().add(new Tuple(val));
+      } catch (ExecException e) {
+        throw new RuntimeException();
+      }
+    }
   }
 }
