@@ -1,8 +1,5 @@
 package pigpen.cascading;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -46,7 +43,7 @@ public class PigPenFunction extends BaseOperation implements Function {
 
   // TODO: this should not use DataBag or any other Pig class.
   private void emitOutput(FunctionCall functionCall, Object result) {
-    for (org.apache.pig.data.Tuple tuple : (DataBag) result) {
+    for (org.apache.pig.data.Tuple tuple : (DataBag)result) {
       try {
         Object val = tuple.get(0);
         functionCall.getOutputCollector().add(new Tuple(val));

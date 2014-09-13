@@ -7,6 +7,7 @@
            (cascading.tuple Fields))
   (:require [pigpen.raw :as raw]))
 
+;; TODO: there must be a better way to pass a Tap to a storage definition.
 (defn- get-tap-fn [name]
   (let [tap ({"text" (fn [location] (Hfs. (TextLine.) location))}
              name)]
