@@ -37,6 +37,8 @@
                 (load-text input-file)
                 (func)
                 (store-text output-file)))]
+    (clojure.pprint/pprint (pigpen.oven/bake (query "/tmp/input" "/tmp/output")))
+    (println (pigpen.script/commands->script (pigpen.oven/bake (query "/tmp/input" "/tmp/output"))))
     (pigpen.oven/bake (query "/tmp/input" "/tmp/output"))))
 
 (deftest test-commands->flow

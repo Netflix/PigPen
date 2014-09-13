@@ -1,8 +1,10 @@
 (ns pigpen.cascading
   (:import (cascading.tap.hadoop Hfs)
            (cascading.scheme.hadoop TextLine)
-           (cascading.pipe Pipe)
-           (cascading.flow.hadoop HadoopFlowConnector))
+           (cascading.pipe Pipe Each)
+           (cascading.flow.hadoop HadoopFlowConnector)
+           (pigpen.cascading PigPenFunction)
+           (cascading.tuple Fields))
   (:require [pigpen.raw :as raw]))
 
 (defn- get-tap-fn [name]
@@ -12,11 +14,13 @@
       (throw (Exception. (str "Unrecognized tap type: " name)))
       tap)))
 
+;(defn load-text [location]
+;  (-> (raw/load$ location '[value] (raw/storage$ [] "text" {}) {})))
 (defn load-text [location]
   (-> (raw/load$ location '[offset line] (raw/storage$ [] "text" {}) {})
       (raw/bind$
         '(pigpen.pig/map->bind (fn [_ line] line))
-        {:args '[offset line]
+        {:args          '[offset line]
          :field-type-in :native})))
 
 (defn store-text [location relation]
@@ -42,15 +46,29 @@
       (update-in [:pipe-to-sink] (partial merge {(first ancestors) id}))
       (update-in [:sinks] (partial merge {id ((get-tap-fn (:func storage)) location)}))))
 
+(defmethod command->flowdef :code
+           [{:keys [return expr args pipe]} flowdef]
+  {:pre [return expr args]}
+  (let [id (raw/pigsym "udf")
+        {:keys [init func]} expr]
+    (println "init" flowdef)
+    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction.) Fields/RESULTS))))
+
+(defmethod command->flowdef :projection-flat
+           [{:keys [code alias pipe]} flowdef]
+  {:pre [code alias]}
+  (command->flowdef (assoc code :pipe pipe) flowdef))
+
 (defmethod command->flowdef :generate
            [{:keys [id ancestors projections opts]} flowdef]
   {:pre [id ancestors (not-empty projections)]}
-  (if (contains? (:sources flowdef) (first ancestors))
-    (let [pipe (Pipe. (str id))]
-      (-> flowdef
-          (update-in [:pipe-to-source] (partial merge {id (first ancestors)}))
-          (update-in [:pipes] (partial merge {id pipe}))))
-    (throw (Exception. "not implemented"))))
+  (let [new-flowdef (if (contains? (:sources flowdef) (first ancestors))
+                      (let [pipe (Pipe. (str id))]
+                        (-> flowdef
+                            (update-in [:pipe-to-source] (partial merge {id (first ancestors)}))
+                            (update-in [:pipes] (partial merge {id pipe}))))
+                      (throw (Exception. "not implemented")))]
+    (reduce (fn [def cmd] (command->flowdef (assoc cmd :pipe id) def)) new-flowdef projections)))
 
 (defmethod command->flowdef :default
            [command flowdef]
