@@ -36,7 +36,7 @@
               (->>
                 (load-tsv input-file)
                 (func)
-                (store-text output-file)))]
+                (store-tsv output-file)))]
     (clojure.pprint/pprint (pigpen.oven/bake (query "/tmp/input" "/tmp/output")))
     (println (pigpen.script/commands->script (pigpen.oven/bake (query "/tmp/input" "/tmp/output"))))
     (pigpen.oven/bake (query "/tmp/input" "/tmp/output"))))

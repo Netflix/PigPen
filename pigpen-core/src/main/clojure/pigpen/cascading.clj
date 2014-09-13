@@ -20,14 +20,22 @@
 (defn load-tsv
   ([location] (load-tsv location "\t"))
   ([location delimiter]
-  (-> (load-text location)
-      (raw/bind$
-        `(pigpen.pig/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
-        {:args '[offset line]
-         :field-type-in :native}))))
+   (-> (load-text location)
+       (raw/bind$
+         `(pigpen.pig/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
+         {:args          '[offset line]
+          :field-type-in :native}))))
 
-(defn store-text [location relation]
-  (raw/store$ relation location (raw/storage$ [] "text" {}) {}))
+(defn store-text [location f relation]
+  (-> relation
+      (raw/bind$ `(pigpen.pig/map->bind ~f)
+                 {:args (:fields relation), :field-type-out :native})
+      (raw/store$ location (raw/storage$ [] "text" {}) {})))
+
+(defn store-tsv
+  ([location relation] (store-tsv location "\t" relation))
+  ([location delimiter relation]
+   (store-text location `(fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))) relation)))
 
 (defmulti command->flowdef
           "Converts an individual command into the equivalent Cascading flow definition."
