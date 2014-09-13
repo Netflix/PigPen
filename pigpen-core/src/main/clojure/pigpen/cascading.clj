@@ -51,8 +51,7 @@
   {:pre [return expr args]}
   (let [id (raw/pigsym "udf")
         {:keys [init func]} expr]
-    (println "init" flowdef)
-    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction.) Fields/RESULTS))))
+    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func)) Fields/RESULTS))))
 
 (defmethod command->flowdef :projection-flat
            [{:keys [code alias pipe]} flowdef]

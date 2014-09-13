@@ -6,7 +6,7 @@
   (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.core :as pig]))
 
-(deftest test-taps
+(comment test-taps
   (println (command->flowdef '{:type     :load
                                :id       load0
                                :location "some/path"
@@ -18,7 +18,7 @@
                              {}))
   (is (= 1 1)))
 
-(deftest test-load-text
+(comment test-load-text
   (let [load-cmd (load-text "the/location")]
     (println "load-cmd:" load-cmd)
     (println (command->flowdef load-cmd {}))))
@@ -27,6 +27,7 @@
   (letfn
       [(func [data]
              (->> data
+                  (pig/map #(clojure.string/split % #"\t"))
                   (pig/map (fn [[a b c]]
                              {:sum  (+ (Integer/valueOf a) (Integer/valueOf b))
                               :name c}))
@@ -49,4 +50,4 @@
     (.complete flow))
   (println "results:\n" (slurp "/tmp/output/part-00000")))
 
-;(run-tests 'pigpen.cascading-test)
+(run-tests 'pigpen.cascading-test)
