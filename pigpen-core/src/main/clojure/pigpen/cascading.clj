@@ -14,14 +14,17 @@
       (throw (Exception. (str "Unrecognized tap type: " name)))
       tap)))
 
-;(defn load-text [location]
-;  (-> (raw/load$ location '[value] (raw/storage$ [] "text" {}) {})))
 (defn load-text [location]
-  (-> (raw/load$ location '[offset line] (raw/storage$ [] "text" {}) {})
+  (-> (raw/load$ location '[offset line] (raw/storage$ [] "text" {}) {})))
+
+(defn load-tsv
+  ([location] (load-tsv location "\t"))
+  ([location delimiter]
+  (-> (load-text location)
       (raw/bind$
-        '(pigpen.pig/map->bind (fn [_ line] line))
-        {:args          '[offset line]
-         :field-type-in :native})))
+        `(pigpen.pig/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
+        {:args '[offset line]
+         :field-type-in :native}))))
 
 (defn store-text [location relation]
   (raw/store$ relation location (raw/storage$ [] "text" {}) {}))

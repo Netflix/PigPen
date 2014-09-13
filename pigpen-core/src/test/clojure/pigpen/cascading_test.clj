@@ -27,7 +27,6 @@
   (letfn
       [(func [data]
              (->> data
-                  (pig/map #(clojure.string/split % #"\t"))
                   (pig/map (fn [[a b c]]
                              {:sum  (+ (Integer/valueOf a) (Integer/valueOf b))
                               :name c}))
@@ -35,7 +34,7 @@
                                 (< sum 5)))))
        (query [input-file output-file]
               (->>
-                (load-text input-file)
+                (load-tsv input-file)
                 (func)
                 (store-text output-file)))]
     (clojure.pprint/pprint (pigpen.oven/bake (query "/tmp/input" "/tmp/output")))

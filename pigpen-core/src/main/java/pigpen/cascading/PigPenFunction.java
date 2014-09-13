@@ -5,6 +5,7 @@ import java.util.List;
 
 import clojure.lang.IFn;
 import clojure.lang.RT;
+import org.apache.pig.data.DataBag;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
@@ -38,7 +39,7 @@ public class PigPenFunction extends BaseOperation implements Function {
   public void operate(FlowProcess flowProcess, FunctionCall functionCall) {
     TupleEntry tupleEntry = functionCall.getArguments();
     IFn fn = (IFn)functionCall.getContext();
-    Object result = fn.invoke(tupleEntry.getTuple());
+    DataBag result = (DataBag)fn.invoke(tupleEntry.getTuple());
     System.out.println("tupleEntry = " + tupleEntry);
     System.out.println("result = " + result);
     functionCall.getOutputCollector().add(new Tuple(result));
