@@ -173,7 +173,7 @@ See pigpen.core and pigpen.exec
 
 ;; unsubscribe doesn't seem to work with this version of rx
 ;; This caps the maximum number of records read from a file/stream
-(def ^:dynamic *max-load-records* 1000)
+(def ^:dynamic *max-load-records* nil)
 
 (defmethod graph->local :load
   [{:keys [location], :as command} _]
@@ -188,11 +188,11 @@ See pigpen.core and pigpen.exec
                 (println "Start reading from " location)
                 (doseq [file (locations local-loader)
                         :while (not @cancel)
-                        :while (< @read-count *max-load-records*)]
+                        :while (< @read-count (or *max-load-records* Double/POSITIVE_INFINITY))]
                   (let [reader (init-reader local-loader file)]
                     (doseq [value (read local-loader reader)
                             :while (not @cancel)
-                            :while (< @read-count *max-load-records*)]
+                            :while (< @read-count (or *max-load-records* Double/POSITIVE_INFINITY))]
                       (swap! read-count inc)
                       (.onNext o value))
                     (close-reader local-loader reader)))
