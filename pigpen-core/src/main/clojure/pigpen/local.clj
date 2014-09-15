@@ -228,12 +228,12 @@ See pigpen.core and pigpen.exec
 (defmethod graph->local :return [{:keys [^Iterable data]} _]
   (Observable/from data))
 
-(defmulti load-list (fn [location] (re-find #"^([a-z0-9]+)://" location)))
+(defmulti load-list (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
 
 (defmethod load-list :default [location]
   (list-files location))
 
-(defmulti load-reader (fn [location] (re-find #"^([a-z0-9]+)://" location)))
+(defmulti load-reader (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
 
 (defmethod load-reader :default [location]
   (io/reader location))
@@ -246,7 +246,7 @@ See pigpen.core and pigpen.exec
       (locations [_]
         (load-list location))
       (init-reader [_ file]
-        (load-reader location))
+        (load-reader file))
       (read [_ reader]
         (for [line (line-seq reader)]
           (->>
