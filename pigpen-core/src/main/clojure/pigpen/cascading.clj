@@ -5,7 +5,8 @@
            (cascading.flow.hadoop HadoopFlowConnector)
            (pigpen.cascading PigPenFunction)
            (cascading.tuple Fields))
-  (:require [pigpen.raw :as raw]))
+  (:require [pigpen.raw :as raw]
+            [pigpen.oven :as oven]))
 
 ;; TODO: there must be a better way to pass a Tap to a storage definition.
 (defn- get-tap-fn [name]
@@ -101,3 +102,10 @@
     (println tail-pipes)
     (.connect (HadoopFlowConnector.) sources-map sinks-map tail-pipes)))
 
+(defn generate-flow
+  "Transforms the relation specified into a Cascading flow that is ready to be executed."
+  ([query] (generate-flow {} query))
+  ([opts query]
+   (->> query
+        (oven/bake opts)
+        commands->flow)))
