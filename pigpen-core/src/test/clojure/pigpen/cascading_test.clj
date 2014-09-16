@@ -23,7 +23,7 @@
            (println "load-cmd:" load-cmd)
            (println (command->flowdef load-cmd {}))))
 
-(deftest test-simple-flow
+(comment test-simple-flow
   (spit "/tmp/input" "1\t2\tfoo\n4\t5\tbar")
   (.delete (FileSystem/get (Configuration.)) (Path. "/tmp/output") true)
   (letfn
@@ -48,16 +48,13 @@
   (spit "/tmp/input1" "{:a 1 :b 2}\n {:a 1 :b 3}\n {:a 2 :b 4}")
   (spit "/tmp/input2" "{:c 1 :d \"foo\"} {:c 2 :d \"bar\"} {:c 2 :d \"baz\"}")
   (.delete (FileSystem/get (Configuration.)) (Path. "/tmp/output") true)
-  (letfn
-      [(command [data]
-                (->> data
-                     (pig/map identity)))
-       (query [input1 output]
-              (->>
-                (load-clj input1)
-                (command)
-                (store-clj output)))]
-    (.complete (generate-flow (query "/tmp/input1" "/tmp/output")))
+  (let [left (load-clj "/tmp/input1")
+        right (load-clj "/tmp/input2")
+        command (pig/cogroup [(left :on :a)
+                              (right :on :c)]
+                              (fn [k l r] [k (map :b l) (map :d r)]))]
+    (clojure.pprint/pprint (pigpen.oven/bake command))
+    (.complete (generate-flow command))
     (println "results:\n" (slurp "/tmp/output/part-00000"))))
 
 (run-tests 'pigpen.cascading-test)

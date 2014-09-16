@@ -1,5 +1,166 @@
 (ns pigpen.pg)
 
+;; Cogroup after baking
+(comment
+  [{:args      [],
+    :fields    [],
+    :ancestors [],
+    :id        nil,
+    :type      :register,
+    :jar       "pigpen.jar"}
+   {:args        [],
+    :description "/tmp/input2",
+    :field-type  :native,
+    :fields      [offset line],
+    :type        :load,
+    :ancestors   [],
+    :id          load18,
+    :opts        {:type :load-opts},
+    :storage     {:type :storage, :references [], :func "text", :args {}},
+    :location    "/tmp/input2"}
+   {:args      [],
+    :fields    [value],
+    :ancestors [load18],
+    :projections
+                 [{:type :projection-flat,
+                   :code
+                          {:type :code,
+                           :expr
+                                   {:init (clojure.core/require '[pigpen.pig]),
+                                    :func
+                                          (pigpen.pig/exec
+                                            [(pigpen.pig/pre-process :native)
+                                             (pigpen.pig/map->bind
+                                               (clojure.core/fn
+                                                 [offset line]
+                                                 (clojure.edn/read-string line)))
+                                             (pigpen.pig/key-selector->bind
+                                               (pigpen.pig/with-ns pigpen.cascading-test :c))
+                                             (pigpen.pig/post-process :frozen-with-nils)])},
+                           :return "DataBag",
+                           :args   [offset line]},
+                   :alias value}],
+    :type        :generate,
+    :id          generate35,
+    :description "",
+    :field-type  :frozen-with-nils,
+    :opts        {:type :generate-opts, :implicit-schema true}}
+   {:args [],
+    :projections
+                 [{:type :projection-field, :field 0, :alias key}
+                  {:type :projection-field, :field 1, :alias value}],
+    :fields      [key value],
+    :ancestors   [generate35],
+    :type        :generate,
+    :id          generate23,
+    :description nil,
+    :field-type  :frozen,
+    :opts        {:type :generate-opts}}
+   {:args        [],
+    :description "/tmp/input1",
+    :field-type  :native,
+    :fields      [offset line],
+    :type        :load,
+    :ancestors   [],
+    :id          load16,
+    :opts        {:type :load-opts},
+    :storage     {:type :storage, :references [], :func "text", :args {}},
+    :location    "/tmp/input1"}
+   {:args      [],
+    :fields    [value],
+    :ancestors [load16],
+    :projections
+                 [{:type :projection-flat,
+                   :code
+                          {:type :code,
+                           :expr
+                                   {:init (clojure.core/require '[pigpen.pig]),
+                                    :func
+                                          (pigpen.pig/exec
+                                            [(pigpen.pig/pre-process :native)
+                                             (pigpen.pig/map->bind
+                                               (clojure.core/fn
+                                                 [offset line]
+                                                 (clojure.edn/read-string line)))
+                                             (pigpen.pig/key-selector->bind
+                                               (pigpen.pig/with-ns pigpen.cascading-test :a))
+                                             (pigpen.pig/post-process :frozen-with-nils)])},
+                           :return "DataBag",
+                           :args   [offset line]},
+                   :alias value}],
+    :type        :generate,
+    :id          generate36,
+    :description "",
+    :field-type  :frozen-with-nils,
+    :opts        {:type :generate-opts, :implicit-schema true}}
+   {:args [],
+    :projections
+                 [{:type :projection-field, :field 0, :alias key}
+                  {:type :projection-field, :field 1, :alias value}],
+    :fields      [key value],
+    :ancestors   [generate36],
+    :type        :generate,
+    :id          generate21,
+    :description nil,
+    :field-type  :frozen,
+    :opts        {:type :generate-opts}}
+   {:args        [],
+    :description "(fn [k l r] [k (map :b l) (map :d r)])\n",
+    :field-type  :frozen,
+    :fields
+                 [group
+                  [[generate21] key]
+                  [[generate21] value]
+                  [[generate23] key]
+                  [[generate23] value]],
+    :type        :group,
+    :ancestors   [generate21 generate23],
+    :keys        [[key] [key]],
+    :join-types  [:optional :optional],
+    :id          group32,
+    :opts        {:type :group-opts}}
+   {:args [],
+    :projections
+                 [{:type :projection-field, :field group, :alias value0}
+                  {:type  :projection-field,
+                   :field [[generate21] value],
+                   :alias value1}
+                  {:type  :projection-field,
+                   :field [[generate23] value],
+                   :alias value2}],
+    :fields      [value0 value1 value2],
+    :ancestors   [group32],
+    :type        :generate,
+    :id          generate33,
+    :description nil,
+    :field-type  :frozen,
+    :opts        {:type :generate-opts}}
+   {:args      [],
+    :fields    [value],
+    :ancestors [generate33],
+    :projections
+                 [{:type :projection-flat,
+                   :code
+                          {:type :code,
+                           :expr
+                                   {:init (clojure.core/require '[pigpen.pig]),
+                                    :func
+                                          (pigpen.pig/exec
+                                            [(pigpen.pig/pre-process :frozen)
+                                             (pigpen.pig/map->bind
+                                               (pigpen.pig/with-ns
+                                                 pigpen.cascading-test
+                                                 (fn [k l r] [k (map :b l) (map :d r)])))
+                                             (pigpen.pig/post-process :frozen)])},
+                           :return "DataBag",
+                           :args   [value0 value1 value2]},
+                   :alias value}],
+    :type        :generate,
+    :id          generate37,
+    :description "",
+    :field-type  :frozen,
+    :opts        {:type :generate-opts, :implicit-schema nil}}])
+
 ; my-func from the example
 (comment
   {:storage  {:type :storage, :references [], :func "PigStorage", :args []},

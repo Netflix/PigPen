@@ -84,7 +84,7 @@
 (defmethod command->flowdef :generate
            [{:keys [id ancestors projections opts]} flowdef]
   {:pre [id ancestors (not-empty projections)]}
-  (let [new-flowdef (if (contains? (:sources flowdef) (first ancestors))
+  (let [new-flowdef (if (or (contains? (:sources flowdef) (first ancestors)) (contains? (:pipe-to-source flowdef) (first ancestors)))
                       (let [pipe (Pipe. (str id))]
                         (-> flowdef
                             (update-in [:pipe-to-source] (partial merge {id (first ancestors)}))
