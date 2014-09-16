@@ -114,7 +114,7 @@ building blocks for more complex operations.")
   (storage$ [] "PigStorage" []))
 
 (def string-storage
-  (storage$ [] "PigStorage" ["\\u0000"]))
+  (storage$ [] "PigStorage" ["\\n"]))
 
 (defn load$
   [location fields storage opts]
