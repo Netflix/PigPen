@@ -362,15 +362,14 @@ fold operation to compose.
   {:added "0.2.0"}
   ([]
     (fold-fn (fn
-               ([] nil)
-               ([[s0 c0] [s1 c1]]
-                 [(+ s0 s1) (+ c0 c1)]))
-             (fn [[s c :as acc] val]
-               (if acc
-                 [(+ s val) (inc c)]
-                 [val 1]))
+               ([] [0 0])
+               ([l r]
+                 (mapv + l r)))
+             (fn [[s c] val]
+               [(+ s val) (inc c)])
              (fn [[s c]]
-               (/ s c))))
+               (when (pos? c)
+                 (/ s c)))))
   ([fold]
     (comp-fold-new fold (avg))))
 
