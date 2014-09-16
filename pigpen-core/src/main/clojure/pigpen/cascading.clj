@@ -28,6 +28,13 @@
          {:args          '[offset line]
           :field-type-in :native}))))
 
+(defn load-clj [location]
+  (-> (load-text location)
+      (raw/bind$
+        `(pigpen.pig/map->bind (fn [~'offset ~'line] (clojure.edn/read-string ~'line)))
+        {:args          '[offset line]
+         :field-type-in :native})))
+
 (defn store-text [location f relation]
   (-> relation
       (raw/bind$ `(pigpen.pig/map->bind ~f)

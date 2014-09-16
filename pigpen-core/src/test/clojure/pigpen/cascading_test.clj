@@ -44,4 +44,20 @@
       (.complete flow))
     (println "results:\n" (slurp "/tmp/output/part-00000"))))
 
+(deftest test-cogroup
+  (spit "/tmp/input1" "{:a 1 :b 2}\n {:a 1 :b 3}\n {:a 2 :b 4}")
+  (spit "/tmp/input2" "{:c 1 :d \"foo\"} {:c 2 :d \"bar\"} {:c 2 :d \"baz\"}")
+  (.delete (FileSystem/get (Configuration.)) (Path. "/tmp/output") true)
+  (letfn
+      [(command [data]
+                (->> data
+                     (pig/map identity)))
+       (query [input1 output]
+              (->>
+                (load-clj input1)
+                (command)
+                (store-clj output)))]
+    (.complete (generate-flow (query "/tmp/input1" "/tmp/output")))
+    (println "results:\n" (slurp "/tmp/output/part-00000"))))
+
 (run-tests 'pigpen.cascading-test)
