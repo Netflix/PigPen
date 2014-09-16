@@ -238,10 +238,15 @@ See pigpen.core and pigpen.exec
 (defmethod load-reader :default [location]
   (io/reader location))
 
+(defn ^:private parse-delimiter [d]
+  (case d
+    "\\n" #"\n"
+    "\\t" #"\t"
+    (Pattern/compile (str (read-string d)))))
+
 (defmethod load "PigStorage" [{:keys [location fields storage opts]}]
   (let [{:keys [cast]} opts
-        delimiter (-> storage :args first edn/read-string)
-        delimiter (if delimiter (Pattern/compile (str delimiter)) #"\t")]
+        delimiter (or (some-> storage :args first parse-delimiter) #"\t")]
     (reify PigPenLocalLoader
       (locations [_]
         (load-list location))

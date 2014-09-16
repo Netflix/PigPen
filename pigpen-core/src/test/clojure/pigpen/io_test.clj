@@ -87,7 +87,7 @@
                      :storage {:type :storage
                                :references []
                                :func "PigStorage"
-                               :args ["\\u0000"]}
+                               :args ["\\n"]}
                      :opts {:type :load-opts
                             :cast "chararray"}}]})))
 
@@ -114,7 +114,7 @@
                      :storage {:type :storage
                                :references []
                                :func "PigStorage"
-                               :args ["\\u0000"]}
+                               :args ["\\n"]}
                      :opts {:type :load-opts
                             :cast "chararray"}}]})))
 
@@ -141,7 +141,7 @@
                      :storage {:type :storage
                                :references []
                                :func "PigStorage"
-                               :args ["\\u0000"]}
+                               :args ["\\n"]}
                      :opts {:type :load-opts
                             :cast "chararray"}}]})))
 
@@ -172,7 +172,7 @@
                      :storage {:type :storage
                                :references []
                                :func "PigStorage"
-                               :args ["\\u0000"]}
+                               :args ["\\n"]}
                      :opts {:type :load-opts
                             :cast "chararray"}}]})))
 
@@ -199,7 +199,7 @@
                     :storage {:type :storage
                               :references []
                               :func "PigStorage"
-                              :args ["\\u0000"]}
+                              :args ["\\n"]}
                     :opts {:type :load-opts
                            :cast "chararray"}}]})))
 
