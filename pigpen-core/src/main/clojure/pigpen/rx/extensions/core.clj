@@ -17,8 +17,9 @@
 ;;
 
 (ns pigpen.rx.extensions.core
-  (:require [clojure.set :as set])
-  (:import [rx Observable Observer Subscription]))
+  (:require [clojure.set :as set]
+            [rx.lang.clojure.core :as rx])
+  (:import [rx Subscriber Subscription]))
 
 (set! *warn-on-reflection* true)
 
@@ -39,17 +40,17 @@
    subscriptions & they will not create multiple subscriptions to the parent.
    However, as soon as the last child is subscribed to, the parent subscription
    is started."
-  ([^Observable parent] (multicast parent nil))
-  ([^Observable parent debug]
+  ([parent] (multicast parent nil))
+  ([parent debug]
     (let [children (atom {:observables #{}
                           :observers {}
                           :subscription nil
                           :current nil})
-        
+
           add-observable (fn [c id o] (-> c
                                         (update-in [:observables] #((fnil conj #{}) % id))
                                         (assoc :current o)))
-        
+
           all-observers #(->> % :observers (vals) (apply concat))
           push-observers #(doseq [observer (all-observers @children)] (% observer))
           add-observer (fn [c id o] (update-in c [:observers id] #((fnil conj #{}) % o)))
@@ -60,27 +61,34 @@
 
           subscribe (fn [id]
                       (if debug (println debug "subscribe" id (obj->id parent)))
-                      (.subscribe parent
-                        (fn [next] (push-observers (fn [^Observer o] (.onNext o next))))
-                        (fn [error] (push-observers (fn [^Observer o] (.onError o error))))
-                        (fn [] (push-observers (fn [^Observer o] (.onCompleted o))))))
+                      (rx/subscribe parent
+                        (fn [next] (push-observers (fn [o] (rx/on-next o next))))
+                        (fn [error] (push-observers (fn [o] (rx/on-error o error))))
+                        (fn [] (push-observers (fn [o] (rx/on-completed o))))))
           unsubscribe (fn [id ^Subscription s]
                         (if debug (println debug "unsubscribe" id (obj->id parent)))
                         (if s (.unsubscribe s)))
-        
+
           observable (fn [id]
-                       (if debug (println debug "observable" id))
-                       (Observable/create
-                         (fn [^Observer o]
+                       (if debug
+                         (println debug "observable" id))
+                       (rx/observable*
+                         (fn [^Subscriber o]
+
+                           (.add o (reify Subscription
+                                     (unsubscribe [this]
+                                       (swap! children remove-observer id o unsubscribe))))
+
                            (let [{:keys [observables observers]} (swap! children add-observer id o)]
-                             (if debug (println debug "observer" id observables (observers->ids observers)))
-                             (when (empty? (set/difference observables (->> observers (filter (comp not-empty val)) (keys))))
+                             (if debug
+                               (println debug "observer" id observables (observers->ids observers)))
+                             (when (empty? (set/difference observables
+                                                           (->> observers
+                                                                (filter (comp not-empty val))
+                                                                (keys))))
                                (locking children
                                  (when-not (:subscription @children)
-                                   (swap! children assoc :subscription (subscribe id))))))
-                           (reify Subscription
-                             (unsubscribe [this]
-                               (swap! children remove-observer id o unsubscribe))))))]
+                                   (swap! children assoc :subscription (subscribe id)))))))))]
       (fn []
         (let [id (gensym)]
           (:current (swap! children add-observable id (observable id))))))))
