@@ -149,7 +149,15 @@
   (let [data (pig/return [1 2 3 4])
         command (pig/fold (fold/avg) data)]
     (is (= (pig/dump command)
-           [5/2]))))
+           [5/2])))
+  
+  (let [foos (pig/return [1 2 2 3 3 3])
+        bars (pig/return [1 1 1 2 2 3])
+        command (pig/cogroup [(foos :on identity, :fold (fold/sum))
+                              (bars :on identity, :fold (fold/avg))]
+                             (fn [key f b] [key f b]))]
+    (is (= (set (pig/dump command))
+           #{[1 1 1] [2 4 2] [3 9 3]}))))
 
 (deftest test-top
   (let [data (pig/return [1 2 3 4])
