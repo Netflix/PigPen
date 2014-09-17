@@ -25,8 +25,7 @@
   (:require [pigpen.extensions.core :refer [pp-str forcat]]
             [pigpen.pig :as pig]
             [pigpen.raw :as raw]
-            [pigpen.code :as code])
-  (:import [org.apache.pig.data DataByteArray]))
+            [pigpen.code :as code]))
 
 (set! *warn-on-reflection* true)
 

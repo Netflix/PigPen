@@ -24,8 +24,7 @@
   (:refer-clojure :exclude [map mapcat map-indexed sort sort-by])
   (:require [pigpen.extensions.core :refer [pp-str]]
             [pigpen.raw :as raw]
-            [pigpen.code :as code])
-  (:import [org.apache.pig.data DataBag]))
+            [pigpen.code :as code]))
 
 (set! *warn-on-reflection* true)
 

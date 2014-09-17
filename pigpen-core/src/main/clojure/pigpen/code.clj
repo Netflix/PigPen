@@ -24,8 +24,7 @@ or reduce."
             [clojure.java.io :as io]
             [taoensso.nippy :as nippy]
             [taoensso.nippy.utils :as nippy-util])
-  (:import [org.apache.pig.data DataBag]
-           [java.lang.reflect Method]))
+  (:import [java.lang.reflect Method]))
 
 (set! *warn-on-reflection* true)
 
