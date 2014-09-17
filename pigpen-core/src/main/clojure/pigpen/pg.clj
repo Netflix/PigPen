@@ -1,6 +1,6 @@
 (ns pigpen.pg)
 
-;; Cogroup after baking
+; Cogroup after baking
 (comment
   [{:args      [],
     :fields    [],
@@ -161,6 +161,52 @@
     :field-type  :frozen,
     :opts        {:type :generate-opts, :implicit-schema nil}}])
 
+; cogroup script
+(comment "REGISTER pigpen.jar;
+
+load105 = LOAD '/tmp/input2'
+    USING text()
+    AS (offset, line);
+
+DEFINE udf128 pigpen.PigPenFnDataBag('(clojure.core/require (quote [pigpen.pig]))','(pigpen.pig/exec [(pigpen.pig/pre-process :native)
+ (pigpen.pig/map->bind (clojure.core/fn [offset line] (clojure.edn/read-string line)))
+  (pigpen.pig/key-selector->bind (pigpen.pig/with-ns pigpen.cascading-test :c)) (pigpen.pig/post-process :frozen-with-nils)])');
+
+generate125 = FOREACH load105 GENERATE
+    FLATTEN(udf128(offset, line));
+
+generate110 = FOREACH generate125 GENERATE
+    $0 AS key,
+    $1 AS value;
+
+load103 = LOAD '/tmp/input1'
+    USING text()
+    AS (offset, line);
+
+DEFINE udf129 pigpen.PigPenFnDataBag('(clojure.core/require (quote [pigpen.pig]))','(pigpen.pig/exec [(pigpen.pig/pre-process :native)
+ (pigpen.pig/map->bind (clojure.core/fn [offset line] (clojure.edn/read-string line)))
+ (pigpen.pig/key-selector->bind (pigpen.pig/with-ns pigpen.cascading-test :a)) (pigpen.pig/post-process :frozen-with-nils)])');
+
+generate126 = FOREACH load103 GENERATE
+    FLATTEN(udf129(offset, line));
+
+generate108 = FOREACH generate126 GENERATE
+    $0 AS key,
+    $1 AS value;
+
+group119 = COGROUP generate108 BY (key), generate110 BY (key);
+
+generate120 = FOREACH group119 GENERATE
+    group AS value0,
+    generate108.value AS value1,
+    generate110.value AS value2;
+
+DEFINE udf130 pigpen.PigPenFnDataBag('(clojure.core/require (quote [pigpen.pig]))','(pigpen.pig/exec [(pigpen.pig/pre-process :frozen)
+ (pigpen.pig/map->bind (pigpen.pig/with-ns pigpen.cascading-test (fn [k l r] [k (map :b l) (map :d r)]))) (pigpen.pig/post-process :frozen)])');
+
+generate127 = FOREACH generate120 GENERATE
+    FLATTEN(udf130(value0, value1, value2)) AS value;")
+
 ; my-func from the example
 (comment
   {:storage  {:type :storage, :references [], :func "PigStorage", :args []},
@@ -303,6 +349,25 @@
     :id          store3613,
     :description "output",
     :opts        {:type :store-opts}}])
+
+; my-func script
+(comment "REGISTER pigpen.jar;
+
+load23 = LOAD '/tmp/input'
+    USING text()
+    AS (offset, line);
+
+DEFINE udf50 pigpen.PigPenFnDataBag('(clojure.core/require (quote [pigpen.pig]))','(pigpen.pig/exec [(pigpen.pig/pre-process :native)
+(pigpen.pig/map->bind (clojure.core/fn [offset line] (pigpen.extensions.core/structured-split line " \\ t ")))
+(pigpen.pig/map->bind (pigpen.pig/with-ns pigpen.cascading-test (fn [[a b c]] {:sum (+ (Integer/valueOf a) (Integer/valueOf b)), :name c})))
+(pigpen.pig/filter->bind (pigpen.pig/with-ns pigpen.cascading-test (fn [{:keys [sum]}] (< sum 5)))) (pigpen.pig/map->bind clojure.core/pr-str)
+(pigpen.pig/post-process :native)])');
+
+generate49 = FOREACH load23 GENERATE
+    FLATTEN(udf50(offset, line)) AS value;
+
+STORE generate49 INTO '/tmp/output'
+    USING text();")
 
 ; Simple flow
 (comment
