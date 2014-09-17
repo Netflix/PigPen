@@ -52,9 +52,12 @@
         right (load-clj "/tmp/input2")
         command (pig/cogroup [(left :on :a)
                               (right :on :c)]
-                              (fn [k l r] [k (map :b l) (map :d r)]))]
-    (clojure.pprint/pprint (pigpen.oven/bake command))
-    (.complete (generate-flow command))
-    (println "results:\n" (slurp "/tmp/output/part-00000"))))
+                              (fn [k l r] [k (map :b l) (map :d r)]))
+        baked (pigpen.oven/bake command)]
+    (clojure.pprint/pprint baked)
+    (println (pigpen.script/commands->script baked))
+    (commands->flow baked)
+    ;(.complete (generate-flow command))
+    #_(println "results:\n" (slurp "/tmp/output/part-00000"))))
 
 (run-tests 'pigpen.cascading-test)

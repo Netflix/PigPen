@@ -10,6 +10,7 @@ import cascading.operation.BaseOperation;
 import cascading.operation.Function;
 import cascading.operation.FunctionCall;
 import cascading.operation.OperationCall;
+import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
 import cascading.tuple.TupleEntry;
 
@@ -20,6 +21,7 @@ public class PigPenFunction extends BaseOperation implements Function {
   private final String func;
 
   public PigPenFunction(String init, String func) {
+    super(new Fields());
     EVAL_STRING.invoke(init);
     this.init = init;
     this.func = func;
@@ -45,8 +47,11 @@ public class PigPenFunction extends BaseOperation implements Function {
   private void emitOutput(FunctionCall functionCall, Object result) {
     for (org.apache.pig.data.Tuple tuple : (DataBag)result) {
       try {
-        Object val = tuple.get(0);
-        functionCall.getOutputCollector().add(new Tuple(val));
+        Object[] objs = new Object[tuple.size()];
+        for (int i = 0; i < tuple.size(); i++) {
+          objs[i] = tuple.get(i);
+        }
+        functionCall.getOutputCollector().add(new Tuple(objs));
       } catch (ExecException e) {
         throw new RuntimeException();
       }
