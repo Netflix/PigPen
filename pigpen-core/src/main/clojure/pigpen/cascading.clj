@@ -1,7 +1,7 @@
 (ns pigpen.cascading
   (:import (cascading.tap.hadoop Hfs)
            (cascading.scheme.hadoop TextLine)
-           (cascading.pipe Pipe Each)
+           (cascading.pipe Pipe Each CoGroup)
            (cascading.flow.hadoop HadoopFlowConnector)
            (pigpen.cascading PigPenFunction)
            (cascading.tuple Fields)
@@ -82,11 +82,10 @@
   ;(let [pig-field (format-field field)
   ;      pig-schema (str " AS " alias)]
   ;  [nil (str pig-field pig-schema)])
-  (println "flowdef" flowdef)
-  ;(update-in flowdef [:pipes pipe :fields] (fn [fields] (assoc fields field alias))))
-  (println "updated" (update-in flowdef [:pipes pipe] #(Each. % (Identity.))))
-  (println "x" x)
-  (println "pipe" (get-in flowdef [:pipes pipe]))
+  ;(println "flowdef" flowdef)
+  ;(println "updated" (update-in flowdef [:pipes pipe] #(Each. % (Identity.))))
+  ;(println "x" x)
+  ;(println "pipe" (get-in flowdef [:pipes pipe]))
   (update-in flowdef [:pipes pipe] #(Each. % (Identity.))))
 
 (defmethod command->flowdef :group
@@ -106,7 +105,9 @@
   (println "keys" keys)
   (println "ancestors" ancestors)
   (println "join-types" join-types)
-  (update-in flowdef [:pipes] (partial merge {id (Pipe. (str id))})))
+  (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
+                                                           (into-array Pipe (map (:pipes flowdef) ancestors))
+                                                           (into-array (map #(Fields. (into-array (map str %))) keys)))})))
 
 (defmethod command->flowdef :projection-flat
            [{:keys [code alias pipe]} flowdef]
@@ -116,21 +117,21 @@
 (defmethod command->flowdef :generate
            [{:keys [id ancestors projections opts]} flowdef]
   {:pre [id ancestors (not-empty projections)]}
-  (let [new-flowdef (cond (contains? (:sources flowdef) (first ancestors)) (let [pipe (Pipe. (str id))]
-                                                                             (-> flowdef
-                                                                                 (update-in [:pipe-to-source] (partial merge {id (first ancestors)}))
-                                                                                 (update-in [:pipes] (partial merge {id pipe}))))
-                          (contains? (:pipes flowdef) (first ancestors)) (let [pipe ((:pipes flowdef) (first ancestors))]
-                                                                           (-> flowdef
-                                                                               ;(update-in [:pipe-to-pipe] (partial merge {(first ancestors) id}))
-                                                                               (update-in [:pipes] (partial merge {id (Pipe. (str id) pipe)}))
-                                                                               ))
-                          :else (do
-                                  (println "flowdef" flowdef)
-                                  (println "id" id)
-                                  (println "ancestors" ancestors)
-                                  (throw (Exception. "not implemented")))
-                          )]
+  (let [new-flowdef (reduce (fn [def ancestor]
+                              (cond (contains? (:sources def) ancestor) (let [pipe (Pipe. (str id))]
+                                                                          (-> def
+                                                                              (update-in [:pipe-to-source] (partial merge {id ancestor}))
+                                                                              (update-in [:pipes] (partial merge {id pipe}))))
+                                    (contains? (:pipes def) ancestor) (let [pipe ((:pipes def) ancestor)]
+                                                                        (-> def
+                                                                            (update-in [:pipes] (partial merge {id (Pipe. (str id) pipe)}))))
+                                    :else (do
+                                            (println "flowdef" flowdef)
+                                            (println "id" id)
+                                            (println "ancestors" ancestors)
+                                            (throw (Exception. "not implemented")))))
+                            flowdef ancestors
+                            )]
     (reduce (fn [def cmd] (command->flowdef (assoc cmd :pipe id) def)) new-flowdef projections)))
 
 (defmethod command->flowdef :default
