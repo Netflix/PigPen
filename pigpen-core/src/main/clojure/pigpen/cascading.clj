@@ -76,12 +76,19 @@
   (let [{:keys [init func]} expr]
     (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func)) Fields/RESULTS)))) ;(partial merge {:operation (PigPenFunction. (str init) (str func))}))))
 
+(defn- cascading-field [name-or-number]
+  (if (number? name-or-number)
+    (int name-or-number)
+    (str name-or-number)))
+
 (defmethod command->flowdef :field-projections
            [{:keys [projections pipe] :as x} flowdef]
   {:pre [(not-empty projections) (get-in flowdef [:pipes pipe])]}
   (println "flowdef" flowdef)
   (println "x" x)
-  (update-in flowdef [:pipes pipe] #(Each. % (Identity. (Fields. (into-array (map (fn [p] (str (:alias p))) projections)))))))
+  (let [fields (map #(cascading-field (:field %)) projections)
+        aliases (map #(cascading-field (:alias %)) projections)]
+    (update-in flowdef [:pipes pipe] #(Each. % (Fields. (into-array fields)) (Identity. (Fields. (into-array aliases)))))))
 
 (defmethod command->flowdef :group
            [{:keys [id keys join-types ancestors opts]} flowdef]
