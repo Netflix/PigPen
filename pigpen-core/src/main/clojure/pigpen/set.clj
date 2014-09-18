@@ -49,7 +49,7 @@
         join-types (for [r relations] :optional)]
     (-> relations
       (raw/group$ keys join-types opts)
-      (raw/bind$ '[pigpen.set] `(pigpen.pig/mapcat->bind ~f) {:args values}))))
+      (raw/bind$ '[pigpen.set] `(pigpen.runtime/mapcat->bind ~f) {:args values}))))
 
 (defn pig-intersection
   "Utility method used by #'pigpen.core/intersection"

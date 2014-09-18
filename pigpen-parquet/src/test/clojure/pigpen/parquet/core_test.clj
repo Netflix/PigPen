@@ -28,7 +28,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind (pigpen.pig/args->map pigpen.pig/native->clojure))
+        :func (pigpen.runtime/map->bind (pigpen.pig/args->map pigpen.pig/native->clojure))
         :args ["y" y "x" x]
         :requires []
         :fields [value]
@@ -73,7 +73,7 @@
                      :ancestors [{:type :bind
                                   :id bind1
                                   :description nil
-                                  :func (pigpen.pig/keyword-field-selector->bind [:y :x])
+                                  :func (pigpen.runtime/keyword-field-selector->bind [:y :x])
                                   :args [value]
                                   :requires []
                                   :fields [value]

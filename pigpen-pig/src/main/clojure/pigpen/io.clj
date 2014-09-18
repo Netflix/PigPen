@@ -52,7 +52,7 @@ each input field. The data is returned as a map with 'fields' as the keys.
   [location fields]
   `(->
      (raw/load$ ~location '~fields raw/default-storage {:cast "chararray"})
-     (raw/bind$ [] '(pigpen.pig/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
+     (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
                 {:args '~(clojure.core/mapcat (juxt str identity) fields)
                  :field-type-in :native})))
 
@@ -62,7 +62,7 @@ and f specify a conversion function to apply to each input row."
   [location requires f]
   (->
     (raw/load$ location ['value] raw/string-storage {:cast "chararray"})
-    (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:field-type-in :native})))
+    (raw/bind$ requires `(pigpen.runtime/map->bind ~f) {:field-type-in :native})))
 
 (defn load-string
   "Loads data from a file. Each line is returned as a string.
@@ -166,7 +166,7 @@ unless debugging scripts."
   {:added "0.1.0"}
   [location relation]
   `(-> ~relation
-     (raw/bind$ [] '(pigpen.pig/map->bind (comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
+     (raw/bind$ [] '(pigpen.runtime/map->bind (comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
                 {:args (:fields ~relation), :field-type-out :native})
      (raw/store$ ~location raw/default-storage {})))
 
@@ -175,7 +175,7 @@ unless debugging scripts."
 and f specify a conversion function to apply to each output row."
   [location requires f relation]
   (-> relation
-    (raw/bind$ requires `(pigpen.pig/map->bind ~f)
+    (raw/bind$ requires `(pigpen.runtime/map->bind ~f)
                {:args (:fields relation), :field-type-out :native})
     (raw/store$ location raw/default-storage {})))
 

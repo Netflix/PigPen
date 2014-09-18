@@ -59,7 +59,7 @@ parquet column names.
         storage (raw/storage$ [] "parquet.pig.ParquetLoader" [pig-schema])]
     (-> location
       (raw/load$ fields storage {:implicit-schema true})
-      (raw/bind$ [] '(pigpen.pig/map->bind (pigpen.pig/args->map pigpen.pig/native->clojure))
+      (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.pig/args->map pigpen.pig/native->clojure))
                  {:args (clojure.core/mapcat (juxt str identity) fields), :field-type-in :native}))))
 
 (defmethod pigpen.local/load "parquet.pig.ParquetLoader"
@@ -87,7 +87,7 @@ with keywords matching the parquet columns to be stored.
   (let [fields (map (comp symbol name) (keys schema))
         storage (raw/storage$ [] "parquet.pig.ParquetStorer" [])]
     (-> relation
-      (raw/bind$ [] `(pigpen.pig/keyword-field-selector->bind ~(mapv keyword fields))
+      (raw/bind$ [] `(pigpen.runtime/keyword-field-selector->bind ~(mapv keyword fields))
                  {:field-type-out :native
                   :implicit-schema true})
       (raw/generate$ (map-indexed raw/projection-field$ fields) {:field-type :native})

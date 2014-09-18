@@ -288,7 +288,7 @@ number of optimizations and transforms to the graph.
   (when-let [field-type (or (:field-type command) (:field-type-out command))]
     (when-not (get-in command [:opts :implicit-schema])
       (-> command
-        (raw/bind$ [] `(pigpen.pig/map->bind pigpen.pig/debug)
+        (raw/bind$ [] `(pigpen.runtime/map->bind pigpen.pig/debug)
                    {:args (:fields command), :field-type-in field-type, :field-type-out :native})
         ;; TODO Fix the location of store commands to match generates instead of binds
         (raw/store$ (str location (:id command)) raw/default-storage {})))))

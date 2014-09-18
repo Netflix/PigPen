@@ -23,7 +23,6 @@
 "
   (:refer-clojure :exclude [group-by into reduce])
   (:require [pigpen.extensions.core :refer [pp-str forcat]]
-            [pigpen.pig :as pig]
             [pigpen.raw :as raw]
             [pigpen.code :as code]))
 
@@ -39,8 +38,8 @@ coerced to ::nil so they can be differentiated from outer joins later."
   (let [key-selector (or key-selector on by 'identity)]
     (-> from
       (raw/bind$ (if sentinel-nil
-                   `(pigpen.pig/key-selector->bind (comp pig/sentinel-nil ~key-selector))
-                   `(pigpen.pig/key-selector->bind ~key-selector))
+                   `(pigpen.runtime/key-selector->bind (comp pigpen.runtime/sentinel-nil ~key-selector))
+                   `(pigpen.runtime/key-selector->bind ~key-selector))
                  {:field-type-out (if join-nils :frozen :frozen-with-nils)
                   :implicit-schema true})
       (raw/generate$ [(raw/projection-field$ 0 'key)
@@ -79,7 +78,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
     (-> relations
       (raw/group$ keys join-types (dissoc opts :fold))
       (raw/generate$ folds {})
-      (raw/bind$ `(pigpen.pig/map->bind ~f) {:args (mapv :alias folds)}))))
+      (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args (mapv :alias folds)}))))
 
 (defn group-all*
   "See pigpen.core/into, pigpen.core/reduce"
@@ -90,7 +89,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
         join-types [:optional]]
     (-> [relation]
       (raw/group$ keys join-types opts)
-      (raw/bind$ `(pigpen.pig/map->bind ~f) {:args values}))))
+      (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args values}))))
 
 (defn fold*
   "See pigpen.core/fold"
@@ -115,7 +114,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
     (code/assert-arity f (count values))
     (-> relations
       (raw/join$ keys join-types opts)
-      (raw/bind$ `(pigpen.pig/map->bind ~f) {:args values}))))
+      (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args values}))))
 
 (defmacro group-by
   "Groups relation by the result of calling (key-selector item) for each item.
@@ -403,4 +402,4 @@ referred to as an anti-join in relational databases.
                 (assoc ~opts :description ~(pp-str key-selector)
                              :all-args true
                              :sentinel-nil true))
-         (raw/bind$ '(pig/mapcat->bind ~f) {})))))
+         (raw/bind$ '(pigpen.runtime/mapcat->bind ~f) {})))))

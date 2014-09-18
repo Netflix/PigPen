@@ -85,7 +85,7 @@
         expr (foo 1)
         expr-fn (eval expr)]
     (is (= expr
-           '(pigpen.pig/with-ns pigpen.code-test
+           '(pigpen.runtime/with-ns pigpen.code-test
               (clojure.core/let [y (quote 2)
                                  x (quote 1)]
                 (fn [z] (test-fn x y z))))))

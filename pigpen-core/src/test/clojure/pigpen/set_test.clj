@@ -144,7 +144,7 @@
         '{:type :bind
           :id bind2
           :description nil
-          :func (pigpen.pig/mapcat->bind pigpen.set/pig-intersection)
+          :func (pigpen.runtime/mapcat->bind pigpen.set/pig-intersection)
           :args [[[r0] value] [[r1] value]]
           :requires [pigpen.set]
           :fields [value]
@@ -174,7 +174,7 @@
         '{:type :bind
           :id bind2
           :description nil
-          :func (pigpen.pig/mapcat->bind pigpen.set/pig-intersection-multiset)
+          :func (pigpen.runtime/mapcat->bind pigpen.set/pig-intersection-multiset)
           :args [[[r0] value] [[r1] value]]
           :requires [pigpen.set]
           :fields [value]
@@ -203,7 +203,7 @@
         '{:type :bind
           :id bind2
           :description nil
-          :func (pigpen.pig/mapcat->bind pigpen.set/pig-difference)
+          :func (pigpen.runtime/mapcat->bind pigpen.set/pig-difference)
           :args [[[r0] value] [[r1] value]]
           :requires [pigpen.set]
           :fields [value]
@@ -232,7 +232,7 @@
         '{:type :bind
           :id bind2
           :description nil
-          :func (pigpen.pig/mapcat->bind pigpen.set/pig-difference-multiset)
+          :func (pigpen.runtime/mapcat->bind pigpen.set/pig-difference-multiset)
           :args [[[r0] value] [[r1] value]]
           :requires [pigpen.set]
           :fields [value]

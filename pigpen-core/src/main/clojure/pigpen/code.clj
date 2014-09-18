@@ -19,7 +19,7 @@
 (ns pigpen.code
   "Contains functions that assist in handling user code in operations like map
 or reduce."
-  (:require [pigpen.pig :as pig]
+  (:require [pigpen.runtime :as rt]
             [pigpen.raw :as raw]
             [clojure.java.io :as io]
             [taoensso.nippy :as nippy]
@@ -115,7 +115,7 @@ or reduce."
 
 (defn trap-ns [ns f]
   (if (ns-exists ns)
-    `(pig/with-ns ~ns ~f)
+    `(rt/with-ns ~ns ~f)
     f))
 
 (defn trap* [keys values ns f]

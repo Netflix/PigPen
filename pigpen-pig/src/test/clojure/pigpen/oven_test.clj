@@ -501,11 +501,11 @@
                                       :code {:type :code
                                              :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]))
                                                     :func (pigpen.pig/exec [(pigpen.pig/pre-process :native)
-                                                                            (pigpen.pig/map->bind clojure.edn/read-string)
-                                                                            (pigpen.pig/map->bind (pigpen.pig/with-ns pigpen.oven-test identity))
-                                                                            (pigpen.pig/filter->bind (pigpen.pig/with-ns pigpen.oven-test (constantly true)))
-                                                                            (pigpen.pig/mapcat->bind (pigpen.pig/with-ns pigpen.oven-test vector))
-                                                                            (pigpen.pig/map->bind clojure.core/pr-str)
+                                                                            (pigpen.runtime/map->bind clojure.edn/read-string)
+                                                                            (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
+                                                                            (pigpen.runtime/filter->bind (pigpen.runtime/with-ns pigpen.oven-test (constantly true)))
+                                                                            (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
+                                                                            (pigpen.runtime/map->bind clojure.core/pr-str)
                                                                             (pigpen.pig/post-process :native)])}
                                              :return "DataBag"
                                              :args [value]}

@@ -44,7 +44,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
+        :func (pigpen.runtime/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
         :args ["a" a "b" b "c" c]
         :requires []
         :fields [value]
@@ -71,7 +71,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind clojure.core/identity)
+        :func (pigpen.runtime/map->bind clojure.core/identity)
         :args [value]
         :requires []
         :fields [value]
@@ -98,7 +98,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind (clojure.core/fn [s] (if s (pigpen.extensions.core/structured-split s "\t"))))
+        :func (pigpen.runtime/map->bind (clojure.core/fn [s] (if s (pigpen.extensions.core/structured-split s "\t"))))
         :args [value]
         :requires [pigpen.extensions.core]
         :fields [value]
@@ -125,7 +125,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind clojure.edn/read-string)
+        :func (pigpen.runtime/map->bind clojure.edn/read-string)
         :args [value]
         :requires [clojure.edn]
         :fields [value]
@@ -152,10 +152,10 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.pig/map->bind
+        :func (pigpen.runtime/map->bind
                 (clojure.core/fn [s]
                   (clojure.data.json/read-str s
-                                              :key-fn (pigpen.pig/with-ns pigpen.io-test
+                                              :key-fn (pigpen.runtime/with-ns pigpen.io-test
                                                         clojure.core/keyword))))
         :args [value]
         :requires [clojure.data.json]
@@ -183,7 +183,7 @@
       '{:type :bind
        :id bind2
        :description nil
-       :func (pigpen.pig/map->bind (clojure.core/fn [s] (pigpen.extensions.core/lazy-split s "\t")))
+       :func (pigpen.runtime/map->bind (clojure.core/fn [s] (pigpen.extensions.core/lazy-split s "\t")))
        :args [value]
        :requires [pigpen.extensions.core]
        :fields [value]
@@ -237,7 +237,7 @@
                      :id bind1
                      :description nil
                      :ancestors [{:fields [value]}]
-                     :func (pigpen.pig/map->bind (clojure.core/comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
+                     :func (pigpen.runtime/map->bind (clojure.core/comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
                      :args [value]
                      :requires []
                      :fields [value]                     
@@ -263,7 +263,7 @@
                      :id bind1
                      :description nil
                      :ancestors [{:fields [value]}]
-                     :func (pigpen.pig/map->bind clojure.core/str)
+                     :func (pigpen.runtime/map->bind clojure.core/str)
                      :args [value]
                      :requires []
                      :fields [value]
@@ -289,7 +289,7 @@
                      :id bind1
                      :description nil
                      :ancestors [{:fields [value]}]
-                     :func (pigpen.pig/map->bind (clojure.core/fn [s] (clojure.string/join "\t" (clojure.core/map clojure.core/print-str s))))
+                     :func (pigpen.runtime/map->bind (clojure.core/fn [s] (clojure.string/join "\t" (clojure.core/map clojure.core/print-str s))))
                      :args [value]
                      :requires []
                      :fields [value]
@@ -315,7 +315,7 @@
                      :id bind1
                      :description nil
                      :ancestors [{:fields [value]}]
-                     :func (pigpen.pig/map->bind clojure.core/pr-str)
+                     :func (pigpen.runtime/map->bind clojure.core/pr-str)
                      :args [value]
                      :requires []
                      :fields [value]
@@ -341,7 +341,7 @@
                      :id bind1
                      :description nil
                      :ancestors [{:fields [value]}]
-                     :func (pigpen.pig/map->bind
+                     :func (pigpen.runtime/map->bind
                              (clojure.core/fn [s]
                                (clojure.data.json/write-str s)))
                      :args [value]
