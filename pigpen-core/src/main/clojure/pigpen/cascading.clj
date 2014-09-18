@@ -4,7 +4,8 @@
            (cascading.pipe Pipe Each)
            (cascading.flow.hadoop HadoopFlowConnector)
            (pigpen.cascading PigPenFunction)
-           (cascading.tuple Fields))
+           (cascading.tuple Fields)
+           (cascading.operation Identity))
   (:require [pigpen.raw :as raw]
             [pigpen.oven :as oven]))
 
@@ -73,7 +74,7 @@
            [{:keys [return expr args pipe]} flowdef]
   {:pre [return expr args]}
   (let [{:keys [init func]} expr]
-    (update-in flowdef [:pipes pipe] (partial merge {:operation (PigPenFunction. (str init) (str func))}))))
+    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func)) Fields/RESULTS)))) ;(partial merge {:operation (PigPenFunction. (str init) (str func))}))))
 
 (defmethod command->flowdef :projection-field
            [{:keys [field alias pipe] :as x} flowdef]
@@ -82,10 +83,11 @@
   ;      pig-schema (str " AS " alias)]
   ;  [nil (str pig-field pig-schema)])
   (println "flowdef" flowdef)
+  ;(update-in flowdef [:pipes pipe :fields] (fn [fields] (assoc fields field alias))))
+  (println "updated" (update-in flowdef [:pipes pipe] #(Each. % (Identity.))))
   (println "x" x)
-  (update-in flowdef [:pipes pipe :fields] (fn [fields] (let [f (if (nil? fields) [] fields)]
-                                                          (assoc f field alias)))))
-  ;flowdef)
+  (println "pipe" (get-in flowdef [:pipes pipe]))
+  (update-in flowdef [:pipes pipe] #(Each. % (Identity.))))
 
 (defmethod command->flowdef :group
            [{:keys [id keys join-types ancestors opts]} flowdef]
@@ -104,7 +106,7 @@
   (println "keys" keys)
   (println "ancestors" ancestors)
   (println "join-types" join-types)
-  flowdef)
+  (update-in flowdef [:pipes] (partial merge {id (Pipe. (str id))})))
 
 (defmethod command->flowdef :projection-flat
            [{:keys [code alias pipe]} flowdef]
@@ -114,13 +116,15 @@
 (defmethod command->flowdef :generate
            [{:keys [id ancestors projections opts]} flowdef]
   {:pre [id ancestors (not-empty projections)]}
-  (let [new-flowdef (cond (contains? (:sources flowdef) (first ancestors)) (let [pipe {:id (str id)}]
+  (let [new-flowdef (cond (contains? (:sources flowdef) (first ancestors)) (let [pipe (Pipe. (str id))]
                                                                              (-> flowdef
                                                                                  (update-in [:pipe-to-source] (partial merge {id (first ancestors)}))
                                                                                  (update-in [:pipes] (partial merge {id pipe}))))
                           (contains? (:pipes flowdef) (first ancestors)) (let [pipe ((:pipes flowdef) (first ancestors))]
                                                                            (-> flowdef
-                                                                               (update-in [:pipes] (partial merge {id pipe}))))
+                                                                               ;(update-in [:pipe-to-pipe] (partial merge {(first ancestors) id}))
+                                                                               (update-in [:pipes] (partial merge {id (Pipe. (str id) pipe)}))
+                                                                               ))
                           :else (do
                                   (println "flowdef" flowdef)
                                   (println "id" id)
@@ -141,9 +145,10 @@
         sources-map (into {} (map (fn [[p s]] [(str p) (sources s)]) pipe-to-source))
         sinks-map (into {} (map (fn [[p s]] [(str p) (sinks s)]) pipe-to-sink))
         tail-pipes (into-array Pipe (map #(pipes %) (keys pipe-to-sink)))]
-    (println sources-map)
-    (println sinks-map)
-    (println tail-pipes)
+    (println "\n\nflowdef" flowdef)
+    (println "sources-map" sources-map)
+    (println "sinks-map" sinks-map)
+    (println "tail-pipes" (map identity tail-pipes))
     (.connect (HadoopFlowConnector.) sources-map sinks-map tail-pipes)))
 
 (defn generate-flow

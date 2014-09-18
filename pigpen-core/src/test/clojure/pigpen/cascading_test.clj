@@ -53,6 +53,7 @@
         command (pig/cogroup [(left :on :a)
                               (right :on :c)]
                               (fn [k l r] [k (map :b l) (map :d r)]))
+        command (store-clj "/tmp/output" command)
         baked (pigpen.oven/bake command)]
     (clojure.pprint/pprint baked)
     (println (pigpen.script/commands->script baked))
