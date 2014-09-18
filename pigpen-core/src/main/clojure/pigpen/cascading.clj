@@ -76,17 +76,12 @@
   (let [{:keys [init func]} expr]
     (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func)) Fields/RESULTS)))) ;(partial merge {:operation (PigPenFunction. (str init) (str func))}))))
 
-(defmethod command->flowdef :projection-field
-           [{:keys [field alias pipe] :as x} flowdef]
-  {:pre [field alias]}
-  ;(let [pig-field (format-field field)
-  ;      pig-schema (str " AS " alias)]
-  ;  [nil (str pig-field pig-schema)])
-  ;(println "flowdef" flowdef)
-  ;(println "updated" (update-in flowdef [:pipes pipe] #(Each. % (Identity.))))
-  ;(println "x" x)
-  ;(println "pipe" (get-in flowdef [:pipes pipe]))
-  (update-in flowdef [:pipes pipe] #(Each. % (Identity.))))
+(defmethod command->flowdef :field-projections
+           [{:keys [projections pipe] :as x} flowdef]
+  {:pre [(not-empty projections) (get-in flowdef [:pipes pipe])]}
+  (println "flowdef" flowdef)
+  (println "x" x)
+  (update-in flowdef [:pipes pipe] #(Each. % (Identity. (Fields. (into-array (map (fn [p] (str (:alias p))) projections)))))))
 
 (defmethod command->flowdef :group
            [{:keys [id keys join-types ancestors opts]} flowdef]
@@ -130,9 +125,13 @@
                                             (println "id" id)
                                             (println "ancestors" ancestors)
                                             (throw (Exception. "not implemented")))))
-                            flowdef ancestors
-                            )]
-    (reduce (fn [def cmd] (command->flowdef (assoc cmd :pipe id) def)) new-flowdef projections)))
+                            flowdef ancestors)
+        field-projections (filter #(= :projection-field (:type %)) projections)
+        flat-projections (filter #(= :projection-flat (:type %)) projections)
+        new-flowdef (reduce (fn [def cmd] (command->flowdef (assoc cmd :pipe id) def)) new-flowdef flat-projections)]
+    (if (empty? field-projections)
+      new-flowdef
+      (command->flowdef {:type :field-projections :projections field-projections :pipe id} new-flowdef))))
 
 (defmethod command->flowdef :default
            [command flowdef]
