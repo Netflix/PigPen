@@ -334,7 +334,7 @@ number of optimizations and transforms to the graph.
         
         requires (code/build-requires (mapcat :requires commands))
         
-        func `(pigpen.pig/exec
+        func `(pigpen.runtime/exec
                 [(pigpen.runtime/process->bind (pigpen.runtime/pre-process ~platform ~first-field-type))
                  ~@(mapv :func commands)
                  (pigpen.runtime/process->bind (pigpen.runtime/post-process ~platform ~last-field-type))])

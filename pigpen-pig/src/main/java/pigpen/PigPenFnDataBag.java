@@ -18,7 +18,12 @@
 
 package pigpen;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
 
 /**
  * A user function that returns a DataBag.
@@ -30,5 +35,11 @@ public class PigPenFnDataBag extends PigPenFn<DataBag> {
 
     public PigPenFnDataBag(String init, String func) {
         super(init, func);
+    }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public DataBag exec(Tuple input) throws IOException {
+        return BagFactory.getInstance().newDefaultBag((List<Tuple>) EVAL.invoke(func, input));
     }
 }

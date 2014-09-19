@@ -48,3 +48,56 @@
         f (eval-string f-str)]
     (is (= (f 2) 4))
     (is (= (f 42) 1764))))
+
+(deftest test-exec
+  
+  (let [command (pigpen.runtime/exec
+                  [(pigpen.runtime/process->bind
+                     (pigpen.runtime/pre-process :none :native))
+                   (pigpen.runtime/map->bind vector)
+                   (pigpen.runtime/map->bind identity)
+                   (pigpen.runtime/process->bind
+                     (pigpen.runtime/post-process :none :native))])]
+    
+    (is (= (command [1 2])
+           [[[1 2]]])))
+  
+  (let [command (pigpen.runtime/exec
+                  [(pigpen.runtime/process->bind
+                     (pigpen.runtime/pre-process :none :native))
+                   (pigpen.runtime/map->bind clojure.edn/read-string)
+                   (pigpen.runtime/map->bind identity)
+                   (pigpen.runtime/filter->bind (constantly true))
+                   (pigpen.runtime/mapcat->bind vector)
+                   (pigpen.runtime/map->bind clojure.core/pr-str)
+                   (pigpen.runtime/process->bind
+                     (pigpen.runtime/post-process :none :native))])]
+    
+    (is (= (command ["1"])
+           [["1"]])))
+  
+  (let [command (pigpen.runtime/exec
+                  [(pigpen.runtime/process->bind
+                     (pigpen.runtime/pre-process :none :native))
+                   (pigpen.runtime/map->bind clojure.edn/read-string)
+                   (pigpen.runtime/mapcat->bind (fn [x] [x (+ x 1) (+ x 2)]))
+                   (pigpen.runtime/map->bind clojure.core/pr-str)
+                   (pigpen.runtime/process->bind
+                     (pigpen.runtime/post-process :none :native))])]
+    
+    (is (= (command ["1"])
+           [["1"] ["2"] ["3"]])))
+  
+  (let [command (pigpen.runtime/exec
+                  [(pigpen.runtime/process->bind
+                     (pigpen.runtime/pre-process :none :native))
+                   (pigpen.runtime/map->bind clojure.edn/read-string)
+                   (pigpen.runtime/mapcat->bind (fn [x] [x (* x 2)]))
+                   (pigpen.runtime/mapcat->bind (fn [x] [x (* x 2)]))
+                   (pigpen.runtime/mapcat->bind (fn [x] [x (* x 2)]))
+                   (pigpen.runtime/map->bind clojure.core/pr-str)
+                   (pigpen.runtime/process->bind
+                     (pigpen.runtime/post-process :none :native))])]
+    
+    (is (= (command ["1"])
+           [["1"] ["2"] ["2"] ["4"] ["2"] ["4"] ["4"] ["8"]]))))

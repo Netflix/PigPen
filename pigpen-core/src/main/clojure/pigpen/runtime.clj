@@ -121,6 +121,8 @@ the fields to serialize. It will be one of:
   (fn [platform serialization-type]
     [platform serialization-type]))
 
+(defmethod pre-process :default [_ _] identity)
+
 (defmulti post-process
   "Optionally serializes outgoing data. Should return a fn that takes a single
 'args' param and returns a seq of processed args. 'platform' is what will be
@@ -134,3 +136,12 @@ the fields to serialize. It will be one of:
 "
   (fn [platform serialization-type]
     [platform serialization-type]))
+
+(defmethod post-process :default [_ _] identity)
+
+(defn exec
+  "Applies the composition of fs, flattening intermediate results. Each f must
+produce a seq-able output that is flattened as input to the next command."
+  [fs]
+  (fn [args]
+    (reduce (fn [vs f] (mapcat f vs)) [args] fs)))
