@@ -455,44 +455,52 @@
 (deftest test-exec
   
   (let [command (pigpen.pig/exec
-                  [(pigpen.pig/pre-process :native)
+                  [(pigpen.runtime/process->bind
+                     (pigpen.runtime/pre-process :pig :native))
                    (pigpen.runtime/map->bind vector)
                    (pigpen.runtime/map->bind identity)
-                   (pigpen.pig/post-process :native)])]
+                   (pigpen.runtime/process->bind
+                     (pigpen.runtime/post-process :pig :native))])]
   
     (is (= (thaw-anything (command [1 2]))
            '(bag (tuple [1 2])))))
   
   (let [command (pigpen.pig/exec
-                  [(pigpen.pig/pre-process :native)
+                  [(pigpen.runtime/process->bind
+                     (pigpen.runtime/pre-process :pig :native))
                    (pigpen.runtime/map->bind clojure.edn/read-string)
                    (pigpen.runtime/map->bind identity)
                    (pigpen.runtime/filter->bind (constantly true))
                    (pigpen.runtime/mapcat->bind vector)
                    (pigpen.runtime/map->bind clojure.core/pr-str)
-                   (pigpen.pig/post-process :native)])]
+                   (pigpen.runtime/process->bind
+                     (pigpen.runtime/post-process :pig :native))])]
   
     (is (= (thaw-anything (command ["1"]))
            '(bag (tuple "1")))))
   
   (let [command (pigpen.pig/exec
-                 [(pigpen.pig/pre-process :native)
+                 [(pigpen.runtime/process->bind
+                    (pigpen.runtime/pre-process :pig :native))
                   (pigpen.runtime/map->bind clojure.edn/read-string)
                   (pigpen.runtime/mapcat->bind (fn [x] [x (+ x 1) (+ x 2)]))
                   (pigpen.runtime/map->bind clojure.core/pr-str)
-                  (pigpen.pig/post-process :native)])]
+                  (pigpen.runtime/process->bind
+                    (pigpen.runtime/post-process :pig :native))])]
   
    (is (= (thaw-anything (command ["1"]))
           '(bag (tuple "1") (tuple "2") (tuple "3")))))
   
   (let [command (pigpen.pig/exec
-                 [(pigpen.pig/pre-process :native)
+                 [(pigpen.runtime/process->bind
+                     (pigpen.runtime/pre-process :pig :native))
                   (pigpen.runtime/map->bind clojure.edn/read-string)
                   (pigpen.runtime/mapcat->bind (fn [x] [x (* x 2)]))
                   (pigpen.runtime/mapcat->bind (fn [x] [x (* x 2)]))
                   (pigpen.runtime/mapcat->bind (fn [x] [x (* x 2)]))
                   (pigpen.runtime/map->bind clojure.core/pr-str)
-                  (pigpen.pig/post-process :native)])]
+                  (pigpen.runtime/process->bind
+                    (pigpen.runtime/post-process :pig :native))])]
   
     (is (= (thaw-anything (command ["1"]))
            '(bag (tuple "1") (tuple "2") (tuple "2") (tuple "4") (tuple "2") (tuple "4") (tuple "4") (tuple "8"))))))

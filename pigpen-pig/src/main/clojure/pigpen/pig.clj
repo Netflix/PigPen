@@ -525,31 +525,33 @@ as the initial state for the next accumulation."
 
 ;; **********
 
-(defn pre-process*
-  [type value]
-  (case type
-    :frozen (hybrid->clojure value)
-    :native value))
+(defmethod pigpen.runtime/pre-process [:pig :native]
+  [_ _]
+  identity)
 
-(defn pre-process
-  "Optionally deserializes incoming data"
-  [type]
+(defmethod pigpen.runtime/pre-process [:pig :frozen]
+  [_ _]
   (fn [args]
-    [(for [value args]
-       (pre-process* type value))]))
+    (mapv hybrid->clojure args)))
 
-(defn post-process
-  "Serializes outgoing data"
-  [type]
+(defmethod pigpen.runtime/post-process [:pig :native]
+  [_ _]
+  identity)
+
+(defmethod pigpen.runtime/post-process [:pig :frozen]
+  [_ _]
   (fn [args]
-    (if (= type :sort)
-      (let [[key value] args]
-        [[key (pig-freeze value)]])
-      [(for [value args]
-         (case type
-           :frozen (pig-freeze value)
-           :frozen-with-nils (pig-freeze-with-nils value)
-           :native value))])))
+    (mapv pig-freeze args)))
+
+(defmethod pigpen.runtime/post-process [:pig :frozen-with-nils]
+  [_ _]
+  (fn [args]
+    (mapv pig-freeze-with-nils args)))
+
+(defmethod pigpen.runtime/post-process [:pig :native-key-frozen-val]
+  [_ _]
+  (fn [[key value]]
+    [key (pig-freeze value)]))
 
 (defn exec
   "Applies the composition of fs, flattening intermediate results. Each f must
@@ -636,6 +638,12 @@ initial reduce, a combiner, and a final stage."
           (exec-final combinef post))))
     
     (catch Throwable z (throw (PigPenException. z)))))
+
+(defn pre-process*
+  [type value]
+  (case type
+    :frozen (hybrid->clojure value)
+    :native value))
 
 (defn get-partition
   "A hadoop custom partitioner"
