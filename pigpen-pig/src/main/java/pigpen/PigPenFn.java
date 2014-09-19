@@ -39,7 +39,7 @@ import clojure.lang.Var;
  */
 public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
 
-    private static final IFn EVAL_STRING, EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
+    protected static final IFn EVAL_STRING, EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
 
     static {
         final Var require = RT.var("clojure.core", "require");
@@ -52,7 +52,7 @@ public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
         CLEANUP = RT.var("pigpen.pig", "udf-cleanup");
     }
 
-    private final Object func;
+    protected final Object func;
 
     public PigPenFn(String init, String func) {
         EVAL_STRING.invoke(init);

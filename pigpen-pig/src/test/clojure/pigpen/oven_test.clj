@@ -500,13 +500,13 @@
                        :projections [{:type :projection-flat
                                       :code {:type :code
                                              :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]))
-                                                    :func (pigpen.pig/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native))
-                                                                            (pigpen.runtime/map->bind clojure.edn/read-string)
-                                                                            (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
-                                                                            (pigpen.runtime/filter->bind (pigpen.runtime/with-ns pigpen.oven-test (constantly true)))
-                                                                            (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
-                                                                            (pigpen.runtime/map->bind clojure.core/pr-str)
-                                                                            (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :native))])}
+                                                    :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native))
+                                                                                (pigpen.runtime/map->bind clojure.edn/read-string)
+                                                                                (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
+                                                                                (pigpen.runtime/filter->bind (pigpen.runtime/with-ns pigpen.oven-test (constantly true)))
+                                                                                (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
+                                                                                (pigpen.runtime/map->bind clojure.core/pr-str)
+                                                                                (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :native))])}
                                              :udf :sequence
                                              :args [value]}
                                       :alias value}]

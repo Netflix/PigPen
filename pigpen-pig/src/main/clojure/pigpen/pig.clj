@@ -518,33 +518,26 @@ as the initial state for the next accumulation."
 
 (defmethod pigpen.runtime/post-process [:pig :native]
   [_ _]
-  identity)
+  (fn [args]
+    (apply tuple args)))
 
 (defmethod pigpen.runtime/post-process [:pig :frozen]
   [_ _]
   (fn [args]
-    (mapv pig-freeze args)))
+    (apply tuple
+      (mapv pig-freeze args))))
 
 (defmethod pigpen.runtime/post-process [:pig :frozen-with-nils]
   [_ _]
   (fn [args]
-    (mapv pig-freeze-with-nils args)))
+    (apply tuple
+      (mapv pig-freeze-with-nils args))))
 
 (defmethod pigpen.runtime/post-process [:pig :native-key-frozen-val]
   [_ _]
   (fn [[key value]]
-    [key (pig-freeze value)]))
-
-(defn exec
-  "Applies the composition of fs, flattening intermediate results. Each f must
-produce a seq-able output that is flattened as input to the next command. The
-result is wrapped in a tuple and bag."
-  [fs]
-  (fn [args]
-    (->>
-      (reduce (fn [vs f] (mapcat f vs)) [args] fs)
-      (map (partial apply tuple))
-      (apply bag))))
+    (apply tuple
+      [key (pig-freeze value)])))
 
 ;; TODO lots of duplication here
 (defn exec-initial
