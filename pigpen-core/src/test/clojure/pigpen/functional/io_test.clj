@@ -30,7 +30,7 @@
     (test-diff
       (set (pig/dump command))
       '#{{:a 2, :b "bar"}
-         {:a 1, :b "foo"}})))  
+         {:a 1, :b "foo"}})))
 
 (deftest test-load-string
   (let [command (pig/load-string "build/functional/io-test/test-load-string")]
@@ -38,10 +38,10 @@
     (test-diff
       (set (pig/dump command))
       '#{"The quick brown fox"
-         "jumps over the lazy dog"})))  
+         "jumps over the lazy dog"})))
 
 (deftest test-load-tsv
-  
+
   (testing "Normal tsv with default delimiter"
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv")]
       (spit "build/functional/io-test/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
@@ -49,7 +49,7 @@
         (set (pig/dump command))
         '#{["a" "b" "c"]
            ["1" "2" "3"]})))
-  
+
   (testing "Normal tsv with non-tab delimiter"
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv" #",")]
       (spit "build/functional/io-test/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
@@ -57,7 +57,7 @@
         (set (pig/dump command))
         '#{["a\tb\tc"]
            ["1\t2\t3"]})))
-  
+
   (testing "Non-tsv with non-tab delimiter"
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv" #",")]
       (spit "build/functional/io-test/test-load-tsv" "a,b,c\n1,2,3\n")
@@ -75,23 +75,23 @@
          {:a 1, :b "foo"}})))
 
 (deftest test-load-json
-  
+
   (spit "build/functional/io-test/test-load-json" "{\"a\" 1, \"b\" \"foo\"}\n{\"a\" 2, \"b\" \"bar\"}")
-  
+
   (testing "Default"
     (let [command (pig/load-json "build/functional/io-test/test-load-json")]
       (test-diff
         (set (pig/dump command))
         '#{{:a 2, :b "bar"}
            {:a 1, :b "foo"}})))
-  
+
   (testing "No options"
     (let [command (pig/load-json "build/functional/io-test/test-load-json" {})]
       (test-diff
         (set (pig/dump command))
         '#{{"a" 2, "b" "bar"}
            {"a" 1, "b" "foo"}})))
-  
+
   (testing "Two options"
     (let [command (pig/load-json "build/functional/io-test/test-load-json"
                                  {:key-fn keyword
@@ -113,8 +113,8 @@
          ("1" "2" "3")})))
 
 (deftest test-store-pig
-  (let [data (pig/return [{:a 1, :b "foo"}
-                         {:a 2, :b "bar"}])
+  (let [data (pig/return [(array-map :a 1, :b "foo")
+                          (array-map :a 2, :b "bar")])
         command (pig/store-pig "build/functional/io-test/test-store-pig" data)]
     (is (= (pig/dump command)
            ["[a#1,b#foo]" "[a#2,b#bar]"]))
@@ -142,8 +142,8 @@
            (slurp "build/functional/io-test/test-store-tsv")))))
 
 (deftest test-store-clj
-  (let [data (pig/return [{:a 1, :b "foo"}
-                         {:a 2, :b "bar"}])
+  (let [data (pig/return [(array-map :a 1, :b "foo")
+                          (array-map :a 2, :b "bar")])
         command (pig/store-clj "build/functional/io-test/test-store-clj" data)]
     (is (= (pig/dump command)
            ["{:a 1, :b \"foo\"}" "{:a 2, :b \"bar\"}"]))
@@ -151,8 +151,8 @@
            (slurp "build/functional/io-test/test-store-clj")))))
 
 (deftest test-store-json
-  (let [data (pig/return [{:a 1, :b "foo"}
-                         {:a 2, :b "bar"}])
+  (let [data (pig/return [(array-map :a 1, :b "foo")
+                          (array-map :a 2, :b "bar")])
         command (pig/store-json "build/functional/io-test/test-store-json" data)]
     (is (= (pig/dump command)
            ["{\"a\":1,\"b\":\"foo\"}" "{\"a\":2,\"b\":\"bar\"}"]))
@@ -160,13 +160,13 @@
            (slurp "build/functional/io-test/test-store-json")))))
 
 (deftest test-return
-  
+
   (let [data [1 2]
         command (pig/return data)]
     (test-diff
       (pig/dump command)
       '[1 2]))
-  
+
   (let [command (->>
                   (pig/return [])
                   (pig/map inc))]
