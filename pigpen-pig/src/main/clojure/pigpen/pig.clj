@@ -392,6 +392,13 @@ serialization info."
 
 ;; **********
 
+(defn udf-lookup [type]
+  (case type
+    :normal "pigpen.PigPenFnDataByteArray"
+    :sequence "pigpen.PigPenFnDataBag"
+    :boolean "pigpen.PigPenFnBoolean"
+    :algebraic "pigpen.PigPenFnAlgebraic"))
+
 (defn eval-udf
   [func ^Tuple t]
   "Evaluates a pig tuple as a clojure function. The first element of the tuple

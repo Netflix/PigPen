@@ -91,7 +91,7 @@
     (#'pigpen.oven/command->references "s3://bucket/pigpen.jar"
                                        (pig-raw/generate$ {}
                                          [(pig-raw/projection-func$ 'foo
-                                            (pig-raw/code$ String ['foo]
+                                            (pig-raw/code$ :normal ['foo]
                                               (pig-raw/expr$ '(require '[pigpen.pig])
                                                              '(var clojure.core/prn))))] {}))
     ["s3://bucket/pigpen.jar"])
@@ -507,7 +507,7 @@
                                                                             (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
                                                                             (pigpen.runtime/map->bind clojure.core/pr-str)
                                                                             (pigpen.pig/post-process :native)])}
-                                             :return "DataBag"
+                                             :udf :sequence
                                              :args [value]}
                                       :alias value}]
                        :type :generate

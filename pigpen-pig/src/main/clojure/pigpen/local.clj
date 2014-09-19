@@ -54,13 +54,14 @@ See pigpen.core and pigpen.exec
 
 (def create-udf
   (memoize
-    (fn ^EvalFunc [scope return init func]
-      (eval `(new ~(symbol (str "pigpen.PigPenFn" return)) ~(str init) ~(str func))))))
+    (fn ^EvalFunc [scope udf init func]
+      (let [udf (pig/udf-lookup udf)]
+        (eval `(new ~(symbol udf) ~(str init) ~(str func)))))))
 
 ;; TODO add option to skip this for faster execution
-(defn ^:private eval-code [{:keys [return expr args]} values]
+(defn ^:private eval-code [{:keys [udf expr args]} values]
   (let [{:keys [init func]} expr
-        ^EvalFunc instance (create-udf udf-scope return init func)
+        ^EvalFunc instance (create-udf udf-scope udf init func)
         ^Tuple tuple (->> args
                        (map #(if ((some-fn symbol? vector?) %) (dereference (values %)) %))
                        (apply pig/tuple))]

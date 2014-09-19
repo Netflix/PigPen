@@ -104,7 +104,7 @@
                                     :alias value1
                                     :code {:type :code
                                            :args [[[generate2] value]]
-                                           :return "Algebraic"
+                                           :udf :algebraic
                                            :expr {:init ""
                                                   :func (pigpen.runtime/with-ns pigpen.join-test
                                                           (fold/fold-fn +))}}}]
@@ -207,7 +207,7 @@
                        :alias value
                        :code {:type :code
                              :args [[[r0] value]]
-                             :return "Algebraic"
+                             :udf :algebraic
                              :expr {:init ""
                                     :func (pigpen.runtime/with-ns pigpen.join-test
                                             (pigpen.join/fold-fn* clojure.core/identity + + clojure.core/identity))}}}]
@@ -250,7 +250,7 @@
                                    {:type :projection-func
                                     :alias value1
                                     :code {:type :code
-                                           :return "Algebraic"
+                                           :udf :algebraic
                                            :args [[[generate2] value]]
                                            :expr {:init ""
                                                   :func (pigpen.runtime/with-ns pigpen.join-test
@@ -258,7 +258,7 @@
                                    {:type :projection-func
                                     :alias value2
                                     :code {:type :code
-                                           :return "Algebraic"
+                                           :udf :algebraic
                                            :args [[[generate4] value]]
                                            :expr {:init ""
                                                   :func (pigpen.runtime/with-ns pigpen.join-test

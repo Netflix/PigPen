@@ -46,7 +46,7 @@
            (command->script '{:type :code
                               :expr {:init (require '[pigpen.pig])
                                      :func identity}
-                              :return DataByteArray
+                              :udf :normal
                               :args []}
                             {})))))
 
@@ -141,7 +141,7 @@
                               :code {:type :code
                                      :expr {:init nil
                                             :func (fn [x] (* x x))}
-                                     :return "DataByteArray"
+                                     :udf :normal
                                      :args ["a" a]}
                               :alias b}
                             {})))))
@@ -163,7 +163,7 @@ generate0 = FOREACH relation0 GENERATE
                                              :code {:type :code
                                                     :expr {:init nil
                                                            :func (fn [x] (* x x))}
-                                                    :return "DataByteArray"
+                                                    :udf :normal
                                                     :args ["a" a]}
                                              :alias b}]}
                             {})))))
@@ -181,7 +181,7 @@ generate0 = FOREACH relation0 GENERATE
                                              :code {:type :code
                                                     :expr {:init nil
                                                            :func (fn [x] [x x])}
-                                                    :return "DataBag"
+                                                    :udf :sequence
                                                     :args ["a" a]}
                                              :alias b}]}
                             {})))))
@@ -239,7 +239,7 @@ filter0 = FILTER relation0 BY udf1('a', a);\n\n"
                               :code {:type :code
                                      :expr {:init nil
                                             :func (fn [x] (even? x))}
-                                     :return "Boolean"
+                                     :udf :boolean
                                      :args ["a" a]}}
                             {})))))
 

@@ -24,8 +24,7 @@ number of optimizations and transforms to the graph.
   (:refer-clojure :exclude [ancestors])
   (:require [clojure.set]
             [pigpen.raw :as raw]
-            [pigpen.code :as code])
-  (:import [org.apache.pig.data DataBag]))
+            [pigpen.code :as code]))
 
 (set! *warn-on-reflection* true)
 
@@ -341,7 +340,7 @@ number of optimizations and transforms to the graph.
                  (pigpen.pig/post-process ~last-field-type)])
         
         projection (raw/projection-flat$ last-field
-                     (raw/code$ DataBag first-args
+                     (raw/code$ :sequence first-args
                        (raw/expr$ requires func)))
         
         description (->> commands (map :description) (clojure.string/join))]
