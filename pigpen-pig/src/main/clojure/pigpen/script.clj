@@ -110,12 +110,13 @@ See pigpen.core and pigpen.exec
 ;; ********** Util **********
 
 (defmethod command->script :code
-  [{:keys [return expr args]} state]
-  {:pre [return expr args]}
+  [{:keys [udf expr args]} state]
+  {:pre [udf expr args]}
   (let [id (raw/pigsym "udf")
         {:keys [init func]} expr
-        pig-args (->> args (map format-field) (join ", "))]
-    [(str "DEFINE " id " pigpen.PigPenFn" return "(" (escape+quote init) "," (escape+quote func) ");\n\n")
+        pig-args (->> args (map format-field) (join ", "))
+        udf (pigpen.pig/udf-lookup udf)]
+    [(str "DEFINE " id " " udf "(" (escape+quote init) "," (escape+quote func) ");\n\n")
      (str id "(" pig-args ")")]))
 
 (defmethod command->script :register

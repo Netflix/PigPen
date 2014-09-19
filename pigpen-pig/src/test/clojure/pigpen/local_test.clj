@@ -39,7 +39,7 @@
 
 (deftest test-eval-code
   
-  (let [code (raw/code$ DataBag '[x y]
+  (let [code (raw/code$ :normal '[x y]
                (raw/expr$ '(require (quote [pigpen.pig]))
                           '(pigpen.pig/exec
                              [(pigpen.pig/pre-process :frozen)

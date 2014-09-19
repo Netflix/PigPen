@@ -54,11 +54,11 @@
 
 (deftest test-code$
   (test-diff
-    (code$ String ["a" 'b '[c d]]
+    (code$ :normal ["a" 'b '[c d]]
            (expr$ '(require '[pigpen.pig])
                   '(var clojure.core/prn)))
     '{:type :code
-      :return "String"
+      :udf :normal
       :expr {:init (require (quote [pigpen.pig]))
              :func (var clojure.core/prn)}
       :args ["a" b [c d]]}))
@@ -136,26 +136,26 @@
 (deftest test-projection-func$
   (test-diff
     (projection-func$ 'value
-                      (code$ String ['value]
+                      (code$ :normal ['value]
                              (expr$ `(require '[pigpen.pig]) `identity)))
     '{:type :projection-func
       :code {:type :code
              :expr {:init (clojure.core/require (quote [pigpen.pig]))
                     :func clojure.core/identity}
-             :return "String"
+             :udf :normal
              :args [value]}
       :alias value}))
 
 (deftest test-projection-flat$
   (test-diff
     (projection-flat$ 'value
-                      (code$ String ['value]
+                      (code$ :normal ['value]
                              (expr$ `(require '[pigpen.pig]) `identity)))
     '{:type :projection-flat
       :code {:type :code
              :expr {:init (clojure.core/require (quote [pigpen.pig]))
                     :func clojure.core/identity}
-             :return "String"
+             :udf :normal
              :args [value]}
       :alias value}))
 
@@ -254,7 +254,7 @@
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
       (filter$ {:fields ['value]}
-               (code$ String ['value]
+               (code$ :normal ['value]
                       (expr$ `(require '[pigpen.pig]) `identity))
                {})
       '{:type :filter
@@ -266,7 +266,7 @@
         :code {:type :code
                :expr {:init (clojure.core/require (quote [pigpen.pig]))
                       :func clojure.core/identity}
-               :return "String"
+               :udf :normal
                :args [value]}
         :opts {:type :filter-opts}})))
 

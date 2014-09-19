@@ -87,13 +87,11 @@ building blocks for more complex operations.")
 
 (defn code$
   "Execute custom code in a script."
-  [^Class return args expr]
-  {:pre [expr return (sequential? args)]}
+  [udf args expr]
+  {:pre [expr (keyword? udf) (sequential? args)]}
   ^:pig {:type :code
          :expr expr
-         :return (if (string? return)
-                   return
-                   (last (clojure.string/split (.getName return) #"\.")))
+         :udf udf
          :args (vec args)})
 
 ;; ********** IO **********
