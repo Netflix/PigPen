@@ -47,6 +47,11 @@
       [args] ;; wrap as arg to next fn
       [])))
 
+(defn process->bind
+  "Wraps the output of pre- and post-process with a vector."
+  [f]
+  (comp vector f))
+
 (defn sentinel-nil
   "Coerces nils into a sentinel value. Useful for nil handling in outer joins."
   [value]
@@ -86,3 +91,30 @@ single arg, which is sequential. Applies f to the remaining args."
       (eval (read-string f))
       (catch Throwable z
         (throw (RuntimeException. (str "Exception evaluating: " f) z))))))
+
+(defmulti pre-process
+  "Optionally deserializes incoming data. Should return a fn that takes a single
+'args' param and returns a seq of processed args. 'platform' is what will be
+running the code (:pig, :cascading, etc). 'serialization-type' defines which of
+the fields to serialize. It will be one of:
+
+  :native - everything should be native values. You may need to coerce host
+            types into clojure types here.
+  :frozen - deserialize everything
+"
+  (fn [platform serialization-type]
+    [platform serialization-type]))
+
+(defmulti post-process
+  "Optionally serializes outgoing data. Should return a fn that takes a single
+'args' param and returns a seq of processed args. 'platform' is what will be
+running the code (:pig, :cascading, etc). 'serialization-type' defines which of
+the fields to serialize. It will be one of:
+
+  :native - don't serialize
+  :frozen - serialize everything
+  :frozen-with-nils - serialize everything except nils
+  :native-key-frozen-val - expect a tuple, freeze only the second value
+"
+  (fn [platform serialization-type]
+    [platform serialization-type]))

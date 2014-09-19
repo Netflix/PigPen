@@ -323,7 +323,7 @@ number of optimizations and transforms to the graph.
                   [before binds (conj after command)])))
             [[] [] []] commands)))
 
-(defn ^:private bind->generate [commands]
+(defn ^:private bind->generate [commands platform]
   ;; TODO make sure all inner field types are :frozen
   (let [first-relation   (-> commands first :ancestors first)
         first-args       (-> commands first :args)
@@ -335,9 +335,9 @@ number of optimizations and transforms to the graph.
         requires (code/build-requires (mapcat :requires commands))
         
         func `(pigpen.pig/exec
-                [(pigpen.pig/pre-process ~first-field-type)
+                [(pigpen.runtime/process->bind (pigpen.runtime/pre-process ~platform ~first-field-type))
                  ~@(mapv :func commands)
-                 (pigpen.pig/post-process ~last-field-type)])
+                 (pigpen.runtime/process->bind (pigpen.runtime/post-process ~platform ~last-field-type))])
         
         projection (raw/projection-flat$ last-field
                      (raw/code$ :sequence first-args
@@ -349,16 +349,16 @@ number of optimizations and transforms to the graph.
                                                  :description description
                                                  :implicit-schema implicit-schema})))
 
-(defn ^:private optimize-binds [commands]
+(defn ^:private optimize-binds [commands platform]
   (if (= 1 (count commands))
     commands
     (let [[before binds after] (find-bind-sequence commands)]
       (if (empty? binds)
         commands
-        (let [generate (bind->generate binds)
+        (let [generate (bind->generate binds platform)
               next (concat before [generate] after)
               next (merge-command next {(-> binds last :id) (:id generate)})]
-          (recur next))))))
+          (recur next platform))))))
 
 ;; **********
 
@@ -472,8 +472,8 @@ produces a non-pigpen output.
             pigpen.core/dump, pigpen.core/show
 "
   {:added "0.2.5"} ; since 0.1.0, but exposed 0.2.5
-  ([query] (bake {} query))
-  ([opts query]
+  ([platform query] (bake platform {} query))
+  ([platform opts query]
     {:pre [(->> query meta keys (some #{:pig :baked})) (map? opts)]}
     (let [jar-location (or (:pigpen-jar-location opts) "pigpen.jar")
           extract-references (partial extract-references jar-location)]
@@ -488,7 +488,7 @@ produces a non-pigpen output.
           (not= false (:dedupe opts)) dedupe
           (not= false (:prune opts)) trim-fat
           true expand-load-filters
-          true optimize-binds
+          true (optimize-binds platform)
           true alias-self-joins
           true clean
           true (with-meta {:baked true}))))))

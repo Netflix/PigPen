@@ -127,7 +127,7 @@
                                     :requires []
                                     :fields [value]
                                     :field-type-in :frozen
-                                    :field-type-out :sort
+                                    :field-type-out :native-key-frozen-val
                                     :ancestors [{:fields [value]}]
                                     :opts {:type :bind-opts
                                            :implicit-schema true}}]}]}))))
@@ -161,7 +161,7 @@
                                     :requires []
                                     :fields [value]
                                     :field-type-in :frozen
-                                    :field-type-out :sort
+                                    :field-type-out :native-key-frozen-val
                                     :ancestors [{:fields [value]}]
                                     :opts {:type :bind-opts
                                            :implicit-schema true}}]}]}))))

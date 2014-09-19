@@ -42,9 +42,11 @@
   (let [code (raw/code$ :normal '[x y]
                (raw/expr$ '(require (quote [pigpen.pig]))
                           '(pigpen.pig/exec
-                             [(pigpen.pig/pre-process :frozen)
+                             [(pigpen.runtime/process->bind
+                                (pigpen.runtime/pre-process :pig :frozen))
                               (pigpen.runtime/map->bind (fn [x y] (+ x y)))
-                              (pigpen.pig/post-process :frozen)])))
+                              (pigpen.runtime/process->bind
+                                (pigpen.runtime/post-process :pig :frozen))])))
         values (freeze-vals {'x 37, 'y 42})]
     (is (= (thaw-anything (#'pigpen.local/eval-code code values))
            '(bag (tuple (freeze 79)))))))
