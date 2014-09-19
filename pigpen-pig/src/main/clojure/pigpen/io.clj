@@ -52,7 +52,7 @@ each input field. The data is returned as a map with 'fields' as the keys.
   [location fields]
   `(->
      (raw/load$ ~location '~fields raw/default-storage {:cast "chararray"})
-     (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
+     (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig/parse-pig))
                 {:args '~(clojure.core/mapcat (juxt str identity) fields)
                  :field-type-in :native})))
 

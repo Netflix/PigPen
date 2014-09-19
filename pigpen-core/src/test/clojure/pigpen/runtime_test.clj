@@ -34,6 +34,15 @@
   (let [f (indexed-field-selector->bind 2 clojure.string/join)]
     (is (= (f [[1 2 3 4]]) [[1 2 "34"]]))))
 
+(deftest test-args->map
+  (let [f (args->map #(* 2 %))]
+    (is (= (f "a" 2 "b" 3)
+           {:a 4 :b 6}))))
+
+(deftest test-debug
+  (is (= "class java.lang.Long\t2\tclass java.lang.String\tfoo\tclass java.lang.String\tbar"
+         (debug 2 "foo" "bar"))))
+
 (deftest test-eval-string
   (let [f-str "(fn [x] (* x x))"
         f (eval-string f-str)]

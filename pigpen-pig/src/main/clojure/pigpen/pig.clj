@@ -507,24 +507,6 @@ as the initial state for the next accumulation."
 
 ;; **********
 
-(defn args->map
-  "Returns a fn that converts a list of args into a map of named parameter
-   values. Applies f to all the values."
-  [f]
-  (fn [& args]
-    (->> args
-      (partition 2)
-      (map (fn [[k v]] [(keyword k) (f v)]))
-      (into {}))))
-
-(defn debug [& args]
-  "Creates a debug string for the tuple"
-  (try
-    (->> args (mapcat (juxt type str)) (string/join "\t"))
-    (catch Exception z (str "Error getting value: " z))))
-
-;; **********
-
 (defmethod pigpen.runtime/pre-process [:pig :native]
   [_ _]
   identity)
