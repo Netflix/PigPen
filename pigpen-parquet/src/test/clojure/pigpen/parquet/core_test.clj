@@ -28,7 +28,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.runtime/map->bind (pigpen.pig/args->map pigpen.pig/native->clojure))
+        :func (pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig/native->clojure))
         :args ["y" y "x" x]
         :requires []
         :fields [value]

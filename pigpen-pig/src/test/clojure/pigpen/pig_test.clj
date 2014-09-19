@@ -441,17 +441,6 @@
 ;; TODO test serialization equivalency
 ;; TODO test serialization round-trip
 
-(deftest test-args->map
-  (let [f (args->map #(* 2 %))]
-    (is (= (f "a" 2 "b" 3)
-           {:a 4 :b 6}))))
-
-(deftest test-debug
-  (is (= "class java.lang.Long\t2\tclass org.apache.pig.data.DefaultDataBag\t{(foo,bar)}"
-         (debug 2 (bag (tuple "foo" "bar"))))))
-
-; *****************
-
 (deftest test-exec
   
   (let [command (pigpen.pig/exec

@@ -83,6 +83,22 @@ single arg, which is sequential. Applies f to the remaining args."
          (take n values)
          [(f (drop n values))])])))
 
+(defn args->map
+  "Returns a fn that converts a list of args into a map of named parameter
+   values. Applies f to all the values."
+  [f]
+  (fn [& args]
+    (->> args
+      (partition 2)
+      (map (fn [[k v]] [(keyword k) (f v)]))
+      (into {}))))
+
+(defn debug [& args]
+  "Creates a debug string for the tuple"
+  (try
+    (->> args (mapcat (juxt type str)) (clojure.string/join "\t"))
+    (catch Exception z (str "Error getting value: " z))))
+
 (defn eval-string
   "Reads code from a string & evaluates it"
   [f]

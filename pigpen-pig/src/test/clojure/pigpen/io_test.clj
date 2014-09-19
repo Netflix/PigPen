@@ -44,7 +44,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.runtime/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
+        :func (pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig/parse-pig))
         :args ["a" a "b" b "c" c]
         :requires []
         :fields [value]
