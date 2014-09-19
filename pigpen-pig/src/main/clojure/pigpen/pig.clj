@@ -392,15 +392,6 @@ serialization info."
 
 ;; **********
 
-(defn eval-string
-  "Reads code from a string & evaluates it"
-  [f]
-  (when (not-empty f)
-    (try
-      (eval (read-string f))
-      (catch Throwable z
-        (throw (RuntimeException. (str "Exception evaluating: " f) z))))))
-
 (defn eval-udf
   [func ^Tuple t]
   "Evaluates a pig tuple as a clojure function. The first element of the tuple

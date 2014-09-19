@@ -23,8 +23,9 @@ public abstract class PigPenPartitioner extends Partitioner<PigNullableWritable,
 
     static {
         final Var require = RT.var("clojure.core", "require");
+        require.invoke(Symbol.intern("pigpen.runtime"));
         require.invoke(Symbol.intern("pigpen.pig"));
-        EVAL_STRING = RT.var("pigpen.pig", "eval-string");
+        EVAL_STRING = RT.var("pigpen.runtime", "eval-string");
         GET_PARTITION = RT.var("pigpen.pig", "get-partition");
     }
 

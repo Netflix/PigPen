@@ -34,3 +34,8 @@
   (let [f (indexed-field-selector->bind 2 clojure.string/join)]
     (is (= (f [[1 2 3 4]]) [[1 2 "34"]]))))
 
+(deftest test-eval-string
+  (let [f-str "(fn [x] (* x x))"
+        f (eval-string f-str)]
+    (is (= (f 2) 4))
+    (is (= (f 42) 1764))))
