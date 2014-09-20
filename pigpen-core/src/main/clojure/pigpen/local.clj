@@ -178,25 +178,19 @@ See pigpen.core and pigpen.exec
   (let [local-loader (load command)
         ^Observable o (->> (rx/observable*
                              (fn [^Subscriber s]
-                               (let [cancel (atom false)
-                                     read-count (atom 0)]
-                                 (.add s
-                                   (reify Subscription
-                                     (unsubscribe [this]
-                                       (reset! cancel true))))
-                                 (future
-                                   (try
-                                     (println "Start reading from " location)
-                                     (doseq [file (locations local-loader)
-                                             :while (not @cancel)]
-                                       (let [reader (init-reader local-loader file)]
-                                         (doseq [value (read local-loader reader)
-                                                 :while (not @cancel)]
-                                           (swap! read-count inc)
-                                           (rx/on-next s value))
-                                         (close-reader local-loader reader)))
-                                     (rx/on-completed s)
-                                     (catch Exception e (rx/on-error s e)))))))
+                               (future
+                                 (try
+                                   (println "Start reading from " location)
+                                   (doseq [file (locations local-loader)
+                                           :while (not (.isUnsubscribed s))]
+                                     (let [reader (init-reader local-loader file)]
+                                       (doseq [value (read local-loader reader)
+                                               :while (not (.isUnsubscribed s))]
+                                         (rx/on-next s value))
+                                       (close-reader local-loader reader)))
+                                   (rx/on-completed s)
+                                   ;; TODO test this more. Errors seem to cause deadlocks
+                                   (catch Throwable t (rx/on-error s t))))))
                         (rx/finally
                           (println "Stop reading from " location)))]
     (.observeOn o (Schedulers/io))))
