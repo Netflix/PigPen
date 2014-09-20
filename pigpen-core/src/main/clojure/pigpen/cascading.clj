@@ -90,26 +90,12 @@
       (update-in flowdef [:pipes pipe] #(Every. % (PigPenBuffer. (str init) (str func) fields) Fields/RESULTS))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
 
-(defn- get-cogroup-fields
-  "Pig does something like [k, v1], [k, v2] > [group, v1, v2], while cascading
-  does [k, v1], [k, v2] > [k, v1, k_copy, v2], where the number of fields of
-  the combined stream must match the sum of the streams being joined, but the field
-  names are arbitrary."
-  [fields]
-  (cons (first fields) (nthrest fields 2)))
-
 (defmethod command->flowdef :group
            [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
-  (println "flowdef" flowdef)
-  (println "keys" keys)
-  (println "fields" fields)
-  (println "ancestors" ancestors)
-  (println "join-types" join-types)
   (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
                                                            (into-array Pipe (map (:pipes flowdef) ancestors))
                                                            (into-array (map #(Fields. (into-array (map str %))) keys))
-                                                           ;(Fields. (into-array (map str (get-cogroup-fields fields))))
                                                            Fields/NONE
                                                            (BufferJoin.)
                                                            )})))
