@@ -55,7 +55,7 @@
                               (fn [k l r] [k (map :b l) (map :d r)]))
         command (store-clj "/tmp/output" command)
         baked (pigpen.oven/bake command)]
-    (clojure.pprint/pprint baked)
+    (clojure.pprint/pprint (preprocess-commands baked))
     (println (pigpen.script/commands->script baked))
     (commands->flow baked)
     (.complete (generate-flow command))

@@ -74,19 +74,12 @@
            [{:keys [return expr args pipe]} flowdef]
   {:pre [return expr args]}
   (let [{:keys [init func]} expr]
-    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func)) Fields/RESULTS)))) ;(partial merge {:operation (PigPenFunction. (str init) (str func))}))))
+    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func)) Fields/RESULTS))))
 
 (defn- cascading-field [name-or-number]
   (if (number? name-or-number)
     (int name-or-number)
     (str name-or-number)))
-
-(defmethod command->flowdef :field-projections
-           [{:keys [projections pipe] :as x} flowdef]
-  {:pre [(not-empty projections) (get-in flowdef [:pipes pipe])]}
-  (let [fields (map #(cascading-field (:field %)) projections)
-        aliases (map #(cascading-field (:alias %)) projections)]
-    (update-in flowdef [:pipes pipe] #(Each. % (Fields. (into-array fields)) (Identity. (Fields. (into-array aliases)))))))
 
 (defn- get-cogroup-fields
   "Pig does something like [k, v1], [k, v2] > [group, v1, v2], while cascading
@@ -94,21 +87,11 @@
   the combined stream must match the sum of the streams being joined, but the field
   names are arbitrary."
   [fields]
-  (cons (first fields) (rest (rest fields))))
+  (cons (first fields) (nthrest fields 2)))
 
 (defmethod command->flowdef :group
            [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
-  ;(let [pig-id (escape-id id)
-  ;      clauses (if (= keys [:pigpen.raw/group-all])
-  ;                [(str (escape-id (first ancestors)) " ALL")]
-  ;                (map (fn [r k j] (str (escape-id r) " BY (" (->> k (map format-field) (join ", ")) ")"
-  ;                                      (if (= j :required) " INNER")))
-  ;                     ancestors keys join-types))
-  ;      pig-clauses (join ", " clauses)
-  ;      pig-opts (command->script opts state)]
-  ;  (str pig-id " = COGROUP " pig-clauses pig-opts ";\n\n"))
-
   (println "flowdef" flowdef)
   (println "keys" keys)
   (println "fields" fields)
@@ -152,10 +135,26 @@
            [command flowdef]
   (throw (Exception. (str "Command " (:type command) " not implemented yet for Cascading!"))))
 
+(defn preprocess-commands [commands]
+  (let [is-field-projection #(= :projection-field (get-in % [:projections 0 :type]))
+        ancestors-map (->> commands
+                           (filter is-field-projection)
+                           (map (fn [c] [(:id c) (first (:ancestors c))]))
+                           (into {}))]
+    (->> commands
+         (map-indexed (fn [i c]
+                        (let [c (if (is-field-projection (get commands (+ i 1)))
+                                  (assoc c :field-projections (get-in (get commands (+ i 1)) [:projections]))
+                                  c)]
+                          (update-in c [:ancestors] (fn [a] (map #(if (contains? ancestors-map %)
+                                                                   (ancestors-map %)
+                                                                   %) a))))))
+         (remove is-field-projection))))
+
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
   [commands]
-  (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} commands)
+  (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} (preprocess-commands commands))
         {:keys [pipe-to-source sources pipe-to-sink sinks pipes]} flowdef
         sources-map (into {} (map (fn [[p s]] [(str p) (sources s)]) pipe-to-source))
         sinks-map (into {} (map (fn [[p s]] [(str p) (sinks s)]) pipe-to-sink))
