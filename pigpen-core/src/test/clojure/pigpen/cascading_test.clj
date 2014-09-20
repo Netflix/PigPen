@@ -58,7 +58,7 @@
     (clojure.pprint/pprint baked)
     (println (pigpen.script/commands->script baked))
     (commands->flow baked)
-    ;(.complete (generate-flow command))
+    (.complete (generate-flow command))
     #_(println "results:\n" (slurp "/tmp/output/part-00000"))))
 
 (run-tests 'pigpen.cascading-test)

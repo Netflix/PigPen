@@ -21,7 +21,6 @@ public class PigPenFunction extends BaseOperation implements Function {
   private final String func;
 
   public PigPenFunction(String init, String func) {
-    super(new Fields());
     EVAL_STRING.invoke(init);
     this.init = init;
     this.func = func;

@@ -84,15 +84,21 @@
 (defmethod command->flowdef :field-projections
            [{:keys [projections pipe] :as x} flowdef]
   {:pre [(not-empty projections) (get-in flowdef [:pipes pipe])]}
-  (println "flowdef" flowdef)
-  (println "x" x)
   (let [fields (map #(cascading-field (:field %)) projections)
         aliases (map #(cascading-field (:alias %)) projections)]
     (update-in flowdef [:pipes pipe] #(Each. % (Fields. (into-array fields)) (Identity. (Fields. (into-array aliases)))))))
 
+(defn- get-cogroup-fields
+  "Pig does something like [k, v1], [k, v2] > [group, v1, v2], while cascading
+  does [k, v1], [k, v2] > [k, v1, k_copy, v2], where the number of fields of
+  the combined stream must match the sum of the streams being joined, but the field
+  names are arbitrary."
+  [fields]
+  (cons (first fields) (rest (rest fields))))
+
 (defmethod command->flowdef :group
-           [{:keys [id keys join-types ancestors opts]} flowdef]
-  {:pre [id keys join-types ancestors]}
+           [{:keys [id keys fields join-types ancestors opts]} flowdef]
+  {:pre [id keys fields join-types ancestors]}
   ;(let [pig-id (escape-id id)
   ;      clauses (if (= keys [:pigpen.raw/group-all])
   ;                [(str (escape-id (first ancestors)) " ALL")]
@@ -105,11 +111,13 @@
 
   (println "flowdef" flowdef)
   (println "keys" keys)
+  (println "fields" fields)
   (println "ancestors" ancestors)
   (println "join-types" join-types)
   (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
                                                            (into-array Pipe (map (:pipes flowdef) ancestors))
-                                                           (into-array (map #(Fields. (into-array (map str %))) keys)))})))
+                                                           (into-array (map #(Fields. (into-array (map str %))) keys))
+                                                           (Fields. (into-array (map str (get-cogroup-fields fields)))))})))
 
 (defmethod command->flowdef :projection-flat
            [{:keys [code alias pipe]} flowdef]
