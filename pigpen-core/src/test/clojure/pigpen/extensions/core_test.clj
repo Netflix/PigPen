@@ -21,9 +21,9 @@
         pigpen.extensions.core))
 
 (deftest test-pp-str
-  (let [data {:a "very long string" :b "another really really long string" :c [1 2 3]}]
+  (let [data (array-map :a "very long string" :b "another really really long string" :c [1 2 3])]
     (is (= (pp-str data)
-           "{:a \"very long string\",\n :c [1 2 3],\n :b \"another really really long string\"}\n"))))
+           "{:a \"very long string\",\n :b \"another really really long string\",\n :c [1 2 3]}\n"))))
 
 (deftest test-zip
   (is (= (zip [x [1 2 3]

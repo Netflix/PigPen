@@ -106,9 +106,9 @@
 
 (deftest test-store-string
   (let [data (pig/return ["The quick brown fox"
-                         "jumps over the lazy dog"
-                         42
-                         :foo])
+                          "jumps over the lazy dog"
+                          42
+                          :foo])
         command (pig/store-string "build/functional/io-test/test-store-string" data)]
     (is (= (pig/dump command)
            ["The quick brown fox" "jumps over the lazy dog" "42" ":foo"]))
@@ -117,7 +117,7 @@
 
 (deftest test-store-tsv
   (let [data (pig/return [[1 "foo" :a]
-                         [2 "bar" :b]])
+                          [2 "bar" :b]])
         command (pig/store-tsv "build/functional/io-test/test-store-tsv" data)]
     (is (= (pig/dump command)
            ["1\tfoo\t:a" "2\tbar\t:b"]))
@@ -125,8 +125,8 @@
            (slurp "build/functional/io-test/test-store-tsv")))))
 
 (deftest test-store-clj
-  (let [data (pig/return [{:a 1, :b "foo"}
-                         {:a 2, :b "bar"}])
+  (let [data (pig/return [(array-map :a 1, :b "foo")
+                          (array-map :a 2, :b "bar")])
         command (pig/store-clj "build/functional/io-test/test-store-clj" data)]
     (is (= (pig/dump command)
            ["{:a 1, :b \"foo\"}" "{:a 2, :b \"bar\"}"]))
@@ -134,8 +134,8 @@
            (slurp "build/functional/io-test/test-store-clj")))))
 
 (deftest test-store-json
-  (let [data (pig/return [{:a 1, :b "foo"}
-                         {:a 2, :b "bar"}])
+  (let [data (pig/return [(array-map :a 1, :b "foo")
+                          (array-map :a 2, :b "bar")])
         command (pig/store-json "build/functional/io-test/test-store-json" data)]
     (is (= (pig/dump command)
            ["{\"a\":1,\"b\":\"foo\"}" "{\"a\":2,\"b\":\"bar\"}"]))
