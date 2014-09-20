@@ -24,14 +24,6 @@
 
 (.mkdirs (java.io.File. "build/functional/io-test"))
 
-(deftest test-load-pig
-  (let [command (pig/load-pig "build/functional/io-test/test-load-pig" [a b])]
-    (spit "build/functional/io-test/test-load-pig" "1\tfoo\n2\tbar\n")
-    (test-diff
-      (set (pig/dump command))
-      '#{{:a 2, :b "bar"}
-         {:a 1, :b "foo"}})))  
-
 (deftest test-load-string
   (let [command (pig/load-string "build/functional/io-test/test-load-string")]
     (spit "build/functional/io-test/test-load-string" "The quick brown fox\njumps over the lazy dog\n")
@@ -111,15 +103,6 @@
       (set (pig/dump command))
       '#{("a" "b" "c")
          ("1" "2" "3")})))
-
-(deftest test-store-pig
-  (let [data (pig/return [{:a 1, :b "foo"}
-                         {:a 2, :b "bar"}])
-        command (pig/store-pig "build/functional/io-test/test-store-pig" data)]
-    (is (= (pig/dump command)
-           ["[a#1,b#foo]" "[a#2,b#bar]"]))
-    (is (= "[a#1,b#foo]\n[a#2,b#bar]\n"
-           (slurp "build/functional/io-test/test-store-pig")))))
 
 (deftest test-store-string
   (let [data (pig/return ["The quick brown fox"

@@ -26,8 +26,6 @@ possible as it's used at runtime."
             [clojure.data.json :as json]
             [clojure.core.async :as a]
             [pigpen.extensions.core-async :as ae]
-            [clj-time.format :as time]
-            [instaparse.core :as insta]
             [taoensso.nippy :refer [freeze thaw]])
   (:import [pigpen PigPenException]
            [org.apache.pig.data
@@ -139,54 +137,6 @@ possible as it's used at runtime."
      "long" bytes->long
      "chararray" bytes->string)
     value))
-
-;; **********
-
-(def ^:private string->pig
-  (insta/parser
-    "
-<PIG>     = TUPLE | BAG | MAP | LITERAL
-TUPLE     = <'()'> | <'('> PIG (<','> PIG)* <')'>
-BAG       = <'{}'> | <'{'> TUPLE (<','> TUPLE)* <'}'>
-MAP       = <'[]'> | <'['> MAP-ENTRY (<','> MAP-ENTRY)* <']'>
-MAP-ENTRY = STRING <'#'> PIG
-<LITERAL> = (DATETIME | NUMBER | BOOLEAN) / STRING
-DATETIME  = #'\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{3}\\+\\d{2}:\\d{2}'
-NUMBER    = #'-?(\\d+\\.\\d+|[1-9][0-9]*|0)(e\\d+)?' <('l' | 'L' | 'f' | 'F')?>
-BOOLEAN   = 'true' | 'TRUE' | 'false' | 'FALSE'
-STRING    = #'[^\\,\\)\\}\\]\\#]+'
-"))
-
-(defmulti ^:private pig->clojure first)
-
-(defmethod pig->clojure :STRING [[_ v]] v)
-
-(defmethod pig->clojure :BOOLEAN [[_ v]] 
-  (-> v clojure.string/lower-case read-string))
-
-(defmethod pig->clojure :NUMBER [[_ v]]
-  (read-string v))
-
-(defmethod pig->clojure :DATETIME [[_ v]]
-  (time/parse v))
-
-(defmethod pig->clojure :MAP-ENTRY [[_ k v]]
-  [(pig->clojure k) (pig->clojure v)])
-
-(defmethod pig->clojure :MAP [[_ & entries]]
-  (into {} (map #(pig->clojure %) entries)))
-
-(defmethod pig->clojure :BAG [[_ & items]]
-  (into [] (map #(pig->clojure %) items)))
-
-(defmethod pig->clojure :TUPLE [[_ & items]]
-  (into [] (map #(pig->clojure %) items)))
-
-(defn parse-pig [data]
-  (let [parsed (string->pig data)]
-    (if (insta/failure? parsed)
-      (insta/get-failure parsed)
-      (pig->clojure (first parsed)))))
 
 ;; **********
 
