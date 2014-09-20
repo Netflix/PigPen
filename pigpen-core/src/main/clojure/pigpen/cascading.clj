@@ -1,11 +1,12 @@
 (ns pigpen.cascading
   (:import (cascading.tap.hadoop Hfs)
            (cascading.scheme.hadoop TextLine)
-           (cascading.pipe Pipe Each CoGroup)
+           (cascading.pipe Pipe Each CoGroup Every)
            (cascading.flow.hadoop HadoopFlowConnector)
-           (pigpen.cascading PigPenFunction)
+           (pigpen.cascading PigPenFunction PigPenBuffer)
            (cascading.tuple Fields)
-           (cascading.operation Identity))
+           (cascading.operation Identity)
+           (cascading.pipe.joiner OuterJoin))
   (:require [pigpen.raw :as raw]
             [pigpen.oven :as oven]))
 
@@ -81,8 +82,13 @@
   (let [{:keys [init func]} expr
         fields (if field-projections
                  (Fields. (into-array (map #(cascading-field (:alias %)) field-projections)))
-                 Fields/UNKNOWN)]
-    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS))))
+                 Fields/UNKNOWN)
+        is-group #(cond (instance? CoGroup %) true
+                        (nil? %) false
+                        :else (recur (first (.getPrevious %))))]
+    (if (is-group (get-in flowdef [:pipes pipe]))
+      (update-in flowdef [:pipes pipe] #(Every. % (PigPenBuffer. (str init) (str func) fields) Fields/RESULTS))
+      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
 
 (defn- get-cogroup-fields
   "Pig does something like [k, v1], [k, v2] > [group, v1, v2], while cascading

@@ -21,13 +21,11 @@ import cascading.tuple.TupleEntry;
 
 public class PigPenFunction extends BaseOperation implements Function {
 
-  private static final IFn EVAL_STRING = RT.var("pigpen.pig", "eval-string");
   private final String init;
   private final String func;
 
   public PigPenFunction(String init, String func, Fields fields) {
     super(fields);
-    EVAL_STRING.invoke(init);
     this.init = init;
     this.func = func;
   }
@@ -35,45 +33,17 @@ public class PigPenFunction extends BaseOperation implements Function {
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
     super.prepare(flowProcess, operationCall);
-    EVAL_STRING.invoke(init);
-    IFn fn = (IFn)EVAL_STRING.invoke(func);
+    OperationUtil.init(init);
+    IFn fn = OperationUtil.getFn(func);
     operationCall.setContext(fn);
   }
 
   @Override
   public void operate(FlowProcess flowProcess, FunctionCall functionCall) {
-    TupleEntry tupleEntry = functionCall.getArguments();
     IFn fn = (IFn)functionCall.getContext();
-    Object result = fn.invoke(getTupleValues(tupleEntry));
+    TupleEntry tupleEntry = functionCall.getArguments();
+    Object result = fn.invoke(OperationUtil.getTupleValues(tupleEntry));
     emitOutput(functionCall, result);
-  }
-
-  // TODO: this should not be necessary once we handle serialization without depending on Pig classes.
-  private Iterable getTupleValues(TupleEntry tupleEntry) {
-    List objs = new ArrayList();
-    for (Object o : tupleEntry.getTuple()) {
-      if (o instanceof BytesWritable) {
-        BytesWritable bw = (BytesWritable)o;
-        objs.add(new DataByteArray(getBytes(bw)));
-      } else {
-        objs.add(o);
-      }
-    }
-    return objs;
-  }
-
-  private static byte[] getBytes(BytesWritable bw) {
-    if (bw.getCapacity() == bw.getLength()) {
-      return bw.getBytes();
-    } else {
-      return copyBytes(bw);
-    }
-  }
-
-  private static byte[] copyBytes(BytesWritable bw) {
-    byte[] ret = new byte[bw.getLength()];
-    System.arraycopy(bw.getBytes(), 0, ret, 0, bw.getLength());
-    return ret;
   }
 
   // TODO: this should not use DataBag or any other Pig class.

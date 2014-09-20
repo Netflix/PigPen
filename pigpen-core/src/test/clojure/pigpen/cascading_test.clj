@@ -46,7 +46,7 @@
 
 (deftest test-cogroup
   (spit "/tmp/input1" "{:a 1 :b 2}\n {:a 1 :b 3}\n {:a 2 :b 4}")
-  (spit "/tmp/input2" "{:c 1 :d \"foo\"} {:c 2 :d \"bar\"} {:c 2 :d \"baz\"}")
+  (spit "/tmp/input2" "{:c 1 :d \"foo\"}\n {:c 2 :d \"bar\"}\n {:c 2 :d \"baz\"}")
   (.delete (FileSystem/get (Configuration.)) (Path. "/tmp/output") true)
   (let [left (load-clj "/tmp/input1")
         right (load-clj "/tmp/input2")
