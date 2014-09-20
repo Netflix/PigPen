@@ -70,16 +70,19 @@
       (update-in [:pipe-to-sink] (partial merge {(first ancestors) id}))
       (update-in [:sinks] (partial merge {id ((get-tap-fn (:func storage)) location)}))))
 
-(defmethod command->flowdef :code
-           [{:keys [return expr args pipe]} flowdef]
-  {:pre [return expr args]}
-  (let [{:keys [init func]} expr]
-    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func)) Fields/RESULTS))))
-
 (defn- cascading-field [name-or-number]
   (if (number? name-or-number)
     (int name-or-number)
     (str name-or-number)))
+
+(defmethod command->flowdef :code
+           [{:keys [return expr args pipe field-projections]} flowdef]
+  {:pre [return expr args]}
+  (let [{:keys [init func]} expr
+        fields (if field-projections
+                 (Fields. (into-array (map #(cascading-field (:alias %)) field-projections)))
+                 Fields/UNKNOWN)]
+    (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS))))
 
 (defn- get-cogroup-fields
   "Pig does something like [k, v1], [k, v2] > [group, v1, v2], while cascading
@@ -103,12 +106,12 @@
                                                            (Fields. (into-array (map str (get-cogroup-fields fields)))))})))
 
 (defmethod command->flowdef :projection-flat
-           [{:keys [code alias pipe]} flowdef]
+           [{:keys [code alias pipe field-projections]} flowdef]
   {:pre [code alias]}
-  (command->flowdef (assoc code :pipe pipe) flowdef))
+  (command->flowdef (assoc code :pipe pipe :field-projections field-projections) flowdef))
 
 (defmethod command->flowdef :generate
-           [{:keys [id ancestors projections opts]} flowdef]
+           [{:keys [id ancestors projections field-projections opts]} flowdef]
   {:pre [id ancestors (not-empty projections)]}
   (let [new-flowdef (reduce (fn [def ancestor]
                               (cond (contains? (:sources def) ancestor) (let [pipe (Pipe. (str id))]
@@ -124,12 +127,11 @@
                                             (println "ancestors" ancestors)
                                             (throw (Exception. "not implemented")))))
                             flowdef ancestors)
-        field-projections (filter #(= :projection-field (:type %)) projections)
         flat-projections (filter #(= :projection-flat (:type %)) projections)
-        new-flowdef (reduce (fn [def cmd] (command->flowdef (assoc cmd :pipe id) def)) new-flowdef flat-projections)]
-    (if (empty? field-projections)
-      new-flowdef
-      (command->flowdef {:type :field-projections :projections field-projections :pipe id} new-flowdef))))
+        new-flowdef (reduce (fn [def cmd] (command->flowdef (assoc cmd :pipe id :field-projections field-projections) def))
+                            new-flowdef
+                            flat-projections)]
+    new-flowdef))
 
 (defmethod command->flowdef :default
            [command flowdef]
