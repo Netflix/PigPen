@@ -6,7 +6,7 @@
            (pigpen.cascading PigPenFunction PigPenBuffer)
            (cascading.tuple Fields)
            (cascading.operation Identity)
-           (cascading.pipe.joiner OuterJoin))
+           (cascading.pipe.joiner OuterJoin BufferJoin))
   (:require [pigpen.raw :as raw]
             [pigpen.oven :as oven]))
 
@@ -109,7 +109,10 @@
   (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
                                                            (into-array Pipe (map (:pipes flowdef) ancestors))
                                                            (into-array (map #(Fields. (into-array (map str %))) keys))
-                                                           (Fields. (into-array (map str (get-cogroup-fields fields)))))})))
+                                                           ;(Fields. (into-array (map str (get-cogroup-fields fields))))
+                                                           Fields/NONE
+                                                           (BufferJoin.)
+                                                           )})))
 
 (defmethod command->flowdef :projection-flat
            [{:keys [code alias pipe field-projections]} flowdef]

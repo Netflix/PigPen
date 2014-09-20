@@ -26,14 +26,17 @@ public class OperationUtil {
   public static Iterable getTupleValues(TupleEntry tupleEntry) {
     List objs = new ArrayList();
     for (Object o : tupleEntry.getTuple()) {
-      if (o instanceof BytesWritable) {
-        BytesWritable bw = (BytesWritable)o;
-        objs.add(new DataByteArray(getBytes(bw)));
-      } else {
-        objs.add(o);
-      }
+      objs.add(getValue(o));
     }
     return objs;
+  }
+
+  public static Object getValue(Object obj) {
+    if (obj instanceof  BytesWritable) {
+      BytesWritable bw = (BytesWritable)obj;
+      return new DataByteArray(getBytes(bw));
+    }
+    return obj;
   }
 
   private static byte[] getBytes(BytesWritable bw) {
