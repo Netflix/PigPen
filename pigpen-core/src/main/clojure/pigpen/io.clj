@@ -35,27 +35,6 @@ unless debugging scripts."
   ([location fields]
     `(raw/load$ ~location '~fields raw/default-storage {})))
 
-(defmacro load-pig
-  "Loads data stored in Pig format and converts it to the equivalent Clojure
-data structures. The data is a tab-delimited file. 'fields' defines the name for
-each input field. The data is returned as a map with 'fields' as the keys.
-
-  Example:
-
-    (pig/load-pig \"input.pig\")
-
-  Note: This is extremely slow. Don't use it.
-
-  See also: pigpen.core/load-tsv, pigpen.core/load-clj
-"
-  {:added "0.1.0"}
-  [location fields]
-  `(->
-     (raw/load$ ~location '~fields raw/default-storage {:cast "chararray"})
-     (raw/bind$ [] '(pigpen.pig/map->bind (pigpen.pig/args->map pigpen.pig/parse-pig))
-                {:args '~(clojure.core/mapcat (juxt str identity) fields)
-                 :field-type-in :native})))
-
 (defn load-string*
   "The base for load-string, load-clj, and load-json. The parameters requires
 and f specify a conversion function to apply to each input row."
@@ -85,9 +64,6 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
 
     (pig/load-tsv \"input.tsv\")
     (pig/load-tsv \"input.csv\" #\",\")
-
-  Note: Internally this uses \\u0000 as the split char so Pig won't split the line.
-        This won't work for files that actually have that char
 
   See also: pigpen.core/load-string, pigpen.core/load-clj, pigpen.core/load-json
 "
@@ -131,13 +107,8 @@ read-str as a map. The default options used are {:key-fn keyword}.
                      `(fn [~'~'s] (clojure.data.json/read-str ~'~'s ~@~@opts'))))))
 
 (defn load-lazy
-  "ALPHA / EXPERIMENTAL - May be removed
-
-Loads data from a tsv file. Each line is returned as a lazy seq, split by
+  "Loads data from a tsv file. Each line is returned as a lazy seq, split by
 the specified delimiter. The default delimiter is \\t.
-
-  Note: Internally this uses \\u0000 as the split char so Pig won't split the line.
-        This won't work for files that actually have that char
 
   See also: pigpen.core/load-tsv
 "
@@ -151,24 +122,6 @@ the specified delimiter. The default delimiter is \\t.
 unless debugging scripts."
   [location relation]
   (raw/store$ relation location raw/default-storage {}))
-
-(defmacro store-pig
-  "Stores the relation into location as Pig formatted data.
-
-  Example:
-
-    (pig/store-pig \"output.pig\" foo)
-
-  Note: Pig formatted data is not idempotent. Don't use this.
-
-  See also: pigpen.core/store-clj, pigpen.core/store-tsv
-"
-  {:added "0.1.0"}
-  [location relation]
-  `(-> ~relation
-     (raw/bind$ [] '(pigpen.pig/map->bind (comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
-                {:args (:fields ~relation), :field-type-out :native})
-     (raw/store$ ~location raw/default-storage {})))
 
 (defn store-string*
   "The base for store-string, store-clj, and store-json. The parameters requires

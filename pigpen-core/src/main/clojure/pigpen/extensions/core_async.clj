@@ -17,7 +17,8 @@
 ;;
 
 (ns pigpen.extensions.core-async
-  (:require [clojure.core.async :as a])
+  (:require [clojure.core.async :as a]
+            [clojure.core.async.impl.protocols])
   (:import [clojure.core.async.impl.protocols Channel]))
 
 (set! *warn-on-reflection* true)
