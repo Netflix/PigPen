@@ -59,7 +59,7 @@ To use the parquet loader, add this to your dependencies:
 And because of the weird way Pig handles dependencies, you'll also need to add antlr and log4j for local mode to work properly:
 
 ``` clj
-:dependencies [[org.clojure/clojure "1.5.1"]
+:dependencies [[org.clojure/clojure "1.6.0"]
                [com.netflix.pigpen/pigpen "0.2.10"]
                [com.netflix.pigpen/pigpen-parquet "0.2.10"]]
 :profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
