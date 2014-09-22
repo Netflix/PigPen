@@ -1,10 +1,14 @@
 dependencies {
 
-    compile 'org.clojure:clojure:1.5.1'
-    compile 'org.clojure:data.json:0.2.2'
+    provided 'org.clojure:clojure:1.6.0'
+    compile 'org.clojure:data.json:0.2.5'
     compile 'org.clojure:core.async:0.1.267.0-0d7780-alpha'
-    compile 'clj-time:clj-time:0.5.0'
-    compile 'instaparse:instaparse:1.2.14'
-    compile 'com.taoensso:nippy:2.6.0-RC1'
+    compile 'com.taoensso:nippy:2.6.3'
     compile 'rhizome:rhizome:0.1.9'
+    compile 'io.reactivex:rxjava:1.0.0-rc.1'
+    compile 'io.reactivex:rxclojure:1.0.0-rc.1'
+
+    compile 'joda-time:joda-time:2.4' // pig needs this to run locally
+    provided 'org.apache.pig:pig:0.11.1'
+    provided 'org.apache.hadoop:hadoop-core:1.1.2'
 }

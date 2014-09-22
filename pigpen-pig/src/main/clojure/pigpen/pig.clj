@@ -27,8 +27,6 @@ possible as it's used at runtime."
             [clojure.core.async :as a]
             [pigpen.runtime]
             [pigpen.extensions.core-async :as ae]
-            [clj-time.format :as time]
-            [instaparse.core :as insta]
             [taoensso.nippy :refer [freeze thaw]])
   (:import [pigpen PigPenException]
            [org.apache.pig.data
@@ -140,54 +138,6 @@ possible as it's used at runtime."
      "long" bytes->long
      "chararray" bytes->string)
     value))
-
-;; **********
-
-(def ^:private string->pig
-  (insta/parser
-    "
-<PIG>     = TUPLE | BAG | MAP | LITERAL
-TUPLE     = <'()'> | <'('> PIG (<','> PIG)* <')'>
-BAG       = <'{}'> | <'{'> TUPLE (<','> TUPLE)* <'}'>
-MAP       = <'[]'> | <'['> MAP-ENTRY (<','> MAP-ENTRY)* <']'>
-MAP-ENTRY = STRING <'#'> PIG
-<LITERAL> = (DATETIME | NUMBER | BOOLEAN) / STRING
-DATETIME  = #'\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{3}\\+\\d{2}:\\d{2}'
-NUMBER    = #'-?(\\d+\\.\\d+|[1-9][0-9]*|0)(e\\d+)?' <('l' | 'L' | 'f' | 'F')?>
-BOOLEAN   = 'true' | 'TRUE' | 'false' | 'FALSE'
-STRING    = #'[^\\,\\)\\}\\]\\#]+'
-"))
-
-(defmulti ^:private pig->clojure first)
-
-(defmethod pig->clojure :STRING [[_ v]] v)
-
-(defmethod pig->clojure :BOOLEAN [[_ v]] 
-  (-> v clojure.string/lower-case read-string))
-
-(defmethod pig->clojure :NUMBER [[_ v]]
-  (read-string v))
-
-(defmethod pig->clojure :DATETIME [[_ v]]
-  (time/parse v))
-
-(defmethod pig->clojure :MAP-ENTRY [[_ k v]]
-  [(pig->clojure k) (pig->clojure v)])
-
-(defmethod pig->clojure :MAP [[_ & entries]]
-  (into {} (map #(pig->clojure %) entries)))
-
-(defmethod pig->clojure :BAG [[_ & items]]
-  (into [] (map #(pig->clojure %) items)))
-
-(defmethod pig->clojure :TUPLE [[_ & items]]
-  (into [] (map #(pig->clojure %) items)))
-
-(defn parse-pig [data]
-  (let [parsed (string->pig data)]
-    (if (insta/failure? parsed)
-      (insta/get-failure parsed)
-      (pig->clojure (first parsed)))))
 
 ;; **********
 
@@ -392,14 +342,12 @@ serialization info."
 
 ;; **********
 
-(defn eval-string
-  "Reads code from a string & evaluates it"
-  [f]
-  (when (not-empty f)
-    (try
-      (eval (read-string f))
-      (catch Throwable z
-        (throw (RuntimeException. (str "Exception evaluating: " f) z))))))
+(defn udf-lookup [type]
+  (case type
+    :normal "pigpen.PigPenFnDataByteArray"
+    :sequence "pigpen.PigPenFnDataBag"
+    :boolean "pigpen.PigPenFnBoolean"
+    :algebraic "pigpen.PigPenFnAlgebraic"))
 
 (defn eval-udf
   [func ^Tuple t]
@@ -509,60 +457,37 @@ as the initial state for the next accumulation."
 
 ;; **********
 
-(defn args->map
-  "Returns a fn that converts a list of args into a map of named parameter
-   values. Applies f to all the values."
-  [f]
-  (fn [& args]
-    (->> args
-      (partition 2)
-      (map (fn [[k v]] [(keyword k) (f v)]))
-      (into {}))))
+(defmethod pigpen.runtime/pre-process [:pig :native]
+  [_ _]
+  identity)
 
-(defn debug [& args]
-  "Creates a debug string for the tuple"
-  (try
-    (->> args (mapcat (juxt type str)) (string/join "\t"))
-    (catch Exception z (str "Error getting value: " z))))
-
-;; **********
-
-(defn pre-process*
-  [type value]
-  (case type
-    :frozen (hybrid->clojure value)
-    :native value))
-
-(defn pre-process
-  "Optionally deserializes incoming data"
-  [type]
+(defmethod pigpen.runtime/pre-process [:pig :frozen]
+  [_ _]
   (fn [args]
-    [(for [value args]
-       (pre-process* type value))]))
+    (mapv hybrid->clojure args)))
 
-(defn post-process
-  "Serializes outgoing data"
-  [type]
+(defmethod pigpen.runtime/post-process [:pig :native]
+  [_ _]
   (fn [args]
-    (if (= type :sort)
-      (let [[key value] args]
-        [[key (pig-freeze value)]])
-      [(for [value args]
-         (case type
-           :frozen (pig-freeze value)
-           :frozen-with-nils (pig-freeze-with-nils value)
-           :native value))])))
+    (apply tuple args)))
 
-(defn exec
-  "Applies the composition of fs, flattening intermediate results. Each f must
-produce a seq-able output that is flattened as input to the next command. The
-result is wrapped in a tuple and bag."
-  [fs]
+(defmethod pigpen.runtime/post-process [:pig :frozen]
+  [_ _]
   (fn [args]
-    (->>
-      (reduce (fn [vs f] (mapcat f vs)) [args] fs)
-      (map (partial apply tuple))
-      (apply bag))))
+    (apply tuple
+      (mapv pig-freeze args))))
+
+(defmethod pigpen.runtime/post-process [:pig :frozen-with-nils]
+  [_ _]
+  (fn [args]
+    (apply tuple
+      (mapv pig-freeze-with-nils args))))
+
+(defmethod pigpen.runtime/post-process [:pig :native-key-frozen-val]
+  [_ _]
+  (fn [[key value]]
+    (apply tuple
+      [key (pig-freeze value)])))
 
 ;; TODO lots of duplication here
 (defn exec-initial
@@ -638,6 +563,12 @@ initial reduce, a combiner, and a final stage."
           (exec-final combinef post))))
     
     (catch Throwable z (throw (PigPenException. z)))))
+
+(defn pre-process*
+  [type value]
+  (case type
+    :frozen (hybrid->clojure value)
+    :native value))
 
 (defn get-partition
   "A hadoop custom partitioner"

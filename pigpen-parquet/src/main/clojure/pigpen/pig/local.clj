@@ -17,7 +17,7 @@
 ;;
 
 (ns pigpen.pig.local
-  (:require [pigpen.local :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
+  (:require [pigpen.pig-rx :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
             [pigpen.extensions.io :as io]
             [pigpen.hadoop.local :as hadoop])
   (:import [org.apache.hadoop.mapreduce RecordWriter]

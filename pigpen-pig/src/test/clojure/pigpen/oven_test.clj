@@ -91,7 +91,7 @@
     (#'pigpen.oven/command->references "s3://bucket/pigpen.jar"
                                        (pig-raw/generate$ {}
                                          [(pig-raw/projection-func$ 'foo
-                                            (pig-raw/code$ String ['foo]
+                                            (pig-raw/code$ :normal ['foo]
                                               (pig-raw/expr$ '(require '[pigpen.pig])
                                                              '(var clojure.core/prn))))] {}))
     ["s3://bucket/pigpen.jar"])
@@ -390,7 +390,7 @@
       
       (test-diff
         (->> script
-          (bake {:debug "/out/"})
+          (bake :pig {:debug "/out/"})
           (map #(select-keys % [:type :id :ancestors :location])))
         '[{:type :register, :id nil,       :ancestors []}
           {:type :load,     :id load1,     :ancestors []            :location "foo"}
@@ -494,20 +494,20 @@
     (testing "s1"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
         (let [[_ binds _] (#'pigpen.oven/find-bind-sequence s1)]
-          (test-diff (#'pigpen.oven/bind->generate binds)
+          (test-diff (#'pigpen.oven/bind->generate binds :pig)
                      '{:fields [value]
                        :ancestors [load1]
                        :projections [{:type :projection-flat
                                       :code {:type :code
                                              :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]))
-                                                    :func (pigpen.pig/exec [(pigpen.pig/pre-process :native)
-                                                                            (pigpen.runtime/map->bind clojure.edn/read-string)
-                                                                            (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
-                                                                            (pigpen.runtime/filter->bind (pigpen.runtime/with-ns pigpen.oven-test (constantly true)))
-                                                                            (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
-                                                                            (pigpen.runtime/map->bind clojure.core/pr-str)
-                                                                            (pigpen.pig/post-process :native)])}
-                                             :return "DataBag"
+                                                    :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native))
+                                                                                (pigpen.runtime/map->bind clojure.edn/read-string)
+                                                                                (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
+                                                                                (pigpen.runtime/filter->bind (pigpen.runtime/with-ns pigpen.oven-test (constantly true)))
+                                                                                (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
+                                                                                (pigpen.runtime/map->bind clojure.core/pr-str)
+                                                                                (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :native))])}
+                                             :udf :sequence
                                              :args [value]}
                                       :alias value}]
                        :type :generate
@@ -522,21 +522,21 @@
     
     (testing "s0"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s0))
+        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s0 :pig))
                    '[[load1 "in"]
                      [generate1 "identity\n"]
                      [store5 "out"]])))
     
     (testing "s1"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s1))
+        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s1 :pig))
                    '[[load1 "in"]
                      [generate1 "identity\n(constantly true)\nvector\n"]
                      [store7 "out"]])))
     
     (testing "s2"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s2))
+        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s2 :pig))
                    '[[load1 "in"]
                      [generate1 "identity\nidentity\n"]
                      [generate2 "dec\n(constantly false)\n"]
@@ -547,7 +547,7 @@
     
     (testing "s3"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s3))
+        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s3 :pig))
                    '[[load4 "in1"]
                      [generate1 "dec\n"]
                      [generate10 nil]
@@ -561,7 +561,7 @@
 (deftest test-expand-load-filters
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [command (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {:filter '(= foo 2)})]
-      (test-diff (bake command)
+      (test-diff (bake :pig command)
                  '[{:type :load
                     :id load1_0
                     :description "foo"
@@ -590,7 +590,7 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [data (pig/return [1 2 3])
           command (pig/join [(data) (data)] vector)]
-      (test-diff (->> (bake command)
+      (test-diff (->> (bake :pig command)
                    (map #(select-keys % [:fields :ancestors :id :type])))
                   '[{:type :register, :id nil,        :ancestors [],                      :fields []}
                     {:type :return,   :id return1,    :ancestors [],                      :fields [value]}
@@ -634,7 +634,7 @@
 
       (test-diff
         (->> (pig/script s1 s2)
-          (#'pigpen.oven/bake)
+          (#'pigpen.oven/bake :pig)
           (map #(select-keys % [:type :id :ancestors])))
         ;; Should merge the load commands & produce a register command
         '[{:type :register, :id nil,   :ancestors []}
