@@ -1,8 +1,10 @@
 dependencies {
 	compile project(':pigpen')
 
-    compile 'com.netflix.rxjava:rxjava-core:0.9.2'
-    compile 'com.netflix.rxjava:rxjava-clojure:0.9.2'
+    provided 'org.clojure:clojure:1.6.0'
+
+    compile 'io.reactivex:rxjava:1.0.0-rc.1'
+    compile 'io.reactivex:rxclojure:1.0.0-rc.1'
 
     provided 'org.apache.pig:pig:0.11.1'
     provided 'org.apache.hadoop:hadoop-core:1.1.2'

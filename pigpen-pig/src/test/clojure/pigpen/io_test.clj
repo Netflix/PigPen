@@ -37,33 +37,6 @@
                   :args []}
         :opts {:type :load-opts}})))
 
-(deftest test-load-pig
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (test-diff
-      (io/load-pig "foo" [a b c])
-      '{:type :bind
-        :id bind2
-        :description nil
-        :func (pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig/parse-pig))
-        :args ["a" a "b" b "c" c]
-        :requires []
-        :fields [value]
-        :field-type-out :frozen
-        :field-type-in :native
-        :opts {:type :bind-opts}
-        :ancestors [{:type :load
-                     :id load1
-                     :description "foo"
-                     :location "foo"
-                     :fields [a b c]
-                     :field-type :native
-                     :storage {:type :storage
-                               :references []
-                               :func "PigStorage"
-                               :args []}
-                     :opts {:type :load-opts
-                            :cast "chararray"}}]})))
-
 (deftest test-load-string
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
@@ -218,32 +191,6 @@
                   :references []
                   :func "PigStorage"
                   :args []}})))
-
-(deftest test-store-pig
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (test-diff
-      (io/store-pig "foo" {:fields '[value]})
-      '{:type :store
-        :id store2
-        :description "foo"
-        :location "foo"
-        :fields [value]
-        :opts {:type :store-opts}
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
-        :ancestors [{:type :bind
-                     :id bind1
-                     :description nil
-                     :ancestors [{:fields [value]}]
-                     :func (pigpen.runtime/map->bind (clojure.core/comp pigpen.pig/pig->string pigpen.pig/hybrid->pig))
-                     :args [value]
-                     :requires []
-                     :fields [value]                     
-                     :field-type-in :frozen
-                     :field-type-out :native
-                     :opts {:type :bind-opts}}]})))
 
 (deftest test-store-string
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

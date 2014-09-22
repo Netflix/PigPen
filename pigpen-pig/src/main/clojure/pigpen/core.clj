@@ -31,13 +31,11 @@
 
 ;; ********** IO **********
 
-(intern *ns* (with-meta 'load-pig (meta #'pigpen.io/load-pig)) @#'pigpen.io/load-pig)
 (intern *ns* (with-meta 'load-string (meta #'pigpen.io/load-string)) @#'pigpen.io/load-string)
 (intern *ns* (with-meta 'load-tsv (meta #'pigpen.io/load-tsv)) @#'pigpen.io/load-tsv)
 (intern *ns* (with-meta 'load-clj (meta #'pigpen.io/load-clj)) @#'pigpen.io/load-clj)
 (intern *ns* (with-meta 'load-json (meta #'pigpen.io/load-json)) @#'pigpen.io/load-json)
 (intern *ns* (with-meta 'load-lazy (meta #'pigpen.io/load-lazy)) @#'pigpen.io/load-lazy)
-(intern *ns* (with-meta 'store-pig (meta #'pigpen.io/store-pig)) @#'pigpen.io/store-pig)
 (intern *ns* (with-meta 'store-string (meta #'pigpen.io/store-string)) @#'pigpen.io/store-string)
 (intern *ns* (with-meta 'store-tsv (meta #'pigpen.io/store-tsv)) @#'pigpen.io/store-tsv)
 (intern *ns* (with-meta 'store-clj (meta #'pigpen.io/store-clj)) @#'pigpen.io/store-clj)
