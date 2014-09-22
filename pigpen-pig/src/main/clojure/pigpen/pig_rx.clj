@@ -16,7 +16,7 @@
 ;;
 ;;
 
-(ns pigpen.local
+(ns pigpen.pig-rx
   "Contains functions for running PigPen locally.
 
 Nothing in here will be used directly with normal PigPen usage.

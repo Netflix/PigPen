@@ -16,10 +16,10 @@
 ;;
 ;;
 
-(ns pigpen.local-test
+(ns pigpen.pig-rx-test
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff pigsym-inc]]
-            [pigpen.local :as local :refer [PigPenLocalLoader]]
+            [pigpen.pig-rx :as local :refer [PigPenLocalLoader]]
             [pigpen.pig :refer [freeze-vals thaw-anything]]
             [pigpen.raw :as raw]
             [pigpen.core :as pig]
@@ -48,7 +48,7 @@
                               (pigpen.runtime/process->bind
                                 (pigpen.runtime/post-process :pig :frozen))])))
         values (freeze-vals {'x 37, 'y 42})]
-    (is (= (thaw-anything (#'pigpen.local/eval-code code values))
+    (is (= (thaw-anything (#'pigpen.pig-rx/eval-code code values))
            '((tuple (freeze 79)))))))
 
 (deftest test-cross-product
@@ -57,7 +57,7 @@
     (let [data '[[{r1v1 1, r1v2 2} {r1v1 3, r1v2 4}]
                  [{r2v1 5, r2v2 6} {r2v1 7, r2v2 8}]]]
       (test-diff
-        (set (#'pigpen.local/cross-product data))
+        (set (#'pigpen.pig-rx/cross-product data))
         '#{{r1v1 1, r1v2 2, r2v2 6, r2v1 5}
            {r1v1 1, r1v2 2, r2v2 8, r2v1 7}
            {r1v1 3, r1v2 4, r2v2 6, r2v1 5}
@@ -68,7 +68,7 @@
                  [{val1 :a}]
                  [{val2 "a"}]]]
       (test-diff
-        (set (#'pigpen.local/cross-product data))
+        (set (#'pigpen.pig-rx/cross-product data))
         '#{{key 1, val1 :a, val2 "a"}})))
   
   (testing "multi flatten"
@@ -76,7 +76,7 @@
                  [{val1 :a} {val1 :b}]
                  [{val2 "a"} {val2 "b"}]]]
       (test-diff
-        (set (#'pigpen.local/cross-product data))
+        (set (#'pigpen.pig-rx/cross-product data))
         '#{{key 1, val1 :a, val2 "a"}
            {key 1, val1 :a, val2 "b"}
            {key 1, val1 :b, val2 "a"}
@@ -87,7 +87,7 @@
                  [{r2v1 5, r2v2 6} {r2v1 7, r2v2 8}]
                  []]]
       (test-diff
-        (set (#'pigpen.local/cross-product data))
+        (set (#'pigpen.pig-rx/cross-product data))
         '#{})))
   
   (testing "outer join"
@@ -95,7 +95,7 @@
                  [{r2v1 5, r2v2 6} {r2v1 7, r2v2 8}]
                  [{}]]]
       (test-diff
-        (set (#'pigpen.local/cross-product data))
+        (set (#'pigpen.pig-rx/cross-product data))
         '#{{r1v1 1, r1v2 2, r2v2 6, r2v1 5}
            {r1v1 1, r1v2 2, r2v2 8, r2v1 7}
            {r1v1 3, r1v2 4, r2v2 6, r2v1 5}
@@ -187,9 +187,9 @@
     (is (thrown? Exception (exec/dump command)))))
 
 (deftest test-pig-compare
-  (is (= -1 (#'pigpen.local/pig-compare ['key :asc] '{key 1} '{key 2})))
-  (is (= 1 (#'pigpen.local/pig-compare ['key :desc] '{key 1} '{key 2})))
-  (is (= -1 (#'pigpen.local/pig-compare ['key :desc 'value :asc] '{key 1 value 1} '{key 1 value 2}))))
+  (is (= -1 (#'pigpen.pig-rx/pig-compare ['key :asc] '{key 1} '{key 2})))
+  (is (= 1 (#'pigpen.pig-rx/pig-compare ['key :desc] '{key 1} '{key 2})))
+  (is (= -1 (#'pigpen.pig-rx/pig-compare ['key :desc 'value :asc] '{key 1 value 1} '{key 1 value 2}))))
 
 ;; ********** Filter **********
 
