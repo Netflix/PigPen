@@ -17,7 +17,7 @@
 ;;
 
 (ns pigpen.hadoop.local
-  (:require [pigpen.local :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
+  (:require [pigpen.pig-rx :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
             [pigpen.extensions.io :as io])
   (:import [java.io File]
            [org.apache.hadoop.fs Path]

@@ -26,7 +26,7 @@ how you 'use' a PigPen query.
             [pigpen.pig :as pig]
             [pigpen.oven :as oven]
             [pigpen.script :as script]
-            [pigpen.local :as local]
+            [pigpen.pig-rx :as local]
             [pigpen.viz :as viz]
             [taoensso.nippy :refer [freeze thaw]])
   (:import [rx Observable]
