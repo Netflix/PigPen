@@ -77,8 +77,8 @@
     (str name-or-number)))
 
 (defmethod command->flowdef :code
-           [{:keys [return expr args pipe field-projections]} flowdef]
-  {:pre [return expr args]}
+           [{:keys [expr args pipe field-projections]} flowdef]
+  {:pre [expr args]}
   (let [{:keys [init func]} expr
         fields (if field-projections
                  (Fields. (into-array (map #(cascading-field (:alias %)) field-projections)))

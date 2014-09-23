@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import clojure.lang.IFn;
+import clojure.lang.LazySeq;
+import clojure.lang.PersistentVector;
 import clojure.lang.RT;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -42,27 +44,9 @@ public class PigPenFunction extends BaseOperation implements Function {
   public void operate(FlowProcess flowProcess, FunctionCall functionCall) {
     IFn fn = (IFn)functionCall.getContext();
     TupleEntry tupleEntry = functionCall.getArguments();
-    Object result = fn.invoke(OperationUtil.getTupleValues(tupleEntry));
-    emitOutput(functionCall, result);
-  }
-
-  // TODO: this should not use DataBag or any other Pig class.
-  private void emitOutput(FunctionCall functionCall, Object result) {
-    for (org.apache.pig.data.Tuple tuple : (DataBag)result) {
-      try {
-        Object[] objs = new Object[tuple.size()];
-        for (int i = 0; i < tuple.size(); i++) {
-          Object obj = tuple.get(i);
-          if (obj instanceof DataByteArray) {
-            objs[i] = new BytesWritable(((DataByteArray) obj).get());
-          } else {
-            objs[i] = tuple.get(i);
-          }
-        }
-        functionCall.getOutputCollector().add(new Tuple(objs));
-      } catch (ExecException e) {
-        throw new RuntimeException();
-      }
+    LazySeq result = (LazySeq)fn.invoke(OperationUtil.getTupleValues(tupleEntry));
+    for (Object obj : result) {
+      functionCall.getOutputCollector().add(new Tuple(((PersistentVector)obj).toArray()));
     }
   }
 }
