@@ -24,8 +24,7 @@
   (:refer-clojure :exclude [map mapcat map-indexed sort sort-by])
   (:require [pigpen.extensions.core :refer [pp-str]]
             [pigpen.raw :as raw]
-            [pigpen.code :as code])
-  (:import [org.apache.pig.data DataBag]))
+            [pigpen.code :as code]))
 
 (set! *warn-on-reflection* true)
 
@@ -34,7 +33,7 @@
   [f opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/map->bind ~f) opts))
+  (raw/bind$ relation `(pigpen.runtime/map->bind ~f) opts))
 
 (defmacro map
   "Returns a relation of f applied to every item in the source relation.
@@ -61,7 +60,7 @@ pig/cogroup, and pig/union for combining sets of data.
   [f opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/mapcat->bind ~f) opts))
+  (raw/bind$ relation `(pigpen.runtime/mapcat->bind ~f) opts))
 
 (defmacro mapcat
   "Returns the result of applying concat, or flattening, the result of applying
@@ -83,7 +82,7 @@ f to each item in relation. Thus f should return a collection.
   (code/assert-arity f 2)
   (-> relation
     (raw/rank$ [] opts)
-    (raw/bind$ `(pigpen.pig/map->bind ~f) {:args ['$0 'value]})))
+    (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args ['$0 'value]})))
 
 (defmacro map-indexed
   "Returns a relation of applying f to the the index and value of every item in
@@ -114,8 +113,8 @@ and the value. If you require sequential ids, use option {:dense true}.
   [key-selector comp opts relation]
   {:pre [(map? relation) (#{:asc :desc} comp)]}
   (-> relation
-    (raw/bind$ `(pigpen.pig/key-selector->bind ~key-selector)
-               {:field-type-out :sort
+    (raw/bind$ `(pigpen.runtime/key-selector->bind ~key-selector)
+               {:field-type-out :native-key-frozen-val
                 :implicit-schema true})
     (raw/generate$ [(raw/projection-field$ 0 'key)
                     (raw/projection-field$ 1 'value)] {})

@@ -33,7 +33,7 @@
   [pred opts relation]
   {:pre [(map? relation) pred]}
   (code/assert-arity pred (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/filter->bind ~pred) opts))
+  (raw/bind$ relation `(pigpen.runtime/filter->bind ~pred) opts))
 
 (defmacro filter
   "Returns a relation that only contains the items for which (pred item)

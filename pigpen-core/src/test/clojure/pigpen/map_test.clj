@@ -34,8 +34,8 @@
           :id bind1
           :description "(fn [v] v)\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/map->bind
-                  (pigpen.pig/with-ns pigpen.map-test
+          :func (pigpen.runtime/map->bind
+                  (pigpen.runtime/with-ns pigpen.map-test
                     (clojure.core/let [bar (quote 2)]
                       (fn [v] v))))
           :args [value]
@@ -63,8 +63,8 @@
           :id bind1
           :description "(fn [v] [v])\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/mapcat->bind
-                  (pigpen.pig/with-ns pigpen.map-test
+          :func (pigpen.runtime/mapcat->bind
+                  (pigpen.runtime/with-ns pigpen.map-test
                     (fn [v] [v])))
           :args [value]
           :requires []
@@ -81,8 +81,8 @@
         '{:type :bind
           :id bind2
           :description nil
-          :func (pigpen.pig/map->bind
-                  (pigpen.pig/with-ns pigpen.map-test
+          :func (pigpen.runtime/map->bind
+                  (pigpen.runtime/with-ns pigpen.map-test
                     vector))
           :args [$0 value]
           :requires []
@@ -122,12 +122,12 @@
                        :ancestors [{:type :bind
                                     :id bind1
                                     :description nil
-                                    :func (pigpen.pig/key-selector->bind clojure.core/identity)
+                                    :func (pigpen.runtime/key-selector->bind clojure.core/identity)
                                     :args [value]
                                     :requires []
                                     :fields [value]
                                     :field-type-in :frozen
-                                    :field-type-out :sort
+                                    :field-type-out :native-key-frozen-val
                                     :ancestors [{:fields [value]}]
                                     :opts {:type :bind-opts
                                            :implicit-schema true}}]}]}))))
@@ -155,13 +155,13 @@
                        :ancestors [{:type :bind
                                     :id bind1
                                     :description nil
-                                    :func (pigpen.pig/key-selector->bind
-                                            (pigpen.pig/with-ns pigpen.map-test :a))
+                                    :func (pigpen.runtime/key-selector->bind
+                                            (pigpen.runtime/with-ns pigpen.map-test :a))
                                     :args [value]
                                     :requires []
                                     :fields [value]
                                     :field-type-in :frozen
-                                    :field-type-out :sort
+                                    :field-type-out :native-key-frozen-val
                                     :ancestors [{:fields [value]}]
                                     :opts {:type :bind-opts
                                            :implicit-schema true}}]}]}))))

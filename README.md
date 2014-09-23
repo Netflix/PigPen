@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.8"]
+[com.netflix.pigpen/pigpen "0.2.10"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.8"
+compile "com.netflix.pigpen:pigpen:0.2.10"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.8</version>
+  <version>0.2.10</version>
 </dependency>
 ```
 
@@ -53,15 +53,15 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 To use the parquet loader, add this to your dependencies:
 
 ``` clj
-[com.netflix.pigpen/pigpen-parquet "0.2.8"]
+[com.netflix.pigpen/pigpen-parquet "0.2.10"]
 ```
 
 And because of the weird way Pig handles dependencies, you'll also need to add antlr and log4j for local mode to work properly:
 
 ``` clj
-:dependencies [[org.clojure/clojure "1.5.1"]
-               [com.netflix.pigpen/pigpen "0.2.8"]
-               [com.netflix.pigpen/pigpen-parquet "0.2.8"]]
+:dependencies [[org.clojure/clojure "1.6.0"]
+               [com.netflix.pigpen/pigpen "0.2.10"]
+               [com.netflix.pigpen/pigpen-parquet "0.2.10"]]
 :profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
                                 [org.apache.hadoop/hadoop-core "1.1.2"]
                                 [org.antlr/antlr "3.5.2"]
@@ -70,6 +70,22 @@ And because of the weird way Pig handles dependencies, you'll also need to add a
 
 # Release Notes
 
+  * 0.2.10
+    * Removed load-pig and store-pig. The pig data format is very bad and should not be used. If you used these and want them back, email pigpen-support@googlegroups.com and we'll put it into a separate jar. The jars required for this feature were causing conflicts elsewhere.
+    * Upgraded the following dependencies:
+      * org.clojure/clojure 1.5.1 -> 1.6.0 - this was also changed to a provided dependency, so you should be able to use any version greater than 1.5.1
+      * org.clojure/data.json 0.2.2 -> 0.2.5
+      * com.taoensso/nippy 2.6.0-RC1 -> 2.6.3
+      * clj-time 0.5.0 - no longer needed
+      * joda-time 2.2 -> 2.4 - pig needs this to run locally
+      * instaparse 1.2.14 - no longer needed
+      * io.reactivex/rxjava 0.9.2 -> 1.0.0-rc.1
+    * Fixed the rx limit bug. `pigpen.local/*max-load-records*` is no longer required.
+  * 0.2.9
+    * Fix a local-mode bug in `pigpen.fold/avg` where some collections would produce a NPE.
+    * Change fake pig delimiter to \n instead of \0. Allows for \0 to exist in input data.
+    * Remove 1000 record limit for local-mode. This was originally introduced to mitigate an rx bug. Until #61 is fixed, bind `pigpen.local/*max-load-records*` to the maximum number of records you want to read locally when reading large files. This now defaults to `nil` (no limit).
+    * Fix a local dispatch bug that would prevent loading folders locally
   * 0.2.8
     * Fix a bug in `load-tsv` and `load-lazy`
   * 0.2.7 *** Don't use ***

@@ -32,8 +32,8 @@
           :id bind0
           :description "(fn [{:keys [foo bar]}] (= foo bar))\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/filter->bind
-                  (pigpen.pig/with-ns pigpen.filter-test
+          :func (pigpen.runtime/filter->bind
+                  (pigpen.runtime/with-ns pigpen.filter-test
                     (fn [{:keys [foo bar]}]
                       (= foo bar))))
           :args [value]
@@ -56,8 +56,8 @@
           :id bind0
           :description "(clojure.core/complement (fn [{:keys [foo bar]}] (= foo bar)))\n"
           :ancestors [{:fields [value]}]
-          :func (pigpen.pig/filter->bind
-                  (pigpen.pig/with-ns pigpen.filter-test
+          :func (pigpen.runtime/filter->bind
+                  (pigpen.runtime/with-ns pigpen.filter-test
                     (clojure.core/complement
                       (fn [{:keys [foo bar]}]
                         (= foo bar)))))
