@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import clojure.lang.IFn;
+import clojure.lang.ISeq;
+import clojure.lang.IteratorSeq;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
@@ -16,6 +18,31 @@ import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
 
 public class PigPenBuffer extends BaseOperation implements Buffer {
+
+  private static class BufferIterator implements Iterator {
+
+    private final Iterator<Tuple> delegate;
+
+    private BufferIterator(Iterator<Tuple> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return delegate.hasNext();
+    }
+
+    @Override
+    public Object next() {
+      Tuple t = delegate.next();
+      return t.getObject(1);
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException();
+    }
+  }
 
   private final String init;
   private final String func;
@@ -43,10 +70,14 @@ public class PigPenBuffer extends BaseOperation implements Buffer {
     Iterator<Tuple> leftIterator = joinerClosure.getIterator(0);
     Iterator<Tuple> rightIterator = joinerClosure.getIterator(1);
     List args = new ArrayList(3);
-    //    args.add(OperationUtil.getValue(group));
-    //    args.add(wrapIterator(leftIterator));
-    //    args.add(wrapIterator(rightIterator));
-    //    Object result = fn.invoke(args);
+    args.add(group);
+    args.add(wrapIterator(leftIterator));
+    args.add(wrapIterator(rightIterator));
+    Object result = fn.invoke(args);
     //    emitOutput(bufferCall, result);
+  }
+
+  private ISeq wrapIterator(Iterator iterator) {
+    return IteratorSeq.create(new BufferIterator(iterator));
   }
 }

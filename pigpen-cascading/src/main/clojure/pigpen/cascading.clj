@@ -6,10 +6,12 @@
            (pigpen.cascading PigPenFunction PigPenBuffer)
            (cascading.tuple Fields)
            (cascading.operation Identity)
-           (cascading.pipe.joiner OuterJoin BufferJoin))
+           (cascading.pipe.joiner OuterJoin BufferJoin)
+           (org.apache.hadoop.io BytesWritable))
   (:require [pigpen.runtime :as rt]
             [pigpen.raw :as raw]
-            [pigpen.oven :as oven]))
+            [pigpen.oven :as oven]
+            [taoensso.nippy :refer [freeze thaw]]))
 
 ;; TODO: there must be a better way to pass a Tap to a storage definition.
 (defn- get-tap-fn [name]
@@ -51,6 +53,28 @@
 
 (defn store-clj [location relation]
   (store-text location `clojure.core/pr-str relation))
+
+;; ******* Serialization ********
+
+(defmethod pigpen.runtime/pre-process [:cascading :frozen-with-nils]
+           [_ _]
+  (fn [args]
+    (println "preprocess args" args)
+    (mapv #(thaw (.getBytes %)) args)))
+
+(defmethod pigpen.runtime/pre-process [:cascading :frozen]
+           [_ _]
+  (fn [args]
+    (println "preprocess args" args)
+    (mapv #(thaw (.getBytes %)) args)))
+
+(defmethod pigpen.runtime/post-process [:cascading :frozen-with-nils]
+           [_ _]
+  (fn [args]
+    (println "postprocess args" args)
+    (mapv #(BytesWritable. (freeze % {:skip-header? true, :legacy-mode true})) args)))
+
+;; ******* Commands ********
 
 (defmulti command->flowdef
           "Converts an individual command into the equivalent Cascading flow definition."
