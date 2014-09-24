@@ -7,7 +7,8 @@
            (cascading.tuple Fields)
            (cascading.operation Identity)
            (cascading.pipe.joiner OuterJoin BufferJoin))
-  (:require [pigpen.raw :as raw]
+  (:require [pigpen.runtime :as rt]
+            [pigpen.raw :as raw]
             [pigpen.oven :as oven]))
 
 ;; TODO: there must be a better way to pass a Tap to a storage definition.
@@ -26,20 +27,20 @@
   ([location delimiter]
    (-> (load-text location)
        (raw/bind$
-         `(pigpen.pig/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
+         `(rt/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
          {:args          '[offset line]
           :field-type-in :native}))))
 
 (defn load-clj [location]
   (-> (load-text location)
       (raw/bind$
-        `(pigpen.pig/map->bind (fn [~'offset ~'line] (clojure.edn/read-string ~'line)))
+        `(rt/map->bind (fn [~'offset ~'line] (clojure.edn/read-string ~'line)))
         {:args          '[offset line]
          :field-type-in :native})))
 
 (defn store-text [location f relation]
   (-> relation
-      (raw/bind$ `(pigpen.pig/map->bind ~f)
+      (raw/bind$ `(rt/map->bind ~f)
                  {:args (:fields relation), :field-type-out :native})
       (raw/store$ location (raw/storage$ [] "text" {}) {})))
 
@@ -167,5 +168,5 @@
   ([query] (generate-flow {} query))
   ([opts query]
    (->> query
-        (oven/bake opts)
+        (oven/bake :cascading opts)
         commands->flow)))

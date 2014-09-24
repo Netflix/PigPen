@@ -66,13 +66,13 @@
 
 (deftest test-build-requires
   (is (= (pig/build-requires [])
-         '(clojure.core/require (quote [pigpen.pig]))))
+         '(clojure.core/require (quote [pigpen.runtime]))))
   (is (= (pig/build-requires '[foo])
-         '(clojure.core/require (quote [pigpen.pig]))))
+         '(clojure.core/require (quote [pigpen.runtime]))))
   (is (= (pig/build-requires '[pigpen.code])
-         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code]))))
+         '(clojure.core/require (quote [pigpen.runtime]) (quote [pigpen.code]))))
   (is (= (pig/build-requires '[pigpen.code pigpen.code-test])
-         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code]) (quote [pigpen.code-test])))))
+         '(clojure.core/require (quote [pigpen.runtime]) (quote [pigpen.code]) (quote [pigpen.code-test])))))
 
 (defn test-fn [& args]
   (apply + args))  
