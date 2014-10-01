@@ -61,23 +61,6 @@ building blocks for more complex operations.")
 
 ;; ********** Util **********
 
-;; TODO - raw pig commands
-
-(defn register$
-  "A Pig REGISTER command. jar is the qualified location of the jar."
-  [jar]
-  {:pre [(string? jar)]}
-  ^:pig {:type :register
-         :jar jar})
-
-(defn option$
-  "A Pig option. Takes the name and a value. Not used locally."
-  [option value]
-  {:pre [(string? option)]}
-  ^:pig {:type :option
-         :option option
-         :value value})
-
 (defn expr$
   "Code to be passed to the UDF"
   [init func]
