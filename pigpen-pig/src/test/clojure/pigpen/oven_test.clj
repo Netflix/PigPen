@@ -40,51 +40,6 @@
         :fields [foo]
         :opts {:type :store-opts}})))
 
-(deftest test-command->required-fields
-  (is (= '#{foo bar}
-         (#'pigpen.oven/command->required-fields
-           '{:type :generate
-             :id generate0
-             :projections [{:type :projection-field, :field foo, :alias baz}
-                           {:type :projection-func
-                            :code {:type :code, :udf "f", :args [foo bar]}
-                            :alias bar}]
-             :fields [baz bar]
-             :ancestors [{:fields [foo bar]}]})))
-  
-  (is (= nil
-         (#'pigpen.oven/command->required-fields
-           (pig-raw/load$ "foo" '[a0 b0 c0 d0] pig-raw/default-storage {})))))
-
-(deftest test-remove-fields
-  
-  (let [command '{:type :generate
-                  :id generate0
-                  :projections [{:type :projection-field, :field foo, :alias baz}
-                                {:type :projection-func
-                                 :code {:type :code, :udf "f", :args [foo bar]}
-                                 :alias bar}]
-                  :fields [baz bar]
-                  :ancestors [{:fields [foo bar]}]}]
-    
-    (test-diff
-      (#'pigpen.oven/remove-fields command '#{baz})
-      '{:type :generate
-        :id generate0
-        :projections [{:type :projection-func
-                       :code {:type :code, :udf "f", :args [foo bar]}
-                       :alias bar}]
-        :fields [bar]
-        :ancestors [{:fields [foo bar]}]})
-      
-    (test-diff
-      (#'pigpen.oven/remove-fields command '#{bar})
-      '{:type :generate
-        :id generate0
-        :projections [{:type :projection-field, :field foo, :alias baz}]
-        :fields [baz]
-        :ancestors [{:fields [foo bar]}]})))
-
 (deftest test-command->references
   
   (test-diff
@@ -299,84 +254,6 @@
           {:type :order,    :id order4,    :ancestors [generate3], :sort-keys [key :asc]}
           {:type :rank,     :id rank5,     :ancestors [generate3], :sort-keys [key :asc]}
           {:type :bind,     :id bind6,     :ancestors [rank5]}]))))
-
-
-;; Column pruning really doesn't matter anymore. Considering removing it.
-#_(deftest test-command->fat
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-
-    (let [commands (->
-                     {:id 'r :fields '[foo bar baz]}
-                     (pig/generate [foo0 foo
-                                    bar0 bar])
-                     (#'pigpen.oven/braise))]
-    
-      (is (= '#{baz}
-             (#'pigpen.oven/command->fat commands (first commands)))))
-    
-    (let [commands (->
-                     {:id 'r :fields '[foo bar baz]}
-                     (pig/generate [foo0 (str foo)
-                                    bar0 bar])
-                     (#'pigpen.oven/braise))]
-    
-      (is (= '#{}
-             (#'pigpen.oven/command->fat commands (first commands)))))
-    
-    (let [commands (->
-                     {:id 'r :fields '[foo bar baz]}
-                     (pig/group [foo])
-                     (#'pigpen.oven/braise))]
-    
-      (is (= nil
-             (#'pigpen.oven/command->fat commands (first commands)))))
-    
-    (let [commands (->
-                     (pig-raw/load$ "foo" '[a0 b0 c0 d0] pig-raw/default-storage {})
-                     (#'pigpen.oven/braise))]
-    
-      (is (= nil
-             (#'pigpen.oven/command->fat commands (first commands)))))))
-
-#_(deftest test-trim-fat
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-
-    (let [commands (->
-                     (pig-raw/load$ "foo" '[a0 b0 c0 d0] pig-raw/default-storage {})
-                     (pig/generate [a1 a0, b1 b0, c1 c0])
-                     (pig/generate [a2 a1, b2 b1])
-                     (pig/generate [a3 a2])
-                     (#'pigpen.oven/braise)
-                     (#'pigpen.oven/trim-fat))]
-      
-      (test-diff
-        commands
-        '[{:ancestors []
-           :type :load
-           :id load1
-           :location "foo"
-           :fields [a0 b0 c0 d0]
-           :storage {:type :storage, :references [], :func "PigStorage", :args []}
-           :references []
-           :opts {}}
-          {:type :generate
-           :id generate2
-           :projections [{:type :projection-field, :field a0, :alias a1}]
-           :fields [a1]
-           :references []
-           :ancestors [load1]}
-          {:type :generate
-           :id generate3
-           :projections [{:type :projection-field, :field a1, :alias a2}]
-           :fields [a2]
-           :references []
-           :ancestors [generate2]}
-          {:type :generate
-           :id generate4
-           :projections [{:type :projection-field, :field a2, :alias a3}]
-           :fields [a3]
-           :references []
-           :ancestors [generate3]}]))))
 
 (deftest test-debug
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

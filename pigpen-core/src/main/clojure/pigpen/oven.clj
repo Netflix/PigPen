@@ -85,38 +85,6 @@ number of optimizations and transforms to the graph.
 
 ;; **********
 
-(defmulti ^:private command->required-fields
-  "Returns the fields required for a command. Always a set."
-  :type)
-
-(defmethod command->required-fields :default [command] nil)
-
-(defmethod command->required-fields :projection-field [command]
-  #{(:field command)})
-
-(defmethod command->required-fields :projection-func [command]
-  (->> command :code :args (filter (some-fn symbol? sequential?)) (set)))
-
-(defmethod command->required-fields :generate [command]
-  (->> command :projections (mapcat command->required-fields) (set)))
-
-;; **********
-
-(defmulti ^:private remove-fields
-  "Prune unnecessary fields from a command. The default does nothing - add an
-   override for commands that have prunable fields."
-  (fn [command fields] (:type command)))
-
-(defmethod remove-fields :default [command fields] command)
-
-(defmethod remove-fields :generate [command fields]
-  {:pre [(map? command) (set? fields)]}
-  (-> command
-    (update-in [:projections] (fn [ps] (remove (fn [p] (fields (:alias p))) ps)))
-    (update-in [:fields] #(remove fields %))))
-
-;; **********
-
 (defn ^:private extract-*
   "Extract something from commands and create new commands at
    the head of the list."
@@ -252,31 +220,6 @@ number of optimizations and transforms to the graph.
                    :ancestors ancestors))))
       ;; If we don't find one, we're done
       commands)))
-
-;; **********
-
-(defn ^:private command->fat
-  "Returns the fields that could be pruned from the specified command. If
-   pruning is not possible, returns nil."
-  [commands command]
-  (let [potential (->> commands
-                    (filter #((set (:ancestors %)) (:id command)))
-                    (map command->required-fields))]
-    (if (and (not-empty potential) (every? (comp not nil?) potential))
-      (clojure.set/difference (set (:fields command)) (set (mapcat identity potential))))))
-
-(defn ^:private trim-fat
-  "Removes any fields that are produced by a relation that are not used by any children."
-  [commands]
-  (let [command-set (atom (set commands))]
-    (reverse
-      (for [command (reverse commands)]
-        (if-let [fat (command->fat @command-set command)]
-          (if-not (seq fat) command
-            (let [new-command (remove-fields command fat)]
-              (swap! command-set #(-> % (disj command) (conj new-command)))
-              new-command))
-          command)))))
 
 ;; **********
 
@@ -486,7 +429,6 @@ produces a non-pigpen output.
           true extract-options
           true extract-references
           (not= false (:dedupe opts)) dedupe
-          (not= false (:prune opts)) trim-fat
           true expand-load-filters
           true (optimize-binds platform)
           true alias-self-joins
