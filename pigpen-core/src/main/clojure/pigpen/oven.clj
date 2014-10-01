@@ -190,7 +190,7 @@ number of optimizations and transforms to the graph.
         (raw/bind$ [] `(pigpen.runtime/map->bind pigpen.runtime/debug)
                    {:args (:fields command), :field-type-in field-type, :field-type-out :native})
         ;; TODO Fix the location of store commands to match generates instead of binds
-        (raw/store$ (str location (:id command)) raw/default-storage {})))))
+        (raw/store$ (str location (:id command)) :string {})))))
 
 (defn ^:private debug
   "Creates a debug version of a script. This adds a store command after every command."
@@ -375,15 +375,15 @@ produces a non-pigpen output.
   ([platform query] (bake platform {} query))
   ([platform opts query]
     {:pre [(->> query meta keys (some #{:pig :baked})) (map? opts)]}
-      (if (-> query meta :baked)
-        query
-        (cond-> query
-          (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
-          true braise
-          true merge-order-rank
-          (not= false (:dedupe opts)) dedupe
-          true expand-load-filters
-          true (optimize-binds platform)
-          true alias-self-joins
-          true clean
+    (if (-> query meta :baked)
+      query
+      (cond-> query
+        (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
+        true braise
+        true merge-order-rank
+        (not= false (:dedupe opts)) dedupe
+        true expand-load-filters
+        true (optimize-binds platform)
+        true alias-self-joins
+        true clean
         true (with-meta {:baked true})))))

@@ -33,14 +33,14 @@
 unless debugging scripts."
   ([location] `(load-binary ~location [~'value]))
   ([location fields]
-    `(raw/load$ ~location '~fields raw/default-storage {})))
+    `(raw/load$ ~location '~fields :binary {})))
 
 (defn load-string*
   "The base for load-string, load-clj, and load-json. The parameters requires
 and f specify a conversion function to apply to each input row."
   [location requires f]
   (->
-    (raw/load$ location ['value] raw/string-storage {:cast "chararray"})
+    (raw/load$ location ['value] :string {})
     (raw/bind$ requires `(pigpen.runtime/map->bind ~f) {:field-type-in :native})))
 
 (defn load-string
@@ -121,7 +121,7 @@ the specified delimiter. The default delimiter is \\t.
   "Stores data in the PigPen binary format. This is generally not used
 unless debugging scripts."
   [location relation]
-  (raw/store$ relation location raw/default-storage {}))
+  (raw/store$ relation location :binary {}))
 
 (defn store-string*
   "The base for store-string, store-clj, and store-json. The parameters requires
@@ -130,7 +130,7 @@ and f specify a conversion function to apply to each output row."
   (-> relation
     (raw/bind$ requires `(pigpen.runtime/map->bind ~f)
                {:args (:fields relation), :field-type-out :native})
-    (raw/store$ location raw/default-storage {})))
+    (raw/store$ location :string {})))
 
 (defn store-string
   "Stores the relation into location as a string. Each value is written as a

@@ -24,7 +24,8 @@ See pigpen.core and pigpen.exec
 "
   (:refer-clojure :exclude [replace])
   (:require [clojure.string :refer [join replace]]
-            [pigpen.raw :as raw]))
+            [pigpen.raw :as raw]
+            [pigpen.pig]))
 
 (set! *warn-on-reflection* true)
 
@@ -137,22 +138,44 @@ See pigpen.core and pigpen.exec
   (let [pig-args (->> args (map #(str "'" % "'")) (join ", "))]
     (str "\n    USING " func "(" pig-args ")")))
 
+(defmulti storage->script (juxt :type :storage))
+
+(defmethod storage->script [:load :binary]
+  [{:keys [fields]}]
+  (let [pig-fields (->> fields
+                     (join ", "))]
+    (str "PigStorage()\n    AS (" pig-fields ")")))
+
+(defmethod storage->script [:load :string]
+  [{:keys [fields]}]
+  (let [pig-fields (->> fields
+                     (map #(str % ":chararray"))
+                     (join ", "))]
+    (str "PigStorage(\\n)\n    AS (" pig-fields ")")))
+
+(defmethod storage->script [:store :binary]
+  [_]
+  (str "PigStorage()"))
+
+(defmethod storage->script [:store :string]
+  [_]
+  (str "PigStorage()"))
+
+(defn storage->script' [command]
+  (str "\n    USING " (storage->script command)))
+
 (defmethod command->script :load
-  [{:keys [id location storage fields opts]} state]
+  [{:keys [id location storage fields opts] :as command} state]
   {:pre [id location storage fields]}
   (let [pig-id (escape-id id)
-        pig-fields (->> fields
-                     (map (if-let [cast (:cast opts)] #(str % ":" cast) identity))
-                     (join ", "))
-        pig-storage (command->script storage state)
-        pig-schema (if-not (:implicit-schema opts) (str "\n    AS (" pig-fields ")"))]
-    (str pig-id " = LOAD '" location "'" pig-storage pig-schema ";\n\n")))
+        pig-storage (storage->script' command)]
+    (str pig-id " = LOAD '" location "'" pig-storage ";\n\n")))
 
 (defmethod command->script :store
-  [{:keys [id ancestors location storage opts]} state]
+  [{:keys [id ancestors location storage opts] :as command} state]
   {:pre [id ancestors location storage]}
   (let [relation-id (escape-id (first ancestors))
-        pig-storage (command->script storage state)]
+        pig-storage (storage->script' command)]
     (str "STORE " relation-id " INTO '" location "'" pig-storage ";\n\n")))
 
 ;; ********** Map **********
