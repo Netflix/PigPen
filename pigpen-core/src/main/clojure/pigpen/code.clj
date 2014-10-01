@@ -102,7 +102,7 @@ or reduce."
 (defn build-requires [nss]
   (->> nss
     (filter ns-exists)
-    (cons 'pigpen.pig)
+    (cons 'pigpen.runtime)
     (distinct)
     (map (fn [r] `'[~r]))
     (cons 'clojure.core/require)))

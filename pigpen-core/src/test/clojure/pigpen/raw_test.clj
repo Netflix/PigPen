@@ -32,26 +32,6 @@
 
 ;; ********** Util **********
 
-(deftest test-register$
-
-  (test-diff
-    (register$ "foo")
-    '{:type :register
-      :jar "foo"})
-
-  (is (thrown? AssertionError (register$ nil)))
-  (is (thrown? AssertionError (register$ 123)))
-  (is (thrown? AssertionError (register$ 'foo)))
-  (is (thrown? AssertionError (register$ :foo))))
-
-(deftest test-option$
-
-  (test-diff
-    (option$ "foo" 123)
-    '{:type :option
-      :option "foo"
-      :value 123}))
-
 (deftest test-code$
   (test-diff
     (code$ :normal ["a" 'b '[c d]]
@@ -65,53 +45,29 @@
 
 ;; ********** IO **********
 
-(deftest test-storage$
-  
-  (test-diff
-    (storage$ [] "foo" [])
-    '{:type :storage
-      :references []
-      :func "foo"
-      :args []})
-
-  (test-diff
-    (storage$ ["ref"] "foo" ["arg"])
-    '{:type :storage
-      :references ["ref"]
-      :func "foo"
-      :args ["arg"]})
-
-  (is (thrown? AssertionError (storage$ nil nil nil)))
-  (is (thrown? AssertionError (storage$ [] "" []))))
-
 (deftest test-load$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (load$ "foo" ['value] default-storage {})
+      (load$ "foo" ['value] :string {})
       '{:type :load
         :id load0
         :description "foo"
         :location "foo"
         :fields [value]
         :field-type :native
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage", :args []}
+        :storage :string
         :opts {:type :load-opts}})))
 
 (deftest test-store$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (store$ {} "foo" default-storage {})
+      (store$ {} "foo" :string {})
       '{:type :store
         :id store0
         :description "foo"
         :ancestors [{}]
         :location "foo"
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
+        :storage :string
         :fields nil
         :opts {:type :store-opts}})))
 

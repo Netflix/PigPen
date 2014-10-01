@@ -85,81 +85,6 @@ number of optimizations and transforms to the graph.
 
 ;; **********
 
-(defmulti ^:private command->required-fields
-  "Returns the fields required for a command. Always a set."
-  :type)
-
-(defmethod command->required-fields :default [command] nil)
-
-(defmethod command->required-fields :projection-field [command]
-  #{(:field command)})
-
-(defmethod command->required-fields :projection-func [command]
-  (->> command :code :args (filter (some-fn symbol? sequential?)) (set)))
-
-(defmethod command->required-fields :generate [command]
-  (->> command :projections (mapcat command->required-fields) (set)))
-
-;; **********
-
-(defmulti ^:private remove-fields
-  "Prune unnecessary fields from a command. The default does nothing - add an
-   override for commands that have prunable fields."
-  (fn [command fields] (:type command)))
-
-(defmethod remove-fields :default [command fields] command)
-
-(defmethod remove-fields :generate [command fields]
-  {:pre [(map? command) (set? fields)]}
-  (-> command
-    (update-in [:projections] (fn [ps] (remove (fn [p] (fields (:alias p))) ps)))
-    (update-in [:fields] #(remove fields %))))
-
-;; **********
-
-(defn ^:private extract-*
-  "Extract something from commands and create new commands at
-   the head of the list."
-  [extract create commands]
-  {:pre [(ifn? extract) (ifn? create) (sequential? commands)]}
-  (concat
-    (->> commands
-      (mapcat extract)
-      (distinct)
-      (map create))
-    commands))
-
-(defn ^:private command->references
-  "Gets any references required for a command"
-  [jar-location command]
-  (case (:type command)
-    :code [jar-location]
-    :bind [jar-location]
-    :storage (:references command)
-    (:load :store) (command->references jar-location (:storage command))
-    (:projection-func filter) (command->references jar-location (:code command))
-    :generate (->> command :projections (mapcat (partial command->references jar-location)))
-    nil))
-
-(defn ^:private command->options
-  "Gets any options required for a command"
-  [command]
-  (-> command :opts :pig-options))
-
-(defn ^:private extract-references
-  "Extract all references from commands and create new reference commands at
-   the head of the list."
-  [jar-location commands]
-  (extract-* (partial command->references jar-location) raw/register$ commands))
-
-(defn ^:private extract-options
-  "Extract all options from commands and create new option commands at
-   the head of the list."
-  [commands]
-  (extract-* command->options (fn [[o v]] (raw/option$ o v)) commands))
-
-;; **********
-
 (defn ^:private ancestors
   "Gets all ancestors for a command"
   [command]
@@ -255,31 +180,6 @@ number of optimizations and transforms to the graph.
 
 ;; **********
 
-(defn ^:private command->fat
-  "Returns the fields that could be pruned from the specified command. If
-   pruning is not possible, returns nil."
-  [commands command]
-  (let [potential (->> commands
-                    (filter #((set (:ancestors %)) (:id command)))
-                    (map command->required-fields))]
-    (if (and (not-empty potential) (every? (comp not nil?) potential))
-      (clojure.set/difference (set (:fields command)) (set (mapcat identity potential))))))
-
-(defn ^:private trim-fat
-  "Removes any fields that are produced by a relation that are not used by any children."
-  [commands]
-  (let [command-set (atom (set commands))]
-    (reverse
-      (for [command (reverse commands)]
-        (if-let [fat (command->fat @command-set command)]
-          (if-not (seq fat) command
-            (let [new-command (remove-fields command fat)]
-              (swap! command-set #(-> % (disj command) (conj new-command)))
-              new-command))
-          command)))))
-
-;; **********
-
 (defn ^:private command->debug
   "Adds an extra store statement after the command. Returns nil if no debug is
    available"
@@ -290,7 +190,7 @@ number of optimizations and transforms to the graph.
         (raw/bind$ [] `(pigpen.runtime/map->bind pigpen.runtime/debug)
                    {:args (:fields command), :field-type-in field-type, :field-type-out :native})
         ;; TODO Fix the location of store commands to match generates instead of binds
-        (raw/store$ (str location (:id command)) raw/default-storage {})))))
+        (raw/store$ (str location (:id command)) :string {})))))
 
 (defn ^:private debug
   "Creates a debug version of a script. This adds a store command after every command."
@@ -475,20 +375,15 @@ produces a non-pigpen output.
   ([platform query] (bake platform {} query))
   ([platform opts query]
     {:pre [(->> query meta keys (some #{:pig :baked})) (map? opts)]}
-    (let [jar-location (or (:pigpen-jar-location opts) "pigpen.jar")
-          extract-references (partial extract-references jar-location)]
-      (if (-> query meta :baked)
-        query
-        (cond-> query
-          (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
-          true braise
-          true merge-order-rank
-          true extract-options
-          true extract-references
-          (not= false (:dedupe opts)) dedupe
-          (not= false (:prune opts)) trim-fat
-          true expand-load-filters
-          true (optimize-binds platform)
-          true alias-self-joins
-          true clean
-          true (with-meta {:baked true}))))))
+    (if (-> query meta :baked)
+      query
+      (cond-> query
+        (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
+        true braise
+        true merge-order-rank
+        (not= false (:dedupe opts)) dedupe
+        true expand-load-filters
+        true (optimize-binds platform)
+        true alias-self-joins
+        true clean
+        true (with-meta {:baked true})))))

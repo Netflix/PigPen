@@ -24,7 +24,7 @@ how you 'use' a PigPen query.
 "
   (:require [pigpen.raw :as raw]
             [pigpen.pig :as pig]
-            [pigpen.oven :as oven]
+            [pigpen.pig.oven :as oven]
             [pigpen.script :as script]
             [pigpen.pig-rx :as local]
             [pigpen.viz :as viz]
@@ -62,7 +62,7 @@ combine them. Optionally takes a map of options.
   ([query] (generate-script {} query))
   ([opts query]
     (->> query
-      (oven/bake :pig opts)
+      (oven/bake opts)
       script/commands->script)))
 
 (defn write-script
@@ -98,7 +98,7 @@ combine them. Optionally takes a map of options.
   (^Observable [query] (query->observable {} query))
   (^Observable [opts query]
     (->> query
-      (oven/bake :pig opts)
+      (oven/bake opts)
       (local/graph->observable))))
 
 ;; TODO add a version that returns a multiset
@@ -150,7 +150,7 @@ This command uses a terse description for each operation.
   {:added "0.1.0"}
   [query]
   (->> query
-    (oven/bake :viz {})
+    (oven/bake {})
     (viz/view-graph viz/command->description)))
 
 (defn show+
@@ -167,5 +167,5 @@ This command uses a verbose description for each operation, including user code.
   {:added "0.1.0"}
   [query]
   (->> query
-    (oven/bake :viz {})
+    (oven/bake {})
     (viz/view-graph viz/command->description+)))
