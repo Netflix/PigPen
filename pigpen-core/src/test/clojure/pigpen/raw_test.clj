@@ -32,26 +32,6 @@
 
 ;; ********** Util **********
 
-(deftest test-register$
-
-  (test-diff
-    (register$ "foo")
-    '{:type :register
-      :jar "foo"})
-
-  (is (thrown? AssertionError (register$ nil)))
-  (is (thrown? AssertionError (register$ 123)))
-  (is (thrown? AssertionError (register$ 'foo)))
-  (is (thrown? AssertionError (register$ :foo))))
-
-(deftest test-option$
-
-  (test-diff
-    (option$ "foo" 123)
-    '{:type :option
-      :option "foo"
-      :value 123}))
-
 (deftest test-code$
   (test-diff
     (code$ :normal ["a" 'b '[c d]]

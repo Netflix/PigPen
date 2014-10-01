@@ -40,22 +40,6 @@
         :fields [foo]
         :opts {:type :store-opts}})))
 
-(deftest test-command->references
-  
-  (test-diff
-    (#'pigpen.oven/command->references "s3://bucket/pigpen.jar"
-                                       (pig-raw/generate$ {}
-                                         [(pig-raw/projection-func$ 'foo
-                                            (pig-raw/code$ :normal ['foo]
-                                              (pig-raw/expr$ '(require '[pigpen.pig])
-                                                             '(var clojure.core/prn))))] {}))
-    ["s3://bucket/pigpen.jar"])
-  
-  (test-diff
-    (#'pigpen.oven/command->references "pigpen.jar"
-                                       (pig-raw/store$ {} "" (pig-raw/storage$ ["my-jar.jar"] "f" []) {}))
-    ["my-jar.jar"]))
-
 (deftest test-braise
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
@@ -73,46 +57,6 @@
          :id store2
          :ancestors (load1)
          :fields [foo]}])))
-
-(deftest test-extract-references
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-
-    (let [test-storage (pig-raw/storage$ ["ref"] "TestStorage" [])]
-      (test-diff
-        (as-> nil %
-          (pig-raw/load$ "foo" '[foo] test-storage {})
-          (pig-raw/store$ % "bar" test-storage {})
-          (#'pigpen.oven/braise %)
-          (#'pigpen.oven/extract-references "pigpen.jar" %)
-          (map #(select-keys % [:type :id :ancestors :references :jar]) %))
-        '[{:type :register
-           :jar "ref"}
-          {:ancestors []
-           :type :load
-           :id load1}
-          {:type :store
-           :id store2
-           :ancestors [load1]}]))))
-
-(deftest test-extract-options
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-
-    (test-diff
-      (as-> nil %
-        (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {:pig-options {"pig.maxCombinedSplitSize" 1000000}})
-        (pig-raw/store$ % "bar" pig-raw/default-storage {})
-        (#'pigpen.oven/braise %)
-        (#'pigpen.oven/extract-options %)
-        (map #(select-keys % [:type :id :ancestors :references :option :value]) %))
-      '[{:type :option
-         :option "pig.maxCombinedSplitSize"
-         :value 1000000}
-        {:type :load
-         :id load1
-         :ancestors []}
-        {:type :store
-         :id store2
-         :ancestors [load1]}])))
 
 (deftest test-next-match
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -269,8 +213,7 @@
         (->> script
           (bake :pig {:debug "/out/"})
           (map #(select-keys % [:type :id :ancestors :location])))
-        '[{:type :register, :id nil,       :ancestors []}
-          {:type :load,     :id load1,     :ancestors []            :location "foo"}
+        '[{:type :load,     :id load1,     :ancestors []            :location "foo"}
           {:type :generate, :id generate10,:ancestors [load1]}
           {:type :store,    :id store9,    :ancestors [generate10], :location "/out/load1"}
           {:type :generate, :id generate2, :ancestors [load1]}
@@ -469,8 +412,7 @@
           command (pig/join [(data) (data)] vector)]
       (test-diff (->> (bake :pig command)
                    (map #(select-keys % [:fields :ancestors :id :type])))
-                  '[{:type :register, :id nil,        :ancestors [],                      :fields []}
-                    {:type :return,   :id return1,    :ancestors [],                      :fields [value]}
+                  '[{:type :return,   :id return1,    :ancestors [],                      :fields [value]}
                     {:type :generate, :id generate8,  :ancestors [return1],               :fields [value]}
                     {:type :generate, :id generate10, :ancestors [generate8],             :fields [key value]}
                     {:type :generate, :id generate11, :ancestors [generate8],             :fields [key value]}
@@ -513,9 +455,7 @@
         (->> (pig/script s1 s2)
           (#'pigpen.oven/bake :pig)
           (map #(select-keys % [:type :id :ancestors])))
-        ;; Should merge the load commands & produce a register command
-        '[{:type :register, :id nil,   :ancestors []}
-          {:type :load,   :id load3,   :ancestors []}
+        '[{:type :load,   :id load3,   :ancestors []}
           {:type :store,  :id store4,  :ancestors [load3]}
           {:type :store,  :id store2,  :ancestors [load3]}
           {:type :script, :id script5, :ancestors [store2 store4]}]))))
