@@ -19,6 +19,7 @@
 (ns pigpen.parquet.core
   (:require [pigpen.raw :as raw]
             [pigpen.pig-rx]
+            [pigpen.script]
             [pigpen.hadoop.local :as hadoop]
             [pigpen.pig.local :as pig-local])
   (:import [parquet.pig ParquetLoader ParquetStorer]
@@ -55,17 +56,20 @@ parquet column names.
   {:added "0.2.7"}
   [location schema]
   (let [fields (->> schema keys (mapv (comp symbol name)))
-        pig-schema (schema->pig-schema schema)
-        storage (raw/storage$ [] "parquet.pig.ParquetLoader" [pig-schema])]
+        pig-schema (schema->pig-schema schema)]
     (-> location
-      (raw/load$ fields storage {:implicit-schema true})
+      (raw/load$ fields :parquet {:schema pig-schema})
       (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig/native->clojure))
                  {:args (clojure.core/mapcat (juxt str identity) fields), :field-type-in :native}))))
 
-(defmethod pigpen.pig-rx/load "parquet.pig.ParquetLoader"
+(defmethod pigpen.pig-rx/load :parquet
   [{:keys [location fields storage]}]
   (let [schema (first (:args storage))]
     (LoadFuncLoader. (ParquetLoader. schema) {} location fields)))
+
+(defmethod pigpen.script/storage->script [:load :parquet]
+  [command]
+  (str "parquet.pig.ParquetLoader(" (get-in command [:opts :schema]) ")"))
 
 (defn store-parquet
   "*** ALPHA - Subject to change ***
@@ -84,16 +88,18 @@ with keywords matching the parquet columns to be stored.
 "
   {:added "0.2.7"}
   [location schema relation]
-  (let [fields (map (comp symbol name) (keys schema))
-        storage (raw/storage$ [] "parquet.pig.ParquetStorer" [])]
+  (let [fields (map (comp symbol name) (keys schema))]
     (-> relation
       (raw/bind$ [] `(pigpen.runtime/keyword-field-selector->bind ~(mapv keyword fields))
-                 {:field-type-out :native
-                  :implicit-schema true})
+                 {:field-type-out :native})
       (raw/generate$ (map-indexed raw/projection-field$ fields) {:field-type :native})
-      (raw/store$ location storage {:schema schema}))))
+      (raw/store$ location :parquet {:schema schema}))))
 
-(defmethod pigpen.pig-rx/store "parquet.pig.ParquetStorer"
+(defmethod pigpen.pig-rx/store :parquet
   [{:keys [location fields opts]}]
   (let [schema (schema->pig-schema (:schema opts))]
     (StoreFuncStorage. (ParquetStorer.) schema location fields)))
+
+(defmethod pigpen.script/storage->script [:store :parquet]
+  [_]
+  "parquet.pig.ParquetStorer()")

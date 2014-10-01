@@ -28,15 +28,15 @@
 
     (test-diff
       (->
-        (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
-        (pig-raw/store$ "bar" pig-raw/default-storage {})
+        (pig-raw/load$ "foo" '[foo] :string {})
+        (pig-raw/store$ "bar" :string {})
         (#'pigpen.oven/tree->command))
       '{:type :store
         :id store2
         :description "bar"
         :ancestors (load1)
         :location "bar"
-        :storage {:type :storage, :references [], :func "PigStorage", :args []}
+        :storage :string
         :fields [foo]
         :opts {:type :store-opts}})))
 
@@ -45,8 +45,8 @@
 
     (test-diff
       (as-> nil %
-        (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
-        (pig-raw/store$ % "bar" pig-raw/default-storage {})
+        (pig-raw/load$ "foo" '[foo] :string {})
+        (pig-raw/store$ % "bar" :string {})
         (#'pigpen.oven/braise %)
         (map #(select-keys % [:type :id :ancestors :fields]) %))
       '[{:ancestors []
@@ -62,12 +62,12 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
   
     (let [s1 (->
-               (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
-               (pig-raw/store$ "bar" pig-raw/default-storage {}))
+               (pig-raw/load$ "foo" '[foo] :string {})
+               (pig-raw/store$ "bar" :string {}))
           
           s2 (->
-               (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
-               (pig-raw/store$ "bar2" pig-raw/default-storage {}))]
+               (pig-raw/load$ "foo" '[foo] :string {})
+               (pig-raw/store$ "bar2" :string {}))]
       
       (test-diff
         (->
@@ -80,10 +80,10 @@
 (deftest test-merge-command
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [l1 (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
-          s1 (pig-raw/store$ l1 "bar" pig-raw/default-storage {})
-          l2 (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
-          s2 (pig-raw/store$ l2 "bar2" pig-raw/default-storage {})
+    (let [l1 (pig-raw/load$ "foo" '[foo] :string {})
+          s1 (pig-raw/store$ l1 "bar" :string {})
+          l2 (pig-raw/load$ "foo" '[foo] :string {})
+          s2 (pig-raw/store$ l2 "bar2" :string {})
           s (pig/script s1 s2)
           
           mapping {(:id l1) (:id l2)}
@@ -162,12 +162,12 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
   
     (let [s1 (->
-               (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
-               (pig-raw/store$ "bar" pig-raw/default-storage {}))
+               (pig-raw/load$ "foo" '[foo] :string {})
+               (pig-raw/store$ "bar" :string {}))
           
           s2 (->
-               (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
-               (pig-raw/store$ "bar2" pig-raw/default-storage {}))]
+               (pig-raw/load$ "foo" '[foo] :string {})
+               (pig-raw/store$ "bar2" :string {}))]
       
       (test-diff
         (as-> (pig/script s1 s2) %
@@ -203,9 +203,9 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
   
     (let [script (->
-                   (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {})
+                   (pig-raw/load$ "foo" '[foo] :string {})
                    (pig-raw/generate$ [(pig-raw/projection-field$ 'foo 'bar)] {})
-                   (pig-raw/store$ "bar" pig-raw/default-storage {})
+                   (pig-raw/store$ "bar" :string {})
                    (vector)
                    (pig-raw/script$))]
       
@@ -380,7 +380,7 @@
 
 (deftest test-expand-load-filters
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [command (pig-raw/load$ "foo" '[foo] pig-raw/default-storage {:filter '(= foo 2)})]
+    (let [command (pig-raw/load$ "foo" '[foo] :string {:filter '(= foo 2)})]
       (test-diff (bake :pig command)
                  '[{:type :load
                     :id load1_0
@@ -390,10 +390,7 @@
                     :fields [foo]
                     :field-type :native
                     :args []
-                    :storage {:type :storage
-                              :references []
-                              :func "PigStorage"
-                              :args []}
+                    :storage :string
                     :opts {:type :load-opts
                            :filter (= foo 2)}}
                    {:type :filter-native
@@ -441,15 +438,13 @@
 (deftest test-bake
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
   
-    (let [test-storage (pig-raw/storage$ ["ref"] "TestStorage" [])
-          
-          s1 (->
-               (pig-raw/load$ "foo" '[foo] test-storage {})
-               (pig-raw/store$ "bar" test-storage {}))
+    (let [s1 (->
+               (pig-raw/load$ "foo" '[foo] :test-storage {})
+               (pig-raw/store$ "bar" :test-storage {}))
           
           s2 (->
-               (pig-raw/load$ "foo" '[foo] test-storage {})
-               (pig-raw/store$ "bar2" test-storage {}))]
+               (pig-raw/load$ "foo" '[foo] :test-storage {})
+               (pig-raw/store$ "bar2" :test-storage {}))]
 
       (test-diff
         (->> (pig/script s1 s2)

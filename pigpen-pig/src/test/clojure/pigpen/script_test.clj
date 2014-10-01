@@ -65,52 +65,24 @@
 
 ;; ********** IO **********
 
-(deftest test-storage
-  (is (= "\n    USING PigStorage()"
-         (command->script '{:type :storage
-                            :func "PigStorage"
-                            :args []}
-                          {})))
-  (is (= "\n    USING PigStorage('foo', 'bar')"
-         (command->script '{:type :storage
-                            :func "PigStorage"
-                            :args ["foo" "bar"]}
-                          {}))))
-
 (deftest test-load
   (is (= "load0 = LOAD 'foo'\n    USING PigStorage()\n    AS (a, b, c);\n\n"
          (command->script '{:type :load
                             :id load0
                             :location "foo"
-                            :storage {:type :storage
-                                      :func "PigStorage"
-                                      :args []}
+                            :storage :binary
                             :fields [a b c]
                             :opts {:type :load-opts}}
                           {})))
-  (is (= "load0 = LOAD 'foo'\n    USING PigStorage();\n\n"
-         (command->script '{:type :load
-                            :id load0
-                            :location "foo"
-                            :storage {:type :storage
-                                      :func "PigStorage"
-                                      :args []}
-                            :fields [a b c]
-                            :opts {:type :load-opts
-                                   :implicit-schema true}}
-                          {})))
   (is (= "load0 = LOAD 'foo'
-    USING PigStorage()
+    USING PigStorage(\\n)
     AS (a:chararray, b:chararray, c:chararray);\n\n"
          (command->script '{:type :load
                             :id load0
                             :location "foo"
-                            :storage {:type :storage
-                                      :func "PigStorage"
-                                      :args []}
+                            :storage :string
                             :fields [a b c]
-                            :opts {:type :load-opts
-                                   :cast "chararray"}}
+                            :opts {:type :load-opts}}
                           {}))))
 
 (deftest test-store
@@ -119,9 +91,7 @@
                             :id store0
                             :ancestors [relation0]
                             :location "foo"
-                            :storage {:type :storage
-                                      :func "PigStorage"
-                                      :args []}
+                            :storage :string
                             :opts {:type :store-opts}}
                           {}))))
 

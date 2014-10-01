@@ -79,29 +79,11 @@ building blocks for more complex operations.")
 
 ;; ********** IO **********
 
-(defn storage$
-  "A Pig storage definition. This is not a store command, but rather how to use
-   pre-built jars that contain custom storage implementations. This will be
-   passed to either a load or store form."
-  [references func args]
-  {:pre [((every-pred string? not-empty) func)
-         (every? string? references)]}
-  ^:pig {:type :storage
-         :references references
-         :func func
-         :args args})
-
-(def default-storage
-  (storage$ [] "PigStorage" []))
-
-(def string-storage
-  (storage$ [] "PigStorage" ["\\n"]))
-
 (defn load$
   [location fields storage opts]
   {:pre [(string? location)
          (sequential? fields)
-         (= (:type storage) :storage)
+         (keyword? storage)
          (or (nil? opts) (map? opts))]}
   ^:pig {:type :load
          :id (pigsym "load")
@@ -115,7 +97,7 @@ building blocks for more complex operations.")
 (defn store$
   [relation location storage opts]
   {:pre [(string? location)
-         (= (:type storage) :storage)
+         (keyword? storage)
          (or (nil? opts) (map? opts))]}
   (->
     (command :store relation opts)
