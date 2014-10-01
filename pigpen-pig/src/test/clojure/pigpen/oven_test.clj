@@ -319,7 +319,7 @@
                        :ancestors [load1]
                        :projections [{:type :projection-flat
                                       :code {:type :code
-                                             :expr {:init (clojure.core/require (quote [pigpen.pig]) (quote [clojure.edn]))
+                                             :expr {:init (clojure.core/require (quote [pigpen.runtime]) (quote [clojure.edn]))
                                                     :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native))
                                                                                 (pigpen.runtime/map->bind clojure.edn/read-string)
                                                                                 (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
