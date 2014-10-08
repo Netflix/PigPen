@@ -263,30 +263,21 @@
 (deftest test-return
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (pigpen.pig/thaw-anything (io/return [1 2 3]))
+      (io/return [1 2 3])
       '{:type :return
         :id return0
         :fields [value]
-        :data [{value (freeze 1)}
-               {value (freeze 2)}
-               {value (freeze 3)}]})))
-
-(deftest test-return-raw
-  (with-redefs [pigpen.raw/pigsym pigsym-zero]
-    (test-diff
-      (pigpen.pig/thaw-anything (io/return-raw '[{a 1, b 2, c 3}]))
-      '{:type :return
-        :id return0
-        :fields [a b c]
-        :data [{a 1, b 2, c 3}]})))
+        :data [{value 1}
+               {value 2}
+               {value 3}]})))
 
 (deftest test-constantly
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (pigpen.pig/thaw-anything ((io/constantly [1 2 3])))
+      ((io/constantly [1 2 3]))
       '{:type :return
         :id return0
         :fields [value]
-        :data [{value (freeze 1)}
-               {value (freeze 2)}
-               {value (freeze 3)}]})))
+        :data [{value 1}
+               {value 2}
+               {value 3}]})))

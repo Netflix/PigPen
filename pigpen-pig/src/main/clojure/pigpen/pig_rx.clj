@@ -214,6 +214,11 @@ See pigpen.core and pigpen.exec
           (close-writer local-storage @writer))))))
 
 (defmethod graph->local :return [{:keys [^Iterable data]} _]
+  (->> data
+    (rx/seq->o)
+    (rx/map pig/freeze-vals)))
+
+(defmethod graph->local :return-debug [{:keys [^Iterable data]} _]
   (rx/seq->o data))
 
 (defmulti load-list (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
