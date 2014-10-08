@@ -85,7 +85,7 @@
   (write [_ {:keys [^RecordWriter record-writer]} value]
     (let [value' (->> fields
                    (map value)
-                   (apply pigpen.pig/tuple))]
+                   (apply pigpen.pig.runtime/tuple))]
       (.write record-writer nil value')))
   (close-writer [_ writer]
     (hadoop/close-record-writer writer)))

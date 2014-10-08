@@ -20,6 +20,7 @@
   (:require [clojure.test :refer :all]
             [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc regex->string]]
             [pigpen.core :as pig]
+            [pigpen.pig :refer [dump]]
             [pigpen.parquet.core :as pig-parquet]))
 
 (.mkdirs (java.io.File. "build/functional/parquet-test"))
@@ -32,5 +33,5 @@
               {:x 3 :y "c"}]
         store-command (pig-parquet/store-parquet location schema (pig/return data))
         load-command (pig-parquet/load-parquet (str location "/part-m-00001.parquet") schema)]
-    (pig/dump store-command)
-    (is (= (pig/dump load-command) data))))
+    (dump store-command)
+    (is (= (dump load-command) data))))

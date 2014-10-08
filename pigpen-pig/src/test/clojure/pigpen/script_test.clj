@@ -42,9 +42,9 @@
 
 (deftest test-code
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (is (= ["DEFINE udf1 pigpen.PigPenFnDataByteArray('(require (quote [pigpen.pig]))','identity');\n\n" "udf1()"]
+    (is (= ["DEFINE udf1 pigpen.PigPenFnDataByteArray('(require (quote [pigpen.runtime]))','identity');\n\n" "udf1()"]
            (command->script '{:type :code
-                              :expr {:init (require '[pigpen.pig])
+                              :expr {:init (require '[pigpen.runtime])
                                      :func identity}
                               :udf :normal
                               :args []}
