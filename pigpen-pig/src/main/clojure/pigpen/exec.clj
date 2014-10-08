@@ -23,7 +23,7 @@ how you 'use' a PigPen query.
   Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
   (:require [pigpen.raw :as raw]
-            [pigpen.pig :as pig]
+            [pigpen.pig.runtime :as pig]
             [pigpen.pig.oven :as oven]
             [pigpen.script :as script]
             [pigpen.pig-rx :as local]

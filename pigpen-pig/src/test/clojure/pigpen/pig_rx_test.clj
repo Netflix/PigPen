@@ -20,7 +20,7 @@
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff pigsym-inc]]
             [pigpen.pig-rx :as local :refer [PigPenLocalLoader]]
-            [pigpen.pig :refer [freeze-vals thaw-anything]]
+            [pigpen.pig.runtime :refer [freeze-vals thaw-anything]]
             [pigpen.raw :as raw]
             [pigpen.pig.raw :as pig-raw]
             [pigpen.core :as pig]
@@ -41,7 +41,7 @@
 (deftest test-eval-code
   
   (let [code (raw/code$ :normal '[x y]
-               (raw/expr$ '(require (quote [pigpen.pig]))
+               (raw/expr$ '(require (quote [pigpen.runtime]))
                           '(pigpen.runtime/exec
                              [(pigpen.runtime/process->bind
                                 (pigpen.runtime/pre-process :pig :frozen))

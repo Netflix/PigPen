@@ -16,9 +16,9 @@
 ;;
 ;;
 
-(ns pigpen.pig-test
+(ns pigpen.pig.runtime-test
   (:use clojure.test
-        pigpen.pig)
+        pigpen.pig.runtime)
   (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [taoensso.nippy :refer [freeze thaw]]
             [clojure.core.async :as a]
@@ -161,14 +161,14 @@
 (deftest test-bag->chan
   (let [c (a/chan 5)
         b (bag (tuple 1) (tuple "a"))]
-    (#'pigpen.pig/bag->chan c b)
+    (#'pigpen.pig.runtime/bag->chan c b)
     (is (= (a/<!! c) 1))
     (is (= (a/<!! c) "a"))))
 
 (deftest test-lazy-bag-args
   (let [b (bag (tuple 1) (tuple "a"))
         args [b 2 "b"]
-        [args* input-bags] (#'pigpen.pig/lazy-bag-args args)
+        [args* input-bags] (#'pigpen.pig.runtime/lazy-bag-args args)
         [a0 a1 a2] args*
         [i0 i1 i2] input-bags]
     (is (ae/channel? a0))
@@ -182,7 +182,7 @@
   
   (let [b (bag (tuple 1) (tuple "a"))
         t (tuple b 2 "b")
-        [input-bags result] (#'pigpen.pig/create-accumulate-state
+        [input-bags result] (#'pigpen.pig.runtime/create-accumulate-state
                               (fn [[x y z]] [(a/<!! x) y z])
                               t)
         [i0 i1 i2] input-bags]

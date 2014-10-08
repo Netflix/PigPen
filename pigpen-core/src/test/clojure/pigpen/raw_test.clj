@@ -35,11 +35,11 @@
 (deftest test-code$
   (test-diff
     (code$ :normal ["a" 'b '[c d]]
-           (expr$ '(require '[pigpen.pig])
+           (expr$ '(require '[pigpen.runtime])
                   '(var clojure.core/prn)))
     '{:type :code
       :udf :normal
-      :expr {:init (require (quote [pigpen.pig]))
+      :expr {:init (require (quote [pigpen.runtime]))
              :func (var clojure.core/prn)}
       :args ["a" b [c d]]}))
 
@@ -93,10 +93,10 @@
   (test-diff
     (projection-func$ 'value
                       (code$ :normal ['value]
-                             (expr$ `(require '[pigpen.pig]) `identity)))
+                             (expr$ `(require '[pigpen.runtime]) `identity)))
     '{:type :projection-func
       :code {:type :code
-             :expr {:init (clojure.core/require (quote [pigpen.pig]))
+             :expr {:init (clojure.core/require (quote [pigpen.runtime]))
                     :func clojure.core/identity}
              :udf :normal
              :args [value]}
@@ -106,10 +106,10 @@
   (test-diff
     (projection-flat$ 'value
                       (code$ :normal ['value]
-                             (expr$ `(require '[pigpen.pig]) `identity)))
+                             (expr$ `(require '[pigpen.runtime]) `identity)))
     '{:type :projection-flat
       :code {:type :code
-             :expr {:init (clojure.core/require (quote [pigpen.pig]))
+             :expr {:init (clojure.core/require (quote [pigpen.runtime]))
                     :func clojure.core/identity}
              :udf :normal
              :args [value]}
@@ -211,7 +211,7 @@
     (test-diff
       (filter$ {:fields ['value]}
                (code$ :normal ['value]
-                      (expr$ `(require '[pigpen.pig]) `identity))
+                      (expr$ `(require '[pigpen.runtime]) `identity))
                {})
       '{:type :filter
         :id filter0
@@ -220,7 +220,7 @@
         :fields [value]
         :field-type :frozen
         :code {:type :code
-               :expr {:init (clojure.core/require (quote [pigpen.pig]))
+               :expr {:init (clojure.core/require (quote [pigpen.runtime]))
                       :func clojure.core/identity}
                :udf :normal
                :args [value]}

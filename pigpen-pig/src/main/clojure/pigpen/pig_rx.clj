@@ -31,7 +31,7 @@ See pigpen.core and pigpen.exec
             [pigpen.rx.extensions.core :refer [multicast]]
             [pigpen.extensions.io :refer [list-files]]
             [pigpen.extensions.core :refer [zipv]]
-            [pigpen.pig :as pig])
+            [pigpen.pig.runtime :as pig])
   (:import [pigpen PigPenException]
            [org.apache.pig EvalFunc]
            [org.apache.pig.data Tuple DataBag DataByteArray]

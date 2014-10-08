@@ -25,7 +25,7 @@ See pigpen.core and pigpen.exec
   (:refer-clojure :exclude [replace])
   (:require [clojure.string :refer [join replace]]
             [pigpen.raw :as raw]
-            [pigpen.pig]))
+            [pigpen.pig.runtime]))
 
 (set! *warn-on-reflection* true)
 
@@ -116,7 +116,7 @@ See pigpen.core and pigpen.exec
   (let [id (raw/pigsym "udf")
         {:keys [init func]} expr
         pig-args (->> args (map format-field) (join ", "))
-        udf (pigpen.pig/udf-lookup udf)]
+        udf (pigpen.pig.runtime/udf-lookup udf)]
     [(str "DEFINE " id " " udf "(" (escape+quote init) "," (escape+quote func) ");\n\n")
      (str id "(" pig-args ")")]))
 

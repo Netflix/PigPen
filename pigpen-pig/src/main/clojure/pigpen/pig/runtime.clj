@@ -16,7 +16,7 @@
 ;;
 ;;
 
-(ns pigpen.pig
+(ns pigpen.pig.runtime
   "Contains functions that are used when interacting with Pig. This includes
 mapping of data from Pig to Clojure and back, serializing and deserializing
 data, and executing user code. Everything in here should be as performant as
