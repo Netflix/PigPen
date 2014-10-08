@@ -18,7 +18,7 @@
 
 (ns pigpen.pig.local-test
   (:require [clojure.test :refer :all]
-            [pigpen.pig :refer [cast-bytes tuple]]
+            [pigpen.pig.runtime :refer [cast-bytes tuple]]
             [pigpen.pig.local :as pig-local]
             [pigpen.hadoop.local :as hadoop])
   (:import [org.apache.pig.builtin PigStorage]))

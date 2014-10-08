@@ -20,6 +20,7 @@
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff]]
             [pigpen.core :as pig]
+            [pigpen.pig :refer [dump]]
             [pigpen.fold :as fold]))
 
 (.mkdirs (java.io.File. "build/functional/io-test"))
@@ -28,7 +29,7 @@
   (let [command (pig/load-string "build/functional/io-test/test-load-string")]
     (spit "build/functional/io-test/test-load-string" "The quick brown fox\njumps over the lazy dog\n")
     (test-diff
-      (set (pig/dump command))
+      (set (dump command))
       '#{"The quick brown fox"
          "jumps over the lazy dog"})))  
 
@@ -38,7 +39,7 @@
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv")]
       (spit "build/functional/io-test/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
       (test-diff
-        (set (pig/dump command))
+        (set (dump command))
         '#{["a" "b" "c"]
            ["1" "2" "3"]})))
   
@@ -46,7 +47,7 @@
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv" #",")]
       (spit "build/functional/io-test/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
       (test-diff
-        (set (pig/dump command))
+        (set (dump command))
         '#{["a\tb\tc"]
            ["1\t2\t3"]})))
   
@@ -54,7 +55,7 @@
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv" #",")]
       (spit "build/functional/io-test/test-load-tsv" "a,b,c\n1,2,3\n")
       (test-diff
-        (set (pig/dump command))
+        (set (dump command))
         '#{["a" "b" "c"]
            ["1" "2" "3"]}))))
 
@@ -62,7 +63,7 @@
   (let [command (pig/load-clj "build/functional/io-test/test-load-clj")]
     (spit "build/functional/io-test/test-load-clj" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
     (test-diff
-      (set (pig/dump command))
+      (set (dump command))
       '#{{:a 2, :b "bar"}
          {:a 1, :b "foo"}})))
 
@@ -73,14 +74,14 @@
   (testing "Default"
     (let [command (pig/load-json "build/functional/io-test/test-load-json")]
       (test-diff
-        (set (pig/dump command))
+        (set (dump command))
         '#{{:a 2, :b "bar"}
            {:a 1, :b "foo"}})))
   
   (testing "No options"
     (let [command (pig/load-json "build/functional/io-test/test-load-json" {})]
       (test-diff
-        (set (pig/dump command))
+        (set (dump command))
         '#{{"a" 2, "b" "bar"}
            {"a" 1, "b" "foo"}})))
   
@@ -92,7 +93,7 @@
                                                 :a (* v v)
                                                 :b (count v)))})]
       (test-diff
-        (set (pig/dump command))
+        (set (dump command))
         '#{{:a 1, :b 3}
            {:a 4, :b 3}}))))
 
@@ -100,7 +101,7 @@
   (let [command (pig/load-tsv "build/functional/io-test/test-load-lazy")]
     (spit "build/functional/io-test/test-load-lazy" "a\tb\tc\n1\t2\t3\n")
     (test-diff
-      (set (pig/dump command))
+      (set (dump command))
       '#{("a" "b" "c")
          ("1" "2" "3")})))
 
@@ -110,7 +111,7 @@
                           42
                           :foo])
         command (pig/store-string "build/functional/io-test/test-store-string" data)]
-    (is (= (pig/dump command)
+    (is (= (dump command)
            ["The quick brown fox" "jumps over the lazy dog" "42" ":foo"]))
     (is (= "The quick brown fox\njumps over the lazy dog\n42\n:foo\n"
            (slurp "build/functional/io-test/test-store-string")))))
@@ -119,7 +120,7 @@
   (let [data (pig/return [[1 "foo" :a]
                           [2 "bar" :b]])
         command (pig/store-tsv "build/functional/io-test/test-store-tsv" data)]
-    (is (= (pig/dump command)
+    (is (= (dump command)
            ["1\tfoo\t:a" "2\tbar\t:b"]))
     (is (= "1\tfoo\t:a\n2\tbar\t:b\n"
            (slurp "build/functional/io-test/test-store-tsv")))))
@@ -128,7 +129,7 @@
   (let [data (pig/return [(array-map :a 1, :b "foo")
                           (array-map :a 2, :b "bar")])
         command (pig/store-clj "build/functional/io-test/test-store-clj" data)]
-    (is (= (pig/dump command)
+    (is (= (dump command)
            ["{:a 1, :b \"foo\"}" "{:a 2, :b \"bar\"}"]))
     (is (= "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}\n"
            (slurp "build/functional/io-test/test-store-clj")))))
@@ -137,7 +138,7 @@
   (let [data (pig/return [(array-map :a 1, :b "foo")
                           (array-map :a 2, :b "bar")])
         command (pig/store-json "build/functional/io-test/test-store-json" data)]
-    (is (= (pig/dump command)
+    (is (= (dump command)
            ["{\"a\":1,\"b\":\"foo\"}" "{\"a\":2,\"b\":\"bar\"}"]))
     (is (= "{\"a\":1,\"b\":\"foo\"}\n{\"a\":2,\"b\":\"bar\"}\n"
            (slurp "build/functional/io-test/test-store-json")))))
@@ -147,12 +148,12 @@
   (let [data [1 2]
         command (pig/return data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[1 2]))
   
   (let [command (->>
                   (pig/return [])
                   (pig/map inc))]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[])))

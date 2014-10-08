@@ -44,12 +44,12 @@ public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
     static {
         final Var require = RT.var("clojure.core", "require");
         require.invoke(Symbol.intern("pigpen.runtime"));
-        require.invoke(Symbol.intern("pigpen.pig"));
+        require.invoke(Symbol.intern("pigpen.pig.runtime"));
         EVAL_STRING = RT.var("pigpen.runtime", "eval-string");
-        EVAL = RT.var("pigpen.pig", "eval-udf");
-        ACCUMULATE = RT.var("pigpen.pig", "udf-accumulate");
-        GET_VALUE = RT.var("pigpen.pig", "udf-get-value");
-        CLEANUP = RT.var("pigpen.pig", "udf-cleanup");
+        EVAL = RT.var("pigpen.pig.runtime", "eval-udf");
+        ACCUMULATE = RT.var("pigpen.pig.runtime", "udf-accumulate");
+        GET_VALUE = RT.var("pigpen.pig.runtime", "udf-get-value");
+        CLEANUP = RT.var("pigpen.pig.runtime", "udf-cleanup");
     }
 
     protected final Object func;

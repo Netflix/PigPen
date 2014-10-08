@@ -20,6 +20,7 @@
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff]]
             [pigpen.core :as pig]
+            [pigpen.pig :refer [dump]]
             [pigpen.fold :as fold]))
 
 (deftest test-filter
@@ -27,7 +28,7 @@
   (let [data (pig/return [1 2])
         command (pig/filter odd? data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[1])))
 
 (deftest test-remove
@@ -35,5 +36,5 @@
   (let [data (pig/return [1 2])
         command (pig/remove odd? data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[2])))

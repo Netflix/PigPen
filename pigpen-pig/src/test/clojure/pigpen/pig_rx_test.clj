@@ -20,11 +20,12 @@
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff pigsym-inc]]
             [pigpen.pig-rx :as local :refer [PigPenLocalLoader]]
-            [pigpen.pig :refer [freeze-vals thaw-anything]]
+            [pigpen.pig.runtime :refer [freeze-vals thaw-anything]]
             [pigpen.raw :as raw]
+            [pigpen.pig.raw :as pig-raw]
             [pigpen.core :as pig]
             [pigpen.io :as io]
-            [pigpen.exec :as exec])
+            [pigpen.pig :as exec])
   (:import [org.apache.pig.data DataBag]))
 
 (.mkdirs (java.io.File. "build/local-test"))
@@ -40,7 +41,7 @@
 (deftest test-eval-code
   
   (let [code (raw/code$ :normal '[x y]
-               (raw/expr$ '(require (quote [pigpen.pig]))
+               (raw/expr$ '(require (quote [pigpen.runtime]))
                           '(pigpen.runtime/exec
                              [(pigpen.runtime/process->bind
                                 (pigpen.runtime/pre-process :pig :frozen))
@@ -171,7 +172,7 @@
       (is (thrown? Exception (exec/dump command))))))
 
 (deftest test-store
-  (let [data (io/return-raw '[{value "a\tb\tc"}
+  (let [data (pig-raw/return-debug$ '[{value "a\tb\tc"}
                               {value "1\t2\t3"}])
         command (raw/store$ data "build/local-test/test-store" :string {})]
     (debug-script command)
@@ -194,7 +195,7 @@
 
 (deftest test-filter-native
   
-  (let [data (io/return-raw '[{foo 1, bar 3}
+  (let [data (pig-raw/return-debug$ '[{foo 1, bar 3}
                               {foo 2, bar 1}])]
     
     (testing "with filter"
@@ -212,7 +213,7 @@
 
 (deftest test-limit
   
-  (let [data (io/return-raw
+  (let [data (pig-raw/return-debug$
                (map freeze-vals '[{x 1, y 2}
                                   {x 2, y 4}]))
         command (raw/limit$ data 1 {})]
@@ -247,11 +248,11 @@
 
 (deftest test-cogroup
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [data1 (io/return-raw
+    (let [data1 (pig-raw/return-debug$
                   (map freeze-vals '[{key :a, value 2}
                                      {key :a, value 4}
                                      {key :b, value 6}]))
-          data2 (io/return-raw
+          data2 (pig-raw/return-debug$
                   (map freeze-vals '[{key :a, value 8}
                                      {key :b, value 10}
                                      {key :b, value 12}]))
@@ -264,23 +265,23 @@
       (test-diff
         (set (debug-script-raw command))
         '#{{group (freeze :a)
-            [[return1] key] (bag (tuple (freeze :a)) (tuple (freeze :a)))
-            [[return1] value] (bag (tuple (freeze 2)) (tuple (freeze 4)))
-            [[return2] key] (bag (tuple (freeze :a)))
-            [[return2] value] (bag (tuple (freeze 8)))}
+            [[return-debug1] key] (bag (tuple (freeze :a)) (tuple (freeze :a)))
+            [[return-debug1] value] (bag (tuple (freeze 2)) (tuple (freeze 4)))
+            [[return-debug2] key] (bag (tuple (freeze :a)))
+            [[return-debug2] value] (bag (tuple (freeze 8)))}
            {group (freeze :b)
-            [[return1] key] (bag (tuple (freeze :b)))
-            [[return1] value] (bag (tuple (freeze 6)))
-            [[return2] key] (bag (tuple (freeze :b)) (tuple (freeze :b)))
-            [[return2] value] (bag (tuple (freeze 10)) (tuple (freeze 12)))}}))))
+            [[return-debug1] key] (bag (tuple (freeze :b)))
+            [[return-debug1] value] (bag (tuple (freeze 6)))
+            [[return-debug2] key] (bag (tuple (freeze :b)) (tuple (freeze :b)))
+            [[return-debug2] value] (bag (tuple (freeze 10)) (tuple (freeze 12)))}}))))
 
 (deftest test-join
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [data1 (io/return-raw
+    (let [data1 (pig-raw/return-debug$
                   (map freeze-vals '[{key :a, value 2}
                                      {key :a, value 4}
                                      {key :b, value 6}]))
-          data2 (io/return-raw
+          data2 (pig-raw/return-debug$
                   (map freeze-vals '[{key :a, value 8}
                                      {key :b, value 10}
                                      {key :b, value 12}]))
@@ -292,8 +293,8 @@
       
       (test-diff
         (set (debug-script-raw command))
-        #{'{[[return1 key]] (freeze :a), [[return1 value]] (freeze 2), [[return2 key]] (freeze :a), [[return2 value]] (freeze 8)}
-          '{[[return1 key]] (freeze :a), [[return1 value]] (freeze 4), [[return2 key]] (freeze :a), [[return2 value]] (freeze 8)}
-          '{[[return1 key]] (freeze :b), [[return1 value]] (freeze 6), [[return2 key]] (freeze :b), [[return2 value]] (freeze 10)}
-          '{[[return1 key]] (freeze :b), [[return1 value]] (freeze 6), [[return2 key]] (freeze :b), [[return2 value]] (freeze 12)}}))))
+        #{'{[[return-debug1 key]] (freeze :a), [[return-debug1 value]] (freeze 2), [[return-debug2 key]] (freeze :a), [[return-debug2 value]] (freeze 8)}
+          '{[[return-debug1 key]] (freeze :a), [[return-debug1 value]] (freeze 4), [[return-debug2 key]] (freeze :a), [[return-debug2 value]] (freeze 8)}
+          '{[[return-debug1 key]] (freeze :b), [[return-debug1 value]] (freeze 6), [[return-debug2 key]] (freeze :b), [[return-debug2 value]] (freeze 10)}
+          '{[[return-debug1 key]] (freeze :b), [[return-debug1 value]] (freeze 6), [[return-debug2 key]] (freeze :b), [[return-debug2 value]] (freeze 12)}}))))
 

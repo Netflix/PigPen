@@ -20,6 +20,7 @@
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff]]
             [pigpen.core :as pig]
+            [pigpen.pig :refer [dump]]
             [pigpen.fold :as fold]))
 
 (deftest test-union
@@ -29,7 +30,7 @@
         
         command (pig/union data1 data2 data3)]
     (test-diff
-      (set (pig/dump command))
+      (set (dump command))
       '#{1 2 3 4 5})))
 
 (deftest test-union-multiset
@@ -39,7 +40,7 @@
         
         command (pig/union-multiset data1 data2 data3)]
     (test-diff
-      (sort (pig/dump command))
+      (sort (dump command))
       '[1 2 2
         3 3 3
         4 4 5])))
@@ -51,7 +52,7 @@
         
         command (pig/intersection data1 data2 data3)]
     (test-diff
-      (sort (pig/dump command))
+      (sort (dump command))
       '[2 3])))
 
 (deftest test-intersection-multiset
@@ -61,7 +62,7 @@
         
         command (pig/intersection-multiset data1 data2 data3)]
     (test-diff
-      (sort (pig/dump command))
+      (sort (dump command))
       '[2 3 3])))
 
 (deftest test-difference
@@ -71,7 +72,7 @@
         
         command (pig/difference data1 data2 data3)]
     (test-diff
-      (sort (pig/dump command))
+      (sort (dump command))
       '[3])))
 
 (deftest test-difference-multiset
@@ -81,5 +82,5 @@
         
         command (pig/difference-multiset data1 data2 data3)]
     (test-diff
-      (sort (pig/dump command))
+      (sort (dump command))
       '[3])))

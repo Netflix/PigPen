@@ -23,8 +23,7 @@
 "
   (:refer-clojure :exclude [load-string constantly])
   (:require [pigpen.raw :as raw]
-            [pigpen.code :as code]
-            [pigpen.pig :as pig]))
+            [pigpen.code :as code]))
 
 (set! *warn-on-reflection* true)
 
@@ -214,15 +213,8 @@ sequence. The values of 'data' can be any clojure type.
   [data]
   (raw/return$
     (for [d data]
-      (pig/freeze-vals {'value d}))
+      {'value d})
     ['value]))
-
-(defn return-raw
-  "Returns a constant set of data for script debugging and testing.
-For internal use only."
-  [data]
-  {:pre [(first data)]}
-  (raw/return$ data (keys (first data))))
 
 (defn constantly
   "Returns a function that takes any number of arguments and returns a constant

@@ -20,6 +20,7 @@
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff]]
             [pigpen.core :as pig]
+            [pigpen.pig :refer [dump]]
             [pigpen.fold :as fold]))
 
 (deftest test-map
@@ -28,7 +29,7 @@
                          {:x 2, :y 4}])
         command (pig/map (fn [{:keys [x y]}] (+ x y)) data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[3 6])))
   
 (deftest test-mapcat
@@ -37,7 +38,7 @@
                          {:x 2, :y 4}])
         command (pig/mapcat (juxt :x :y) data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[1 2 2 4])))
 
 (deftest test-map-indexed
@@ -45,7 +46,7 @@
   (let [data (pig/return [{:a 2} {:a 1} {:a 3}])
         command (pig/map-indexed vector data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[[0 {:a 2}] [1 {:a 1}] [2 {:a 3}]]))
   
   (let [command (->>
@@ -53,7 +54,7 @@
                   (pig/sort-by :a)
                   (pig/map-indexed vector))]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[[0 {:a 1}] [1 {:a 2}] [2 {:a 3}]])))
 
 (deftest test-sort
@@ -61,13 +62,13 @@
   (let [data (pig/return [2 1 4 3])
         command (pig/sort data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[1 2 3 4]))
   
   (let [data (pig/return [2 1 4 3])
         command (pig/sort :desc data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[4 3 2 1])))
 
 (deftest test-sort-by
@@ -75,29 +76,29 @@
   (let [data (pig/return [{:a 2} {:a 1} {:a 3}])
         command (pig/sort-by :a data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[{:a 1} {:a 2} {:a 3}]))
   
   (let [data (pig/return [{:a 2} {:a 1} {:a 3}])
        command (pig/sort-by :a :desc data)]
    (test-diff
-     (pig/dump command)
+     (dump command)
      '[{:a 3} {:a 2} {:a 1}]))
   
   (let [data (pig/return [1 2 3 1 2 3 1 2 3])
         command (pig/sort-by identity data)]
-    (is (= (pig/dump command)
+    (is (= (dump command)
            [1 1 1 2 2 2 3 3 3]))))
 
 (deftest test-map+fold
-  (is (= (pig/dump
+  (is (= (dump
            (->> (pig/return [-2 -1 0 1 2])
              (pig/map #(> % 0))
              (pig/fold (->> (fold/filter identity) (fold/count)))))
          [2])))
 
 (deftest test-map+reduce
-  (is (= (pig/dump
+  (is (= (dump
            (->> (pig/return [-2 -1 0 1 2])
              (pig/map inc)
              (pig/fold (->> (fold/filter #(> % 0)) (fold/count)))))

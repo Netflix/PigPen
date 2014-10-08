@@ -20,7 +20,7 @@
   "Contains functions for running PigPen locally.
 
 Nothing in here will be used directly with normal PigPen usage.
-See pigpen.core and pigpen.exec
+See pigpen.core and pigpen.pig
 "
   (:refer-clojure :exclude [load load-reader read])
   (:require [clojure.edn :as edn]
@@ -31,7 +31,7 @@ See pigpen.core and pigpen.exec
             [pigpen.rx.extensions.core :refer [multicast]]
             [pigpen.extensions.io :refer [list-files]]
             [pigpen.extensions.core :refer [zipv]]
-            [pigpen.pig :as pig])
+            [pigpen.pig.runtime :as pig])
   (:import [pigpen PigPenException]
            [org.apache.pig EvalFunc]
            [org.apache.pig.data Tuple DataBag DataByteArray]
@@ -214,6 +214,11 @@ See pigpen.core and pigpen.exec
           (close-writer local-storage @writer))))))
 
 (defmethod graph->local :return [{:keys [^Iterable data]} _]
+  (->> data
+    (rx/seq->o)
+    (rx/map pig/freeze-vals)))
+
+(defmethod graph->local :return-debug [{:keys [^Iterable data]} _]
   (rx/seq->o data))
 
 (defmulti load-list (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
