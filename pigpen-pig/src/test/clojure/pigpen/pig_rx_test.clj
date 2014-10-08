@@ -25,7 +25,7 @@
             [pigpen.pig.raw :as pig-raw]
             [pigpen.core :as pig]
             [pigpen.io :as io]
-            [pigpen.exec :as exec])
+            [pigpen.pig :as exec])
   (:import [org.apache.pig.data DataBag]))
 
 (.mkdirs (java.io.File. "build/local-test"))

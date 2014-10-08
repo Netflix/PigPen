@@ -20,7 +20,7 @@
   "Functions to create graph-viz graphs from PigPen expression graphs
 
 Nothing in here will be used directly with normal PigPen usage.
-See pigpen.core and pigpen.exec
+See pigpen.core and pigpen.pig
 "
   (:require [rhizome.viz :as viz]))
 

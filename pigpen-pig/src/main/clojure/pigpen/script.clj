@@ -20,7 +20,7 @@
   "Contains functions for converting an expression graph into a Pig script
 
 Nothing in here will be used directly with normal PigPen usage.
-See pigpen.core and pigpen.exec
+See pigpen.core and pigpen.pig
 "
   (:refer-clojure :exclude [replace])
   (:require [clojure.string :refer [join replace]]

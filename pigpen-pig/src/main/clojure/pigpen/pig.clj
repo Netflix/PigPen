@@ -16,7 +16,7 @@
 ;;
 ;;
 
-(ns pigpen.exec
+(ns pigpen.pig
   "Contains functions related to script generation and manipulation. These are
 how you 'use' a PigPen query.
 

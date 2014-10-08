@@ -16,7 +16,7 @@
 ;;
 ;;
 
-(ns pigpen.exec-test
+(ns pigpen.pig-test
   (:use [clojure.test]
-        [pigpen.exec]))
+        [pigpen.pig]))
 

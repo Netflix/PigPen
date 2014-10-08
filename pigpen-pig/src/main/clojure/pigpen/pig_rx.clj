@@ -20,7 +20,7 @@
   "Contains functions for running PigPen locally.
 
 Nothing in here will be used directly with normal PigPen usage.
-See pigpen.core and pigpen.exec
+See pigpen.core and pigpen.pig
 "
   (:refer-clojure :exclude [load load-reader read])
   (:require [clojure.edn :as edn]
