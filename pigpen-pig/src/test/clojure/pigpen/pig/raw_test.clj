@@ -1,7 +1,7 @@
 (ns pigpen.pig.raw-test
   (:require [clojure.test :refer :all]
             [pigpen.pig.raw :as pig-raw]
-            [pigpen.extensions.test :refer [test-diff]]))
+            [pigpen.extensions.test :refer [test-diff pigsym-zero]]))
 
 (deftest test-register$
 
@@ -22,3 +22,12 @@
     '{:type :option
       :option "foo"
       :value 123}))
+
+(deftest test-return-debug$
+  (with-redefs [pigpen.raw/pigsym pigsym-zero]
+    (test-diff
+      (pig-raw/return-debug$ [{'value "foo"}])
+      '{:type :return-debug
+        :id return-debug0
+        :fields [value]
+        :data [{value "foo"}]})))
