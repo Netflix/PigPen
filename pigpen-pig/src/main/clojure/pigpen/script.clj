@@ -20,11 +20,12 @@
   "Contains functions for converting an expression graph into a Pig script
 
 Nothing in here will be used directly with normal PigPen usage.
-See pigpen.core and pigpen.exec
+See pigpen.core and pigpen.pig
 "
   (:refer-clojure :exclude [replace])
   (:require [clojure.string :refer [join replace]]
-            [pigpen.raw :as raw]))
+            [pigpen.raw :as raw]
+            [pigpen.pig.runtime]))
 
 (set! *warn-on-reflection* true)
 
@@ -115,7 +116,7 @@ See pigpen.core and pigpen.exec
   (let [id (raw/pigsym "udf")
         {:keys [init func]} expr
         pig-args (->> args (map format-field) (join ", "))
-        udf (pigpen.pig/udf-lookup udf)]
+        udf (pigpen.pig.runtime/udf-lookup udf)]
     [(str "DEFINE " id " " udf "(" (escape+quote init) "," (escape+quote func) ");\n\n")
      (str id "(" pig-args ")")]))
 
@@ -137,22 +138,44 @@ See pigpen.core and pigpen.exec
   (let [pig-args (->> args (map #(str "'" % "'")) (join ", "))]
     (str "\n    USING " func "(" pig-args ")")))
 
+(defmulti storage->script (juxt :type :storage))
+
+(defmethod storage->script [:load :binary]
+  [{:keys [fields]}]
+  (let [pig-fields (->> fields
+                     (join ", "))]
+    (str "PigStorage()\n    AS (" pig-fields ")")))
+
+(defmethod storage->script [:load :string]
+  [{:keys [fields]}]
+  (let [pig-fields (->> fields
+                     (map #(str % ":chararray"))
+                     (join ", "))]
+    (str "PigStorage(\\n)\n    AS (" pig-fields ")")))
+
+(defmethod storage->script [:store :binary]
+  [_]
+  (str "PigStorage()"))
+
+(defmethod storage->script [:store :string]
+  [_]
+  (str "PigStorage()"))
+
+(defn storage->script' [command]
+  (str "\n    USING " (storage->script command)))
+
 (defmethod command->script :load
-  [{:keys [id location storage fields opts]} state]
+  [{:keys [id location storage fields opts] :as command} state]
   {:pre [id location storage fields]}
   (let [pig-id (escape-id id)
-        pig-fields (->> fields
-                     (map (if-let [cast (:cast opts)] #(str % ":" cast) identity))
-                     (join ", "))
-        pig-storage (command->script storage state)
-        pig-schema (if-not (:implicit-schema opts) (str "\n    AS (" pig-fields ")"))]
-    (str pig-id " = LOAD '" location "'" pig-storage pig-schema ";\n\n")))
+        pig-storage (storage->script' command)]
+    (str pig-id " = LOAD '" location "'" pig-storage ";\n\n")))
 
 (defmethod command->script :store
-  [{:keys [id ancestors location storage opts]} state]
+  [{:keys [id ancestors location storage opts] :as command} state]
   {:pre [id ancestors location storage]}
   (let [relation-id (escape-id (first ancestors))
-        pig-storage (command->script storage state)]
+        pig-storage (storage->script' command)]
     (str "STORE " relation-id " INTO '" location "'" pig-storage ";\n\n")))
 
 ;; ********** Map **********

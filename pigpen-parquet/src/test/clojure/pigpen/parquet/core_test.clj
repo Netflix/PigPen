@@ -28,7 +28,7 @@
       '{:type :bind
         :id bind2
         :description nil
-        :func (pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig/native->clojure))
+        :func (pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig.runtime/native->clojure))
         :args ["y" y "x" x]
         :requires []
         :fields [value]
@@ -41,12 +41,9 @@
                      :location "foo"
                      :fields [y x]
                      :field-type :native
-                     :storage {:type :storage
-                               :references []
-                               :func "parquet.pig.ParquetLoader"
-                               :args ["y:int,x:chararray"]}
+                     :storage :parquet
                      :opts {:type :load-opts
-                            :implicit-schema true}}]})))
+                            :schema "y:int,x:chararray"}}]})))
 
 (deftest test-store-parquet
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -57,10 +54,7 @@
         :description "foo"
         :location "foo"
         :fields [y x]
-        :storage {:type :storage
-                  :references []
-                  :func "parquet.pig.ParquetStorer"
-                  :args []}
+        :storage :parquet
         :opts {:type :store-opts
                :schema {:y :int, :x :chararray}}
         :ancestors [{:projections [{:type :projection-field
@@ -79,8 +73,7 @@
                                   :fields [value]
                                   :field-type-in :frozen
                                   :field-type-out :native
-                                  :opts {:type :bind-opts
-                                         :implicit-schema true}
+                                  :opts {:type :bind-opts}
                                   :ancestors [{:fields [value]}]}]
                      :type :generate
                      :id generate2

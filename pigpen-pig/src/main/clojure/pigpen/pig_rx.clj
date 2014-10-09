@@ -20,7 +20,7 @@
   "Contains functions for running PigPen locally.
 
 Nothing in here will be used directly with normal PigPen usage.
-See pigpen.core and pigpen.exec
+See pigpen.core and pigpen.pig
 "
   (:refer-clojure :exclude [load load-reader read])
   (:require [clojure.edn :as edn]
@@ -31,7 +31,7 @@ See pigpen.core and pigpen.exec
             [pigpen.rx.extensions.core :refer [multicast]]
             [pigpen.extensions.io :refer [list-files]]
             [pigpen.extensions.core :refer [zipv]]
-            [pigpen.pig :as pig])
+            [pigpen.pig.runtime :as pig])
   (:import [pigpen PigPenException]
            [org.apache.pig EvalFunc]
            [org.apache.pig.data Tuple DataBag DataByteArray]
@@ -157,7 +157,7 @@ See pigpen.core and pigpen.exec
 
 (defmulti load
   "Defines a local implementation of a loader. Should return a PigPenLocalLoader."
-  (fn [command] (get-in command [:storage :func])))
+  :storage)
 
 (defprotocol PigPenLocalLoader
   (locations [this])
@@ -167,7 +167,7 @@ See pigpen.core and pigpen.exec
 
 (defmulti store
   "Defines a local implementation of storage. Should return a PigPenLocalStorage."
-  (fn [command] (get-in command [:storage :func])))
+  :storage)
 
 (defprotocol PigPenLocalStorage
   (init-writer [this])
@@ -214,6 +214,11 @@ See pigpen.core and pigpen.exec
           (close-writer local-storage @writer))))))
 
 (defmethod graph->local :return [{:keys [^Iterable data]} _]
+  (->> data
+    (rx/seq->o)
+    (rx/map pig/freeze-vals)))
+
+(defmethod graph->local :return-debug [{:keys [^Iterable data]} _]
   (rx/seq->o data))
 
 (defmulti load-list (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
@@ -226,30 +231,30 @@ See pigpen.core and pigpen.exec
 (defmethod load-reader :default [location]
   (io/reader location))
 
-(defn ^:private parse-delimiter [d]
-  (case d
-    "\\n" #"\n"
-    "\\t" #"\t"
-    (Pattern/compile (str (read-string d)))))
+(defn ^:private pig-loader [location field line-fn]
+  (reify PigPenLocalLoader
+    (locations [_]
+      (load-list location))
+    (init-reader [_ file]
+      (load-reader file))
+    (read [_ reader]
+      (for [line (line-seq reader)]
+        {field (line-fn line)}))
+    (close-reader [_ reader]
+      (.close ^Closeable reader))))
 
-(defmethod load "PigStorage" [{:keys [location fields storage opts]}]
-  (let [{:keys [cast]} opts
-        delimiter (or (some-> storage :args first parse-delimiter) #"\t")]
-    (reify PigPenLocalLoader
-      (locations [_]
-        (load-list location))
-      (init-reader [_ file]
-        (load-reader file))
-      (read [_ reader]
-        (for [line (line-seq reader)]
-          (->>
-            (clojure.string/split line delimiter)
-            (map (fn [^String s] (pig/cast-bytes cast (.getBytes s))))
-            (zipmap fields))))
-      (close-reader [_ reader]
-        (.close ^Closeable reader)))))
+(defmethod load :string [{:keys [location fields opts]}]
+  {:pre [(= 1 (count fields))]}
+  (pig-loader location (first fields) identity))
 
-(defmethod store "PigStorage" [{:keys [location fields]}]
+(defmethod load :binary [{:keys [location fields opts]}]
+  {:pre [(= 1 (count fields))]}
+  (pig-loader location (first fields) #(.getBytes ^String %)))
+
+;; TODO implement :binary version. I don't know that it would have worked before...
+
+(defmethod store :string [{:keys [location fields]}]
+  {:pre [(= 1 (count fields))]}
   (reify PigPenLocalStorage
     (init-writer [_]
       (io/writer location))

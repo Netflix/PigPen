@@ -31,10 +31,7 @@
         :location "foo"
         :fields [value]
         :field-type :native
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
+        :storage :binary
         :opts {:type :load-opts}})))
 
 (deftest test-load-string
@@ -57,12 +54,8 @@
                      :location "foo"
                      :fields [value]
                      :field-type :native
-                     :storage {:type :storage
-                               :references []
-                               :func "PigStorage"
-                               :args ["\\n"]}
-                     :opts {:type :load-opts
-                            :cast "chararray"}}]})))
+                     :storage :string
+                     :opts {:type :load-opts}}]})))
 
 (deftest test-load-tsv
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -84,12 +77,8 @@
                      :location "foo"
                      :fields [value]
                      :field-type :native
-                     :storage {:type :storage
-                               :references []
-                               :func "PigStorage"
-                               :args ["\\n"]}
-                     :opts {:type :load-opts
-                            :cast "chararray"}}]})))
+                     :storage :string
+                     :opts {:type :load-opts}}]})))
 
 (deftest test-load-clj
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -111,12 +100,8 @@
                      :location "foo"
                      :fields [value]
                      :field-type :native
-                     :storage {:type :storage
-                               :references []
-                               :func "PigStorage"
-                               :args ["\\n"]}
-                     :opts {:type :load-opts
-                            :cast "chararray"}}]})))
+                     :storage :string
+                     :opts {:type :load-opts}}]})))
 
 (deftest test-load-json
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -142,12 +127,8 @@
                      :location "foo"
                      :fields [value]
                      :field-type :native
-                     :storage {:type :storage
-                               :references []
-                               :func "PigStorage"
-                               :args ["\\n"]}
-                     :opts {:type :load-opts
-                            :cast "chararray"}}]})))
+                     :storage :string
+                     :opts {:type :load-opts}}]})))
 
 (deftest test-load-lazy
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -169,12 +150,8 @@
                     :location "foo"
                     :fields [value]
                     :field-type :native
-                    :storage {:type :storage
-                              :references []
-                              :func "PigStorage"
-                              :args ["\\n"]}
-                    :opts {:type :load-opts
-                           :cast "chararray"}}]})))
+                    :storage :string
+                    :opts {:type :load-opts}}]})))
 
 (deftest test-store-binary
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -187,10 +164,7 @@
         :ancestors [{:fields [value]}]
         :fields [value]
         :opts {:type :store-opts}
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}})))
+        :storage :binary})))
 
 (deftest test-store-string
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -202,10 +176,7 @@
         :location "foo"
         :fields [value]
         :opts {:type :store-opts}
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
+        :storage :string
         :ancestors [{:type :bind
                      :id bind1
                      :description nil
@@ -228,10 +199,7 @@
         :location "foo"
         :fields [value]
         :opts {:type :store-opts}
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
+        :storage :string
         :ancestors [{:type :bind
                      :id bind1
                      :description nil
@@ -254,10 +222,7 @@
         :location "foo"
         :fields [value]
         :opts {:type :store-opts}
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
+        :storage :string
         :ancestors [{:type :bind
                      :id bind1
                      :description nil
@@ -280,10 +245,7 @@
         :location "foo"
         :fields [value]
         :opts {:type :store-opts}
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
+        :storage :string
         :ancestors [{:type :bind
                      :id bind1
                      :description nil
@@ -301,30 +263,21 @@
 (deftest test-return
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (pigpen.pig/thaw-anything (io/return [1 2 3]))
+      (io/return [1 2 3])
       '{:type :return
         :id return0
         :fields [value]
-        :data [{value (freeze 1)}
-               {value (freeze 2)}
-               {value (freeze 3)}]})))
-
-(deftest test-return-raw
-  (with-redefs [pigpen.raw/pigsym pigsym-zero]
-    (test-diff
-      (pigpen.pig/thaw-anything (io/return-raw '[{a 1, b 2, c 3}]))
-      '{:type :return
-        :id return0
-        :fields [a b c]
-        :data [{a 1, b 2, c 3}]})))
+        :data [{value 1}
+               {value 2}
+               {value 3}]})))
 
 (deftest test-constantly
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (pigpen.pig/thaw-anything ((io/constantly [1 2 3])))
+      ((io/constantly [1 2 3]))
       '{:type :return
         :id return0
         :fields [value]
-        :data [{value (freeze 1)}
-               {value (freeze 2)}
-               {value (freeze 3)}]})))
+        :data [{value 1}
+               {value 2}
+               {value 3}]})))

@@ -32,86 +32,42 @@
 
 ;; ********** Util **********
 
-(deftest test-register$
-
-  (test-diff
-    (register$ "foo")
-    '{:type :register
-      :jar "foo"})
-
-  (is (thrown? AssertionError (register$ nil)))
-  (is (thrown? AssertionError (register$ 123)))
-  (is (thrown? AssertionError (register$ 'foo)))
-  (is (thrown? AssertionError (register$ :foo))))
-
-(deftest test-option$
-
-  (test-diff
-    (option$ "foo" 123)
-    '{:type :option
-      :option "foo"
-      :value 123}))
-
 (deftest test-code$
   (test-diff
     (code$ :normal ["a" 'b '[c d]]
-           (expr$ '(require '[pigpen.pig])
+           (expr$ '(require '[pigpen.runtime])
                   '(var clojure.core/prn)))
     '{:type :code
       :udf :normal
-      :expr {:init (require (quote [pigpen.pig]))
+      :expr {:init (require (quote [pigpen.runtime]))
              :func (var clojure.core/prn)}
       :args ["a" b [c d]]}))
 
 ;; ********** IO **********
 
-(deftest test-storage$
-  
-  (test-diff
-    (storage$ [] "foo" [])
-    '{:type :storage
-      :references []
-      :func "foo"
-      :args []})
-
-  (test-diff
-    (storage$ ["ref"] "foo" ["arg"])
-    '{:type :storage
-      :references ["ref"]
-      :func "foo"
-      :args ["arg"]})
-
-  (is (thrown? AssertionError (storage$ nil nil nil)))
-  (is (thrown? AssertionError (storage$ [] "" []))))
-
 (deftest test-load$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (load$ "foo" ['value] default-storage {})
+      (load$ "foo" ['value] :string {})
       '{:type :load
         :id load0
         :description "foo"
         :location "foo"
         :fields [value]
         :field-type :native
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage", :args []}
+        :storage :string
         :opts {:type :load-opts}})))
 
 (deftest test-store$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (store$ {} "foo" default-storage {})
+      (store$ {} "foo" :string {})
       '{:type :store
         :id store0
         :description "foo"
         :ancestors [{}]
         :location "foo"
-        :storage {:type :storage
-                  :references []
-                  :func "PigStorage"
-                  :args []}
+        :storage :string
         :fields nil
         :opts {:type :store-opts}})))
 
@@ -137,10 +93,10 @@
   (test-diff
     (projection-func$ 'value
                       (code$ :normal ['value]
-                             (expr$ `(require '[pigpen.pig]) `identity)))
+                             (expr$ `(require '[pigpen.runtime]) `identity)))
     '{:type :projection-func
       :code {:type :code
-             :expr {:init (clojure.core/require (quote [pigpen.pig]))
+             :expr {:init (clojure.core/require (quote [pigpen.runtime]))
                     :func clojure.core/identity}
              :udf :normal
              :args [value]}
@@ -150,10 +106,10 @@
   (test-diff
     (projection-flat$ 'value
                       (code$ :normal ['value]
-                             (expr$ `(require '[pigpen.pig]) `identity)))
+                             (expr$ `(require '[pigpen.runtime]) `identity)))
     '{:type :projection-flat
       :code {:type :code
-             :expr {:init (clojure.core/require (quote [pigpen.pig]))
+             :expr {:init (clojure.core/require (quote [pigpen.runtime]))
                     :func clojure.core/identity}
              :udf :normal
              :args [value]}
@@ -255,7 +211,7 @@
     (test-diff
       (filter$ {:fields ['value]}
                (code$ :normal ['value]
-                      (expr$ `(require '[pigpen.pig]) `identity))
+                      (expr$ `(require '[pigpen.runtime]) `identity))
                {})
       '{:type :filter
         :id filter0
@@ -264,7 +220,7 @@
         :fields [value]
         :field-type :frozen
         :code {:type :code
-               :expr {:init (clojure.core/require (quote [pigpen.pig]))
+               :expr {:init (clojure.core/require (quote [pigpen.runtime]))
                       :func clojure.core/identity}
                :udf :normal
                :args [value]}

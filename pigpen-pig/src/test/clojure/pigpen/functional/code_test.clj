@@ -20,6 +20,7 @@
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff]]
             [pigpen.core :as pig]
+            [pigpen.pig :refer [dump]]
             [pigpen.fold :as fold]))
 
 (defn test-fn [x]
@@ -34,11 +35,11 @@
   (let [data (pig/return [1 2 3])
         command (test-param 37 data)]
     (test-diff
-      (pig/dump command)
+      (dump command)
       '[80 83 88])))
 
 (deftest test-for
-  (is (= (pig/dump
+  (is (= (dump
            (apply pig/concat
              (for [x [1 2 3]]
                (->>

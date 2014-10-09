@@ -48,9 +48,9 @@ public class PigPenFnAlgebraic extends EvalFunc<DataByteArray> implements Algebr
     static {
         final Var require = RT.var("clojure.core", "require");
         require.invoke(Symbol.intern("pigpen.runtime"));
-        require.invoke(Symbol.intern("pigpen.pig"));
+        require.invoke(Symbol.intern("pigpen.pig.runtime"));
         EVAL_STRING = RT.var("pigpen.runtime", "eval-string");
-        ALGEBRAIC = RT.var("pigpen.pig", "udf-algebraic");
+        ALGEBRAIC = RT.var("pigpen.pig.runtime", "udf-algebraic");
     }
 
     private final String initString, funcString;
