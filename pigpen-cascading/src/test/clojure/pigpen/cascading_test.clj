@@ -20,7 +20,7 @@
   (spit path (clojure.string/join (map prn-str objs))))
 
 (defn read-output [path]
-  (map load-string (clojure.string/split (slurp (str path "/part-00000")) #"\n")))
+  (map read-string (clojure.string/split (slurp (str path "/part-00000")) #"\n")))
 
 (comment test-simple-flow
          (write-input input1 [["1" "2" "foo"] ["4" "5" "bar"]])
@@ -49,11 +49,8 @@
         command (pig/cogroup [(left :on :a)
                               (right :on :c)]
                              (fn [k l r] [k (map :b l) (map :d r)]))
-        command (store-clj output command)
-        baked (pigpen.oven/bake :cascading command)]
-    ;(clojure.pprint/pprint (preprocess-commands baked))
-    ;(commands->flow baked)
+        command (store-clj output command)]
     (.complete (generate-flow command))
-    (println "results:\n" (read-output output))))
+    (is (= '([1 (2 3) ("foo")] [2 (4) ("bar" "baz")]) (read-output output)))))
 
 (run-tests 'pigpen.cascading-test)

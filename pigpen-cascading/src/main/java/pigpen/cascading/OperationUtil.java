@@ -5,6 +5,7 @@ import java.util.List;
 
 import clojure.lang.IFn;
 import clojure.lang.RT;
+import org.apache.hadoop.io.BytesWritable;
 
 import cascading.tuple.TupleEntry;
 
@@ -27,5 +28,19 @@ public class OperationUtil {
       objs.add(o);
     }
     return objs;
+  }
+
+  public static byte[] getBytes(BytesWritable bw) {
+    if (bw.getCapacity() == bw.getLength()) {
+      return bw.getBytes();
+    } else {
+      return copyBytes(bw);
+    }
+  }
+
+  public static byte[] copyBytes(BytesWritable bw) {
+    byte[] ret = new byte[bw.getLength()];
+    System.arraycopy(bw.getBytes(), 0, ret, 0, bw.getLength());
+    return ret;
   }
 }

@@ -7,6 +7,8 @@ import java.util.List;
 import clojure.lang.IFn;
 import clojure.lang.ISeq;
 import clojure.lang.IteratorSeq;
+import clojure.lang.LazySeq;
+import clojure.lang.PersistentVector;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
@@ -73,8 +75,11 @@ public class PigPenBuffer extends BaseOperation implements Buffer {
     args.add(group);
     args.add(wrapIterator(leftIterator));
     args.add(wrapIterator(rightIterator));
-    Object result = fn.invoke(args);
-    //    emitOutput(bufferCall, result);
+    // TODO: do this in clojure
+    LazySeq result = (LazySeq)fn.invoke(args);
+    for (Object obj : result) {
+      bufferCall.getOutputCollector().add(new Tuple(((PersistentVector)obj).toArray()));
+    }
   }
 
   private ISeq wrapIterator(Iterator iterator) {
