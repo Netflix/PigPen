@@ -15,14 +15,14 @@
 
 ;; TODO: there must be a better way to pass a Tap to a storage definition.
 (defn- get-tap-fn [name]
-  (let [tap ({"text" (fn [location] (Hfs. (TextLine.) location))}
+  (let [tap ({:string (fn [location] (Hfs. (TextLine.) location))}
              name)]
     (if (nil? tap)
       (throw (Exception. (str "Unrecognized tap type: " name)))
       tap)))
 
 (defn load-text [location]
-  (-> (raw/load$ location '[offset line] (raw/storage$ [] "text" {}) {})))
+  (-> (raw/load$ location '[offset line] :string {})))
 
 (defn load-tsv
   ([location] (load-tsv location "\t"))
@@ -44,7 +44,7 @@
   (-> relation
       (raw/bind$ `(rt/map->bind ~f)
                  {:args (:fields relation), :field-type-out :native})
-      (raw/store$ location (raw/storage$ [] "text" {}) {})))
+      (raw/store$ location :string {})))
 
 (defn store-tsv
   ([location relation] (store-tsv location "\t" relation))
@@ -87,14 +87,14 @@
 (defmethod command->flowdef :load
            [{:keys [id location storage fields opts]} flowdef]
   {:pre [id location storage fields]}
-  (update-in flowdef [:sources] (partial merge {id ((get-tap-fn (:func storage)) location)})))
+  (update-in flowdef [:sources] (partial merge {id ((get-tap-fn storage) location)})))
 
 (defmethod command->flowdef :store
            [{:keys [id ancestors location storage opts]} flowdef]
   {:pre [id ancestors location storage]}
   (-> flowdef
       (update-in [:pipe-to-sink] (partial merge {(first ancestors) id}))
-      (update-in [:sinks] (partial merge {id ((get-tap-fn (:func storage)) location)}))))
+      (update-in [:sinks] (partial merge {id ((get-tap-fn storage) location)}))))
 
 (defn- cascading-field [name-or-number]
   (if (number? name-or-number)
