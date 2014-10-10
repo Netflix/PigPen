@@ -18,10 +18,10 @@
           identity)
 
 (defmethod get-tap-fn :string [_]
-           (fn [location] (Hfs. (TextLine.) location)))
+  (fn [location] (Hfs. (TextLine.) location)))
 
 (defmethod get-tap-fn :default [_]
-           (throw (Exception. (str "Unrecognized tap type: " name))))
+  (throw (Exception. (str "Unrecognized tap type: " name))))
 
 (defn load-text [location]
   (-> (raw/load$ location '[offset line] :string {})))
@@ -110,21 +110,20 @@
 
 (defmethod command->flowdef :generate
            [{:keys [id ancestors projections field-projections opts]} flowdef]
-  {:pre [id ancestors (not-empty projections)]}
-  (let [new-flowdef (reduce (fn [def ancestor]
-                              (cond (contains? (:sources def) ancestor) (let [pipe (Pipe. (str id))]
-                                                                          (-> def
-                                                                              (update-in [:pipe-to-source] (partial merge {id ancestor}))
-                                                                              (update-in [:pipes] (partial merge {id pipe}))))
-                                    (contains? (:pipes def) ancestor) (let [pipe ((:pipes def) ancestor)]
-                                                                        (-> def
-                                                                            (update-in [:pipes] (partial merge {id (Pipe. (str id) pipe)}))))
-                                    :else (do
-                                            (println "flowdef" flowdef)
-                                            (println "id" id)
-                                            (println "ancestors" ancestors)
-                                            (throw (Exception. "not implemented")))))
-                            flowdef ancestors)
+  {:pre [id (= 1 (count ancestors)) (not-empty projections)]}
+  (let [ancestor (first ancestors)
+        new-flowdef (cond (contains? (:sources flowdef) ancestor) (let [pipe (Pipe. (str id))]
+                                                                (-> flowdef
+                                                                    (update-in [:pipe-to-source] (partial merge {id ancestor}))
+                                                                    (update-in [:pipes] (partial merge {id pipe}))))
+                          (contains? (:pipes flowdef) ancestor) (let [pipe ((:pipes flowdef) ancestor)]
+                                                              (-> flowdef
+                                                                  (update-in [:pipes] (partial merge {id (Pipe. (str id) pipe)}))))
+                          :else (do
+                                  (println "flowdef" flowdef)
+                                  (println "id" id)
+                                  (println "ancestors" ancestors)
+                                  (throw (Exception. "not implemented"))))
         flat-projections (filter #(= :projection-flat (:type %)) projections)
         new-flowdef (reduce (fn [def cmd] (command->flowdef (assoc cmd :pipe id :field-projections field-projections) def))
                             new-flowdef
