@@ -171,4 +171,5 @@
   ([opts query]
    (->> query
         (oven/bake :cascading opts)
+        ;((fn [x] (clojure.pprint/pprint x) x))
         commands->flow)))
