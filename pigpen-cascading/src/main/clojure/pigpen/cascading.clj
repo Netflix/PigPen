@@ -14,13 +14,14 @@
             [pigpen.oven :as oven]
             [taoensso.nippy :refer [freeze thaw]]))
 
-;; TODO: there must be a better way to pass a Tap to a storage definition.
-(defn- get-tap-fn [name]
-  (let [tap ({:string (fn [location] (Hfs. (TextLine.) location))}
-             name)]
-    (if (nil? tap)
-      (throw (Exception. (str "Unrecognized tap type: " name)))
-      tap)))
+(defmulti get-tap-fn
+          identity)
+
+(defmethod get-tap-fn :string [_]
+           (fn [location] (Hfs. (TextLine.) location)))
+
+(defmethod get-tap-fn :default [_]
+           (throw (Exception. (str "Unrecognized tap type: " name))))
 
 (defn load-text [location]
   (-> (raw/load$ location '[offset line] :string {})))
@@ -60,10 +61,6 @@
 (defmulti command->flowdef
           "Converts an individual command into the equivalent Cascading flow definition."
           (fn [{:keys [type]} flowdef] type))
-
-(defmethod command->flowdef :register
-           [command flowdef]
-  flowdef)
 
 (defmethod command->flowdef :load
            [{:keys [id location storage fields opts]} flowdef]
