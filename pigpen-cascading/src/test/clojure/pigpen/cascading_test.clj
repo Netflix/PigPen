@@ -4,7 +4,7 @@
            (org.apache.hadoop.conf Configuration))
   (:use clojure.test pigpen.cascading)
   (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
-            [pigpen.cascading.core :as pig]))
+            [pigpen.cascading.core :as pigpen]))
 
 (def input1 "/tmp/input1")
 (def input2 "/tmp/input2")
@@ -27,10 +27,10 @@
          (letfn
              [(func [data]
                     (->> data
-                         (pig/map (fn [[a b c]]
+                         (pigpen/map (fn [[a b c]]
                                     {:sum  (+ (Integer/valueOf a) (Integer/valueOf b))
                                      :name c}))
-                         (pig/filter (fn [{:keys [sum]}]
+                         (pigpen/filter (fn [{:keys [sum]}]
                                        (< sum 5)))))
               (query [input-file output-file]
                      (->>
@@ -46,7 +46,7 @@
   (write-input input2 [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
   (let [left (load-clj input1)
         right (load-clj input2)
-        command (pig/cogroup [(left :on :a)
+        command (pigpen/cogroup [(left :on :a)
                               (right :on :c)]
                              (fn [k l r] [k (map :b l) (map :d r)]))
         command (store-clj output command)]
