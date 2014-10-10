@@ -65,7 +65,10 @@
 (defmethod command->flowdef :load
            [{:keys [id location storage fields opts]} flowdef]
   {:pre [id location storage fields]}
-  (update-in flowdef [:sources] (partial merge {id ((get-tap-fn storage) location)})))
+  (let [pipe (Pipe. (str id))]
+    (-> flowdef
+        (update-in [:sources] (partial merge {id ((get-tap-fn storage) location)}))
+        (update-in [:pipes] (partial merge {id pipe})))))
 
 (defmethod command->flowdef :store
            [{:keys [id ancestors location storage opts]} flowdef]
@@ -112,13 +115,9 @@
            [{:keys [id ancestors projections field-projections opts]} flowdef]
   {:pre [id (= 1 (count ancestors)) (not-empty projections)]}
   (let [ancestor (first ancestors)
-        new-flowdef (cond (contains? (:sources flowdef) ancestor) (let [pipe (Pipe. (str id))]
-                                                                (-> flowdef
-                                                                    (update-in [:pipe-to-source] (partial merge {id ancestor}))
-                                                                    (update-in [:pipes] (partial merge {id pipe}))))
-                          (contains? (:pipes flowdef) ancestor) (let [pipe ((:pipes flowdef) ancestor)]
-                                                              (-> flowdef
-                                                                  (update-in [:pipes] (partial merge {id (Pipe. (str id) pipe)}))))
+        new-flowdef (cond (contains? (:pipes flowdef) ancestor) (let [pipe ((:pipes flowdef) ancestor)]
+                                                                  (-> flowdef
+                                                                      (update-in [:pipes] (partial merge {id (Pipe. (str id) pipe)}))))
                           :else (do
                                   (println "flowdef" flowdef)
                                   (println "id" id)
@@ -154,8 +153,8 @@
   "Transforms a series of commands into a Cascading flow"
   [commands]
   (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} (preprocess-commands commands))
-        {:keys [pipe-to-source sources pipe-to-sink sinks pipes]} flowdef
-        sources-map (into {} (map (fn [[p s]] [(str p) (sources s)]) pipe-to-source))
+        {:keys [sources pipe-to-sink sinks pipes]} flowdef
+        sources-map (into {} (map (fn [s] [(str s) (sources s)]) (keys sources)))
         sinks-map (into {} (map (fn [[p s]] [(str p) (sinks s)]) pipe-to-sink))
         tail-pipes (into-array Pipe (map #(pipes %) (keys pipe-to-sink)))]
     (println "\n\nflowdef" flowdef)
