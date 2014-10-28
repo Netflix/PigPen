@@ -19,7 +19,7 @@ import cascading.pipe.joiner.JoinerClosure;
 import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
 
-public class PigPenBuffer extends BaseOperation implements Buffer {
+public class GroupBuffer extends BaseOperation implements Buffer {
 
   private static class BufferIterator implements Iterator {
 
@@ -50,7 +50,7 @@ public class PigPenBuffer extends BaseOperation implements Buffer {
   private final String func;
   private final int numIterators;
 
-  public PigPenBuffer(String init, String func, Fields fields, int numIterators) {
+  public GroupBuffer(String init, String func, Fields fields, int numIterators) {
     super(fields);
     this.init = init;
     this.func = func;

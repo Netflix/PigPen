@@ -44,20 +44,32 @@
              (.complete flow))
            (is (= [{:name "foo", :sum 3}] (read-output output)))))
 
-(deftest test-cogroup
-  (write-input input1 [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
-  (write-input input2 [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
-  (write-input input3 [{:c 1 :d "foo2"} {:c 2 :d "bar2"}])
+(comment test-cogroup
+         (write-input input1 [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
+         (write-input input2 [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
+         (write-input input3 [{:c 1 :d "foo2"} {:c 2 :d "bar2"}])
+         (let [left (load-clj input1)
+               middle (load-clj input2)
+               right (load-clj input3)
+               command (pigpen/cogroup [(left :on :a)
+                                        (middle :on :c)
+                                        (right :on :c)
+                                        ]
+                                       (fn [k l m r] [k (map :b l) (map :d m) (map :d r)]))
+               command (store-clj output command)]
+           (.complete (generate-flow command))
+           (is (= '([1 (2 3) ("foo") ("foo2")] [2 (4) ("bar" "baz") ("bar2")]) (read-output output)))))
+
+(deftest test-join
+  (write-input input1 [{:a 1} {:a 2}])
+  (write-input input2 [{:b 1} {:b 2}])
   (let [left (load-clj input1)
-        middle (load-clj input2)
-        right (load-clj input3)
-        command (pigpen/cogroup [(left :on :a)
-                                 (middle :on :c)
-                                 (right :on :c)
-                                 ]
-                                (fn [k l m r] [k (map :b l) (map :d m) (map :d r)]))
-        command (store-clj output command)]
-    (.complete (generate-flow command))
-    (is (= '([1 (2 3) ("foo") ("foo2")] [2 (4) ("bar" "baz") ("bar2")]) (read-output output)))))
+        right (load-clj input2)
+        cmd (pigpen/join [(left :on :a)
+                          (right :on :b)]
+                         (fn [x y] [x y]))
+        cmd (store-clj output cmd)]
+    (.complete (generate-flow cmd))
+    (is (= [] (read-output output)))))
 
 (run-tests 'pigpen.cascading-test)

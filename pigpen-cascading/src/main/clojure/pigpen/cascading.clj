@@ -3,7 +3,7 @@
            (cascading.scheme.hadoop TextLine)
            (cascading.pipe Pipe Each CoGroup Every)
            (cascading.flow.hadoop HadoopFlowConnector)
-           (pigpen.cascading PigPenFunction PigPenBuffer)
+           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer)
            (cascading.tuple Fields)
            (cascading.operation Identity)
            (cascading.pipe.joiner OuterJoin BufferJoin)
@@ -89,12 +89,17 @@
         fields (if field-projections
                  (Fields. (into-array (map #(cascading-field (:alias %)) field-projections)))
                  Fields/UNKNOWN)
-        get-group-iterators-size #(cond (instance? CoGroup %) (alength (.getPrevious %))
-                                        (nil? %) nil
-                                        :else (recur (first (.getPrevious %))))]
-    (let [num-iterators (get-group-iterators-size (get-in flowdef [:pipes pipe]))]
-      (if-not (nil? num-iterators)
-        (update-in flowdef [:pipes pipe] #(Every. % (PigPenBuffer. (str init) (str func) fields num-iterators) Fields/RESULTS))
+        get-group-info #(cond (instance? CoGroup %) {:num-streams (alength (.getPrevious %))
+                                                     :type        (if (.startsWith (.getName %) "join") :join :group)}
+                              (nil? %) nil
+                              :else (recur (first (.getPrevious %))))]
+    (let [group-info (get-group-info (get-in flowdef [:pipes pipe]))]
+      (println group-info)
+      (if-not (nil? group-info)
+        (let [buffer ({:group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
+                       :join  (JoinBuffer. )}
+                      (:type group-info))]
+          (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
         (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS))))))
 
 (defmethod command->flowdef :group
@@ -104,8 +109,16 @@
                                                            (into-array Pipe (map (:pipes flowdef) ancestors))
                                                            (into-array (map #(Fields. (into-array (map str %))) keys))
                                                            Fields/NONE
-                                                           (BufferJoin.)
-                                                           )})))
+                                                           (BufferJoin.))})))
+
+(defmethod command->flowdef :join
+  [{:keys [id keys ancestors] :as c} flowdef]
+  (clojure.pprint/pprint c)
+  (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
+                                                           (into-array Pipe (map (:pipes flowdef) ancestors))
+                                                           (into-array (map #(Fields. (into-array (map str %))) keys))
+                                                           ; TODO: use real field names
+                                                           (Fields. (into-array ["k" "v" "k2" "v2"])))})))
 
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
