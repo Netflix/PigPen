@@ -63,7 +63,7 @@
           (fn [{:keys [type]} flowdef] type))
 
 (defmethod command->flowdef :load
-           [{:keys [id location storage fields opts]} flowdef]
+  [{:keys [id location storage fields opts]} flowdef]
   {:pre [id location storage fields]}
   (let [pipe (Pipe. (str id))]
     (-> flowdef
@@ -71,7 +71,7 @@
         (update-in [:pipes] (partial merge {id pipe})))))
 
 (defmethod command->flowdef :store
-           [{:keys [id ancestors location storage opts]} flowdef]
+  [{:keys [id ancestors location storage opts]} flowdef]
   {:pre [id ancestors location storage]}
   (-> flowdef
       (update-in [:pipe-to-sink] (partial merge {(first ancestors) id}))
@@ -83,21 +83,22 @@
     (str name-or-number)))
 
 (defmethod command->flowdef :code
-           [{:keys [expr args pipe field-projections]} flowdef]
+  [{:keys [expr args pipe field-projections]} flowdef]
   {:pre [expr args]}
   (let [{:keys [init func]} expr
         fields (if field-projections
                  (Fields. (into-array (map #(cascading-field (:alias %)) field-projections)))
                  Fields/UNKNOWN)
-        is-group #(cond (instance? CoGroup %) true
-                        (nil? %) false
-                        :else (recur (first (.getPrevious %))))]
-    (if (is-group (get-in flowdef [:pipes pipe]))
-      (update-in flowdef [:pipes pipe] #(Every. % (PigPenBuffer. (str init) (str func) fields) Fields/RESULTS))
-      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
+        get-group-iterators-size #(cond (instance? CoGroup %) (alength (.getPrevious %))
+                                        (nil? %) nil
+                                        :else (recur (first (.getPrevious %))))]
+    (let [num-iterators (get-group-iterators-size (get-in flowdef [:pipes pipe]))]
+      (if-not (nil? num-iterators)
+        (update-in flowdef [:pipes pipe] #(Every. % (PigPenBuffer. (str init) (str func) fields num-iterators) Fields/RESULTS))
+        (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS))))))
 
 (defmethod command->flowdef :group
-           [{:keys [id keys fields join-types ancestors opts]} flowdef]
+  [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
   (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
                                                            (into-array Pipe (map (:pipes flowdef) ancestors))
@@ -107,12 +108,12 @@
                                                            )})))
 
 (defmethod command->flowdef :projection-flat
-           [{:keys [code alias pipe field-projections]} flowdef]
+  [{:keys [code alias pipe field-projections]} flowdef]
   {:pre [code alias]}
   (command->flowdef (assoc code :pipe pipe :field-projections field-projections) flowdef))
 
 (defmethod command->flowdef :generate
-           [{:keys [id ancestors projections field-projections opts]} flowdef]
+  [{:keys [id ancestors projections field-projections opts]} flowdef]
   {:pre [id (= 1 (count ancestors)) (not-empty projections)]}
   (let [ancestor (first ancestors)
         new-flowdef (cond (contains? (:pipes flowdef) ancestor) (let [pipe ((:pipes flowdef) ancestor)]
@@ -130,7 +131,7 @@
     new-flowdef))
 
 (defmethod command->flowdef :default
-           [command flowdef]
+  [command flowdef]
   (throw (Exception. (str "Command " (:type command) " not implemented yet for Cascading!"))))
 
 (defn preprocess-commands [commands]
@@ -169,5 +170,4 @@
   ([opts query]
    (->> query
         (oven/bake :cascading opts)
-        ;((fn [x] (clojure.pprint/pprint x) x))
         commands->flow)))

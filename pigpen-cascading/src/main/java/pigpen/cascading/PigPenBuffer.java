@@ -48,11 +48,13 @@ public class PigPenBuffer extends BaseOperation implements Buffer {
 
   private final String init;
   private final String func;
+  private final int numIterators;
 
-  public PigPenBuffer(String init, String func, Fields fields) {
+  public PigPenBuffer(String init, String func, Fields fields, int numIterators) {
     super(fields);
     this.init = init;
     this.func = func;
+    this.numIterators = numIterators;
   }
 
   @Override
@@ -68,13 +70,12 @@ public class PigPenBuffer extends BaseOperation implements Buffer {
     IFn fn = (IFn)bufferCall.getContext();
     Object group = bufferCall.getGroup().getObject(0);
     JoinerClosure joinerClosure = bufferCall.getJoinerClosure();
-    // TODO: there may be more than 2 streams. This shouldn't be hardcoded.
-    Iterator<Tuple> leftIterator = joinerClosure.getIterator(0);
-    Iterator<Tuple> rightIterator = joinerClosure.getIterator(1);
     List args = new ArrayList(3);
     args.add(group);
-    args.add(wrapIterator(leftIterator));
-    args.add(wrapIterator(rightIterator));
+    for (int i = 0; i < numIterators; i++) {
+      Iterator<Tuple> iterator = joinerClosure.getIterator(i);
+      args.add(wrapIterator(iterator));
+    }
     // TODO: do this in clojure
     LazySeq result = (LazySeq)fn.invoke(args);
     for (Object obj : result) {
