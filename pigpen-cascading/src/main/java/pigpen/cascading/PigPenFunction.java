@@ -36,7 +36,7 @@ public class PigPenFunction extends BaseOperation implements Function {
   public void operate(FlowProcess flowProcess, FunctionCall functionCall) {
     IFn fn = (IFn)functionCall.getContext();
     TupleEntry tupleEntry = functionCall.getArguments();
-    LazySeq result = (LazySeq)fn.invoke(OperationUtil.getTupleValues(tupleEntry));
+    LazySeq result = (LazySeq)fn.invoke(tupleEntry.getTuple());
     for (Object obj : result) {
       functionCall.getOutputCollector().add(new Tuple(((PersistentVector)obj).toArray()));
     }
