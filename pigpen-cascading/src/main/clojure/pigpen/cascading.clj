@@ -88,7 +88,7 @@
   {:pre [expr args]}
   (let [{:keys [init func]} expr
         fields (if field-projections
-                 (Fields. (into-array (map #(cascading-field %) field-projections)))
+                 (Fields. (into-array (map #(cascading-field (:alias %)) field-projections)))
                  Fields/UNKNOWN)
         get-group-info #(cond (instance? CoGroup %) {:num-streams (alength (.getPrevious %))
                                                      :type        (if (.startsWith (.getName %) "join") :join :group)}
@@ -127,7 +127,7 @@
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
   {:pre [code alias]}
-  (command->flowdef (assoc code :pipe pipe :field-projections (or field-projections [alias])) flowdef))
+  (command->flowdef (assoc code :pipe pipe :field-projections (or field-projections [{:alias alias}])) flowdef))
 
 (defmethod command->flowdef :generate
   [{:keys [id ancestors projections field-projections opts]} flowdef]
