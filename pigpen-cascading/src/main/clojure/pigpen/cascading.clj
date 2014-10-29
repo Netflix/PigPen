@@ -111,12 +111,11 @@
                                                            (BufferJoin.))})))
 
 (defmethod command->flowdef :join
-  [{:keys [id keys ancestors] :as c} flowdef]
+  [{:keys [id keys fields ancestors]} flowdef]
   (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
                                                            (into-array Pipe (map (:pipes flowdef) ancestors))
                                                            (into-array (map #(Fields. (into-array (map str %))) keys))
-                                                           ; TODO: use real field names
-                                                           (Fields. (into-array ["k" "v" "k2" "v2"])))})))
+                                                           (Fields. (into-array (map str fields))))})))
 
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
