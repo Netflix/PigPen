@@ -60,7 +60,7 @@
            (.complete (generate-flow command))
            (is (= '([1 (2 3) ("foo") ("foo2")] [2 (4) ("bar" "baz") ("bar2")]) (read-output output)))))
 
-(deftest test-join
+(comment test-inner-join
   (write-input input1 [{:a 1} {:a 2}])
   (write-input input2 [{:b 1} {:b 2}])
   (let [left (load-clj input1)
@@ -69,8 +69,20 @@
                           (right :on :b)]
                          (fn [x y] [x y]))
         cmd (store-clj output cmd)]
+    (.complete (generate-flow cmd))
+    (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}]) (read-output output)))))
+
+(deftest test-outer-join
+  (write-input input1 [{:a 1} {:a 2} {:a 3}])
+  (write-input input2 [{:b 1} {:b 2} {:b 4}])
+  (let [left (load-clj input1)
+        right (load-clj input2)
+        cmd (pigpen/join [(left :on :a :type :required)
+                          (right :on :b :type :optional)]
+                         (fn [x y] [x y]))
+        cmd (store-clj output cmd)]
     ;(pp/pprint (preprocess-commands (oven/bake :cascading {} cmd)))
     (.complete (generate-flow cmd))
-    (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}])) (read-output output))))
+    (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}] [{:a 3} nil]) (read-output output)))))
 
 (run-tests 'pigpen.cascading-test)

@@ -6,7 +6,7 @@
            (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer)
            (cascading.tuple Fields)
            (cascading.operation Identity)
-           (cascading.pipe.joiner OuterJoin BufferJoin)
+           (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
            (org.apache.hadoop.io BytesWritable))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
@@ -111,11 +111,17 @@
                                                            (BufferJoin.))})))
 
 (defmethod command->flowdef :join
-  [{:keys [id keys fields ancestors]} flowdef]
-  (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
-                                                           (into-array Pipe (map (:pipes flowdef) ancestors))
-                                                           (into-array (map #(Fields. (into-array (map str %))) keys))
-                                                           (Fields. (into-array (map str fields))))})))
+  [{:keys [id keys fields join-types ancestors]} flowdef]
+  {:pre [id keys fields join-types ancestors]}
+  (let [joiner ({[:required :required] (InnerJoin.)
+                 [:required :optional] (LeftJoin.)
+                 [:optional :required] (RightJoin.)
+                 [:optional :optional] (OuterJoin.)} join-types)]
+    (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
+                                                             (into-array Pipe (map (:pipes flowdef) ancestors))
+                                                             (into-array (map #(Fields. (into-array (map str %))) keys))
+                                                             (Fields. (into-array (map str fields)))
+                                                             joiner)}))))
 
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
