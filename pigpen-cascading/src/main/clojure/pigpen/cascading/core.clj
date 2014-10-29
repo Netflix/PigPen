@@ -1,11 +1,19 @@
 (ns pigpen.cascading.core
   "Contains the operators for PigPen."
   (:refer-clojure :exclude [load-string constantly map mapcat map-indexed sort sort-by filter remove distinct concat take group-by into reduce])
-  (:require [pigpen.raw :as raw]
+  (:require [pigpen.cascading]
+            [pigpen.raw :as raw]
             [pigpen.map]
             [pigpen.filter]
             [pigpen.set]
             [pigpen.join]))
+
+;; ********** IO **********
+
+(intern *ns* (with-meta 'load-tsv (meta #'pigpen.cascading/load-tsv)) @#'pigpen.cascading/load-tsv)
+(intern *ns* (with-meta 'load-clj (meta #'pigpen.cascading/load-clj)) @#'pigpen.cascading/load-clj)
+(intern *ns* (with-meta 'store-tsv (meta #'pigpen.cascading/load-tsv)) @#'pigpen.cascading/store-tsv)
+(intern *ns* (with-meta 'store-clj (meta #'pigpen.cascading/load-clj)) @#'pigpen.cascading/store-clj)
 
 ;; ********** Map **********
 
