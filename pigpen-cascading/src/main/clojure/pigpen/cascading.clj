@@ -94,10 +94,9 @@
                               (nil? %) nil
                               :else (recur (first (.getPrevious %))))]
     (let [group-info (get-group-info (get-in flowdef [:pipes pipe]))]
-      (println group-info)
       (if-not (nil? group-info)
         (let [buffer ({:group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
-                       :join  (JoinBuffer. )}
+                       :join  (JoinBuffer. (str init) (str func) fields)}
                       (:type group-info))]
           (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
         (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS))))))
@@ -113,7 +112,6 @@
 
 (defmethod command->flowdef :join
   [{:keys [id keys ancestors] :as c} flowdef]
-  (clojure.pprint/pprint c)
   (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
                                                            (into-array Pipe (map (:pipes flowdef) ancestors))
                                                            (into-array (map #(Fields. (into-array (map str %))) keys))

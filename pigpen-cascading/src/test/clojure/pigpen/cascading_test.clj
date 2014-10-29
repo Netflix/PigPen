@@ -69,7 +69,8 @@
                           (right :on :b)]
                          (fn [x y] [x y]))
         cmd (store-clj output cmd)]
+    ;(pp/pprint (preprocess-commands (oven/bake :cascading {} cmd)))
     (.complete (generate-flow cmd))
-    (is (= [] (read-output output)))))
+    (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}])) (read-output output))))
 
 (run-tests 'pigpen.cascading-test)
