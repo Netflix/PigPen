@@ -2,8 +2,8 @@
   (:import (java.io File)
            (org.apache.hadoop.fs FileSystem Path)
            (org.apache.hadoop.conf Configuration))
-  (:use clojure.test pigpen.cascading)
-  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
+  (:require [clojure.test :refer :all]
+            [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.cascading.core :as pigpen]
             [pigpen.oven :as oven]
             [clojure.pprint :as pp]))
@@ -37,10 +37,10 @@
                                  (< sum 5)))))
      (query [input-file output-file]
             (->>
-              (load-clj input-file)
+              (pigpen/load-clj input-file)
               (func)
-              (store-clj output-file)))]
-    (let [flow (generate-flow (query input1 output))]
+              (pigpen/store-clj output-file)))]
+    (let [flow (pigpen/generate-flow (query input1 output))]
       (.complete flow))
     (is (= [{:name "foo", :sum 3}] (read-output output)))))
 
@@ -48,51 +48,49 @@
   (write-input input1 [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
   (write-input input2 [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
   (write-input input3 [{:c 1 :d "foo2"} {:c 2 :d "bar2"}])
-  (let [left (load-clj input1)
-        middle (load-clj input2)
-        right (load-clj input3)
+  (let [left (pigpen/load-clj input1)
+        middle (pigpen/load-clj input2)
+        right (pigpen/load-clj input3)
         command (pigpen/cogroup [(left :on :a)
                                  (middle :on :c)
                                  (right :on :c)
                                  ]
                                 (fn [k l m r] [k (map :b l) (map :d m) (map :d r)]))
-        command (store-clj output command)]
-    (.complete (generate-flow command))
+        command (pigpen/store-clj output command)]
+    (.complete (pigpen/generate-flow command))
     (is (= '([1 (2 3) ("foo") ("foo2")] [2 (4) ("bar" "baz") ("bar2")]) (read-output output)))))
 
 (deftest test-inner-join
   (write-input input1 [{:a 1} {:a 2}])
   (write-input input2 [{:b 1} {:b 2}])
-  (let [left (load-clj input1)
-        right (load-clj input2)
+  (let [left (pigpen/load-clj input1)
+        right (pigpen/load-clj input2)
         cmd (pigpen/join [(left :on :a)
                           (right :on :b)]
                          (fn [x y] [x y]))
-        cmd (store-clj output cmd)]
-    (.complete (generate-flow cmd))
+        cmd (pigpen/store-clj output cmd)]
+    (.complete (pigpen/generate-flow cmd))
     (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}]) (read-output output)))))
 
 (deftest test-outer-join
   (write-input input1 [{:a 1} {:a 2} {:a 3}])
   (write-input input2 [{:b 1} {:b 2} {:b 4}])
-  (let [left (load-clj input1)
-        right (load-clj input2)
+  (let [left (pigpen/load-clj input1)
+        right (pigpen/load-clj input2)
         cmd (pigpen/join [(left :on :a :type :required)
                           (right :on :b :type :optional)]
                          (fn [x y] [x y]))
-        cmd (store-clj output cmd)]
-    ;(pp/pprint (preprocess-commands (oven/bake :cascading {} cmd)))
-    (.complete (generate-flow cmd))
+        cmd (pigpen/store-clj output cmd)]
+    (.complete (pigpen/generate-flow cmd))
     (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}] [{:a 3} nil]) (read-output output)))))
 
 (deftest test-group-by
   (write-input input1 [{:a 1 :b 1} {:a 1 :b 2} {:a 2 :b 3}])
-  (let [data (load-clj input1)
+  (let [data (pigpen/load-clj input1)
         cmd (->> data
                  (pigpen/group-by :a)
-                 (store-clj output))]
-    (pp/pprint (preprocess-commands (oven/bake :cascading {} cmd)))
-    (.complete (generate-flow cmd))
+                 (pigpen/store-clj output))]
+    (.complete (pigpen/generate-flow cmd))
     (is (= '([1 ({:a 1, :b 1} {:a 1, :b 2})] [2 ({:a 2, :b 3})]) (read-output output)))))
 
 (run-tests 'pigpen.cascading-test)

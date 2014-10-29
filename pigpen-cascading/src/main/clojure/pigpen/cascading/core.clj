@@ -52,3 +52,5 @@
 (intern *ns* (with-meta 'filter-by (meta #'pigpen.join/filter-by)) @#'pigpen.join/filter-by)
 (intern *ns* (with-meta 'remove-by (meta #'pigpen.join/remove-by)) @#'pigpen.join/remove-by)
 
+;; ********** Flow **********
+(intern *ns* (with-meta 'generate-flow (meta #'pigpen.cascading/generate-flow)) @#'pigpen.cascading/generate-flow)
