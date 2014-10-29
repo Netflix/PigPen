@@ -41,23 +41,19 @@
 (defmethod pigpen.runtime/pre-process [:cascading :frozen-with-nils]
            [_ _]
   (fn [args]
-    (println "preprocess frozen-with-nils" args)
     (mapv #(thaw (.getBytes %)) args)))
 
 (defmethod pigpen.runtime/pre-process [:cascading :frozen]
            [_ _]
   (fn [args]
-    (println "preprocess frozen" args)
     (mapv hybrid->clojure args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :frozen-with-nils]
            [_ _]
   (fn [args]
-    (println "postprocess frozen-with-nils" args)
     (mapv cs-freeze args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :native-key-frozen-val]
            [_ _]
   (fn [[key value]]
-    (println "postprocess native-key-frozen-val" [key value])
     [key (cs-freeze value)]))
