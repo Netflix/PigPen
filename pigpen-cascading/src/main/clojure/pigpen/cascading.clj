@@ -7,7 +7,8 @@
            (cascading.tuple Fields)
            (cascading.operation Identity)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
-           (org.apache.hadoop.io BytesWritable))
+           (org.apache.hadoop.io BytesWritable)
+           (cascading.pipe.assembly Unique))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -146,6 +147,13 @@
                             new-flowdef
                             flat-projections)]
     new-flowdef))
+
+(defmethod command->flowdef :distinct
+  [{:keys [id ancestors] :as x} flowdef]
+  {:pre [id (= 1 (count ancestors))]}
+  (clojure.pprint/pprint x)
+  (let [pipe ((:pipes flowdef) (first ancestors))]
+    (update-in flowdef [:pipes] (partial merge {id (Unique. pipe Fields/ALL)}))))
 
 (defmethod command->flowdef :script
   [_ flowdef]

@@ -107,13 +107,14 @@
     (is (= '(2 4 6) (read-output output1)))
     (is (= '(3 6 9) (read-output output2)))))
 
-(deftest test-mapcat
+(deftest test-distinct
   (write-input input1 [1 2 3])
   (let [data (pigpen/load-clj input1)
         cmd (->> data
                  (pigpen/mapcat (fn [x] [x (* x 2)]))
+                 (pigpen/distinct)
                  (pigpen/store-clj output1))]
     (.complete (pigpen/generate-flow cmd))
-    (is (= '(1 2 2 4 3 6) (read-output output1)))))
+    (is (= #{1 2 4 3 6} (into #{} (read-output output1))))))
 
 (run-tests 'pigpen.cascading-test)
