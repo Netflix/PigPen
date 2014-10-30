@@ -12,13 +12,14 @@
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
             [pigpen.oven :as oven]
-            [taoensso.nippy :refer [freeze thaw]]))
+            [taoensso.nippy :refer [freeze thaw]]
+            [clojure.pprint]))
 
 (defmulti get-tap-fn
           identity)
 
 (defmethod get-tap-fn :string [_]
-  (fn [location] (Hfs. (TextLine.) location)))
+  (fn [location opts] (Hfs. (TextLine.) location)))
 
 (defmethod get-tap-fn :default [_]
   (throw (Exception. (str "Unrecognized tap type: " name))))
@@ -67,7 +68,7 @@
   {:pre [id location storage fields]}
   (let [pipe (Pipe. (str id))]
     (-> flowdef
-        (update-in [:sources] (partial merge {id ((get-tap-fn storage) location)}))
+        (update-in [:sources] (partial merge {id ((get-tap-fn storage) location opts)}))
         (update-in [:pipes] (partial merge {id pipe})))))
 
 (defmethod command->flowdef :store
@@ -75,7 +76,7 @@
   {:pre [id ancestors location storage]}
   (-> flowdef
       (update-in [:pipe-to-sink] (partial merge {(first ancestors) id}))
-      (update-in [:sinks] (partial merge {id ((get-tap-fn storage) location)}))))
+      (update-in [:sinks] (partial merge {id ((get-tap-fn storage) location opts)}))))
 
 (defn- cascading-field [name-or-number]
   (if (number? name-or-number)
@@ -126,7 +127,7 @@
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
   {:pre [code alias]}
-  (command->flowdef (assoc code :pipe pipe :field-projections field-projections) flowdef))
+  (command->flowdef (assoc code :pipe pipe :field-projections (or field-projections [{:alias alias}])) flowdef))
 
 (defmethod command->flowdef :generate
   [{:keys [id ancestors projections field-projections opts]} flowdef]
