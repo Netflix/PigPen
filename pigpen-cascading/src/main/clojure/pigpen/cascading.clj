@@ -197,6 +197,7 @@
   "Transforms the relation specified into a Cascading flow that is ready to be executed."
   ([query] (generate-flow {} query))
   ([opts query]
+   (clojure.pprint/pprint (oven/bake :cascading opts query))
    (->> query
         (oven/bake :cascading opts)
         commands->flow)))
