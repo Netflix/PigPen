@@ -39,21 +39,31 @@
   (BytesWritable. (freeze value {:skip-header? true, :legacy-mode true})))
 
 (defmethod pigpen.runtime/pre-process [:cascading :frozen-with-nils]
-           [_ _]
+  [_ _]
   (fn [args]
     (mapv #(thaw (.getBytes %)) args)))
 
 (defmethod pigpen.runtime/pre-process [:cascading :frozen]
-           [_ _]
+  [_ _]
   (fn [args]
     (mapv hybrid->clojure args)))
 
+(defmethod pigpen.runtime/post-process [:cascading :native]
+  [_ _]
+  (fn [args]
+    args))
+
+(defmethod pigpen.runtime/post-process [:cascading :frozen]
+  [_ _]
+  (fn [args]
+    (mapv cs-freeze args)))
+
 (defmethod pigpen.runtime/post-process [:cascading :frozen-with-nils]
-           [_ _]
+  [_ _]
   (fn [args]
     (mapv cs-freeze args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :native-key-frozen-val]
-           [_ _]
+  [_ _]
   (fn [[key value]]
     [key (cs-freeze value)]))

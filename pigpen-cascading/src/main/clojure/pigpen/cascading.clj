@@ -93,7 +93,7 @@
                  Fields/UNKNOWN)
         get-group-info #(cond (instance? CoGroup %) {:num-streams (alength (.getPrevious %))
                                                      :type        (if (.startsWith (.getName %) "join") :join :group)}
-                              (nil? %) nil
+                              (or (nil? %) (instance? Every %)) nil
                               :else (recur (first (.getPrevious %))))]
     (let [group-info (get-group-info (get-in flowdef [:pipes pipe]))]
       (if-not (nil? group-info)
@@ -149,9 +149,8 @@
     new-flowdef))
 
 (defmethod command->flowdef :distinct
-  [{:keys [id ancestors] :as x} flowdef]
+  [{:keys [id ancestors]} flowdef]
   {:pre [id (= 1 (count ancestors))]}
-  (clojure.pprint/pprint x)
   (let [pipe ((:pipes flowdef) (first ancestors))]
     (update-in flowdef [:pipes] (partial merge {id (Unique. pipe Fields/ALL)}))))
 
