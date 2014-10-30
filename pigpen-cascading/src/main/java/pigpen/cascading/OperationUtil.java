@@ -13,6 +13,8 @@ public class OperationUtil {
   public static void init(String initCode) {
     Var require = RT.var("clojure.core", "require");
     require.invoke(Symbol.intern("pigpen.runtime"));
+    require.invoke(Symbol.intern("pigpen.cascading.runtime"));
+    require.invoke(Symbol.intern("pigpen.extensions.core"));
     EVAL_STRING.invoke(initCode);
   }
 
