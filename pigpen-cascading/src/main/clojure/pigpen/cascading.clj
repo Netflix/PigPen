@@ -147,8 +147,13 @@
                             flat-projections)]
     new-flowdef))
 
+(defmethod command->flowdef :script
+  [_ flowdef]
+  ; No-op, since the flowdef already contains everything needed to handle multiple outputs.
+  flowdef)
+
 (defmethod command->flowdef :default
-  [command flowdef]
+  [command _]
   (throw (Exception. (str "Command " (:type command) " not implemented yet for Cascading!"))))
 
 (defn preprocess-commands [commands]

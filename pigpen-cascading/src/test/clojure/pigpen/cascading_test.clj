@@ -11,10 +11,12 @@
 (def input1 "/tmp/input1")
 (def input2 "/tmp/input2")
 (def input3 "/tmp/input3")
-(def output "/tmp/output")
+(def output1 "/tmp/output1")
+(def output2 "/tmp/output2")
 
 (defn setup [fn]
-  (.delete (FileSystem/get (Configuration.)) (Path. output) true)
+  (.delete (FileSystem/get (Configuration.)) (Path. output1) true)
+  (.delete (FileSystem/get (Configuration.)) (Path. output2) true)
   (fn))
 
 (clojure.test/use-fixtures :each setup)
@@ -40,9 +42,9 @@
               (pigpen/load-clj input-file)
               (func)
               (pigpen/store-clj output-file)))]
-    (let [flow (pigpen/generate-flow (query input1 output))]
+    (let [flow (pigpen/generate-flow (query input1 output1))]
       (.complete flow))
-    (is (= [{:name "foo", :sum 3}] (read-output output)))))
+    (is (= [{:name "foo", :sum 3}] (read-output output1)))))
 
 (deftest test-cogroup
   (write-input input1 [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
@@ -56,9 +58,9 @@
                                  (right :on :c)
                                  ]
                                 (fn [k l m r] [k (map :b l) (map :d m) (map :d r)]))
-        command (pigpen/store-clj output command)]
+        command (pigpen/store-clj output1 command)]
     (.complete (pigpen/generate-flow command))
-    (is (= '([1 (2 3) ("foo") ("foo2")] [2 (4) ("bar" "baz") ("bar2")]) (read-output output)))))
+    (is (= '([1 (2 3) ("foo") ("foo2")] [2 (4) ("bar" "baz") ("bar2")]) (read-output output1)))))
 
 (deftest test-inner-join
   (write-input input1 [{:a 1} {:a 2}])
@@ -68,9 +70,9 @@
         cmd (pigpen/join [(left :on :a)
                           (right :on :b)]
                          (fn [x y] [x y]))
-        cmd (pigpen/store-clj output cmd)]
+        cmd (pigpen/store-clj output1 cmd)]
     (.complete (pigpen/generate-flow cmd))
-    (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}]) (read-output output)))))
+    (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}]) (read-output output1)))))
 
 (deftest test-outer-join
   (write-input input1 [{:a 1} {:a 2} {:a 3}])
@@ -80,17 +82,29 @@
         cmd (pigpen/join [(left :on :a :type :required)
                           (right :on :b :type :optional)]
                          (fn [x y] [x y]))
-        cmd (pigpen/store-clj output cmd)]
+        cmd (pigpen/store-clj output1 cmd)]
     (.complete (pigpen/generate-flow cmd))
-    (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}] [{:a 3} nil]) (read-output output)))))
+    (is (= '([{:a 1} {:b 1}] [{:a 2} {:b 2}] [{:a 3} nil]) (read-output output1)))))
 
 (deftest test-group-by
   (write-input input1 [{:a 1 :b 1} {:a 1 :b 2} {:a 2 :b 3}])
   (let [data (pigpen/load-clj input1)
         cmd (->> data
                  (pigpen/group-by :a)
-                 (pigpen/store-clj output))]
+                 (pigpen/store-clj output1))]
     (.complete (pigpen/generate-flow cmd))
-    (is (= '([1 ({:a 1, :b 1} {:a 1, :b 2})] [2 ({:a 2, :b 3})]) (read-output output)))))
+    (is (= '([1 ({:a 1, :b 1} {:a 1, :b 2})] [2 ({:a 2, :b 3})]) (read-output output1)))))
+
+(deftest test-multiple-outputs
+  (write-input input1 [1 2 3])
+  (let [data (pigpen/load-clj input1)
+        c1 (pigpen/map (fn [x] (* x 2)) data)
+        c2 (pigpen/map (fn [x] (* x 3)) data)
+        o1 (pigpen/store-clj output1 c1)
+        o2 (pigpen/store-clj output2 c2)
+        s (pigpen/script o1 o2)]
+    (.complete (pigpen/generate-flow s))
+    (is (= '(2 4 6) (read-output output1)))
+    (is (= '(3 6 9) (read-output output2)))))
 
 (run-tests 'pigpen.cascading-test)
