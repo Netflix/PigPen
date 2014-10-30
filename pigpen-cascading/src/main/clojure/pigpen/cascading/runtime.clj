@@ -50,8 +50,7 @@
 
 (defmethod pigpen.runtime/post-process [:cascading :native]
   [_ _]
-  (fn [args]
-    args))
+  identity)
 
 (defmethod pigpen.runtime/post-process [:cascading :frozen]
   [_ _]
