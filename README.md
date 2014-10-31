@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.10"]
+[com.netflix.pigpen/pigpen "0.2.11"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.10"
+compile "com.netflix.pigpen:pigpen:0.2.11"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.10</version>
+  <version>0.2.11</version>
 </dependency>
 ```
 
@@ -53,15 +53,15 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 To use the parquet loader, add this to your dependencies:
 
 ``` clj
-[com.netflix.pigpen/pigpen-parquet "0.2.10"]
+[com.netflix.pigpen/pigpen-parquet "0.2.11"]
 ```
 
 And because of the weird way Pig handles dependencies, you'll also need to add antlr and log4j for local mode to work properly:
 
 ``` clj
 :dependencies [[org.clojure/clojure "1.6.0"]
-               [com.netflix.pigpen/pigpen "0.2.10"]
-               [com.netflix.pigpen/pigpen-parquet "0.2.10"]]
+               [com.netflix.pigpen/pigpen "0.2.11"]
+               [com.netflix.pigpen/pigpen-parquet "0.2.11"]]
 :profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
                                 [org.apache.hadoop/hadoop-core "1.1.2"]
                                 [org.antlr/antlr "3.5.2"]
@@ -70,6 +70,8 @@ And because of the weird way Pig handles dependencies, you'll also need to add a
 
 # Release Notes
 
+  * 0.2.11
+    * Fixed a bug (feature?) introduced by new rx version. Also upgraded to rc7. This would have only affected local mode where the data being read was faster than the code consuming it.
   * 0.2.10
     * Removed load-pig and store-pig. The pig data format is very bad and should not be used. If you used these and want them back, email pigpen-support@googlegroups.com and we'll put it into a separate jar. The jars required for this feature were causing conflicts elsewhere.
     * Upgraded the following dependencies:
@@ -107,7 +109,7 @@ And because of the weird way Pig handles dependencies, you'll also need to add a
     * Fix `pigpen.oven/clean`. When it was pruning the graph, it was also removing REGISTER commands.
   * 0.2.4
     * Fix arity checking bug (affected varargs fns)
-    * Fix cases where an Algebraic fold function was falling back to the Accumulator interface, which was not supported. This affected using `cogroup` with `fold` over multiple relations. 
+    * Fix cases where an Algebraic fold function was falling back to the Accumulator interface, which was not supported. This affected using `cogroup` with `fold` over multiple relations.
     * Fix debug mode (broken in 0.1.5)
     * Change UDF initialization to not rely on memoization (caused stale data in REPL)
     * Enable AOT. Improves cluster perf
@@ -122,21 +124,21 @@ And because of the weird way Pig handles dependencies, you'll also need to add a
     * Fixed local mode bug with `map` followed by `reduce` or `fold`
   * 0.2.0
     * Added pigpen.fold - Note: this includes a breaking change in the join and cogroup syntax as follows:
-    
+
     ``` clj
     ; before
     (pig/join (foo on :f)
               (bar on :b optional)
               (fn [f b] ...))
-    
+
     ; after
     (pig/join [(foo :on :f)
                (bar :on :b :type :optional)]
               (fn [f b] ...))
     ```
-    
+
     Each of the select clauses must now be wrapped in a vector - there is no longer a varargs overload to either of these forms. Within each of the select clauses, :on is now a keyword instead of a symbol, but a symbol will still work if used. If `optional` or `required` were used, they must be updated to `:type :optional` and `:type :required`, respectively.
-    
+
   * 0.1.5
     * Performance improvements
       * Implemented Pig's Accumulator interface
