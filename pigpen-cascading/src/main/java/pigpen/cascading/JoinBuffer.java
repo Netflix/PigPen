@@ -1,14 +1,10 @@
 package pigpen.cascading;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 
 import clojure.lang.IFn;
 import clojure.lang.LazySeq;
-import clojure.lang.PersistentVector;
-import com.google.common.collect.Lists;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
@@ -16,7 +12,6 @@ import cascading.operation.Buffer;
 import cascading.operation.BufferCall;
 import cascading.operation.OperationCall;
 import cascading.tuple.Fields;
-import cascading.tuple.Tuple;
 import cascading.tuple.TupleEntry;
 
 public class JoinBuffer extends BaseOperation implements Buffer {
