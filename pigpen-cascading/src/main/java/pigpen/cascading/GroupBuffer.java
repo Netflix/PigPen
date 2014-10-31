@@ -71,15 +71,19 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     IFn fn = (IFn)bufferCall.getContext();
     Object group = bufferCall.getGroup().getObject(0);
     JoinerClosure joinerClosure = bufferCall.getJoinerClosure();
+    // TODO: do this in clojure
+    LazySeq result = (LazySeq)fn.invoke(getArgs(group, joinerClosure));
+    OperationUtil.emitOutputTuples(bufferCall.getOutputCollector(), result);
+  }
+
+  private List getArgs(Object group, JoinerClosure joinerClosure) {
     List args = new ArrayList(3);
     args.add(group);
     for (int i = 0; i < numIterators; i++) {
       Iterator<Tuple> iterator = joinerClosure.getIterator(i);
       args.add(wrapIterator(iterator));
     }
-    // TODO: do this in clojure
-    LazySeq result = (LazySeq)fn.invoke(args);
-    OperationUtil.emitOutputTuples(bufferCall.getOutputCollector(), result);
+    return args;
   }
 
   private ISeq wrapIterator(Iterator iterator) {

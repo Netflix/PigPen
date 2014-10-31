@@ -1,12 +1,14 @@
 package pigpen.cascading;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
 import clojure.lang.IFn;
 import clojure.lang.LazySeq;
 import clojure.lang.PersistentVector;
+import com.google.common.collect.Lists;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
@@ -42,11 +44,8 @@ public class JoinBuffer extends BaseOperation implements Buffer {
     Iterator<TupleEntry> iterator = bufferCall.getArgumentsIterator();
     while (iterator.hasNext()) {
       TupleEntry entry = iterator.next();
-      List args = new ArrayList(2);
-      args.add(entry.getObject(1));
-      args.add(entry.getObject(3));
       // TODO: do this in clojure
-      LazySeq result = (LazySeq)fn.invoke(args);
+      LazySeq result = (LazySeq)fn.invoke(Arrays.asList(entry.getObject(1), entry.getObject(3)));
       OperationUtil.emitOutputTuples(bufferCall.getOutputCollector(), result);
     }
   }
