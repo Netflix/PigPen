@@ -38,10 +38,8 @@
 (defn ^:private cs-freeze [value]
   (BytesWritable. (freeze value {:skip-header? true, :legacy-mode true})))
 
-(defmethod pigpen.runtime/pre-process [:cascading :frozen-with-nils]
-  [_ _]
-  (fn [args]
-    (mapv #(thaw (.getBytes %)) args)))
+(defn ^:private cs-freeze-with-nils [value]
+  (if value (cs-freeze value)))
 
 (defmethod pigpen.runtime/pre-process [:cascading :frozen]
   [_ _]
@@ -60,7 +58,7 @@
 (defmethod pigpen.runtime/post-process [:cascading :frozen-with-nils]
   [_ _]
   (fn [args]
-    (mapv cs-freeze args)))
+    (mapv cs-freeze-with-nils args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :native-key-frozen-val]
   [_ _]
