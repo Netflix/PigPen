@@ -47,9 +47,7 @@ public class JoinBuffer extends BaseOperation implements Buffer {
       args.add(entry.getObject(3));
       // TODO: do this in clojure
       LazySeq result = (LazySeq)fn.invoke(args);
-      for (Object obj : result) {
-        bufferCall.getOutputCollector().add(new Tuple(((PersistentVector)obj).toArray()));
-      }
+      OperationUtil.emitOutputTuples(bufferCall.getOutputCollector(), result);
     }
   }
 }

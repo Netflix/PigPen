@@ -1,10 +1,15 @@
 package pigpen.cascading;
 
 import clojure.lang.IFn;
+import clojure.lang.LazySeq;
+import clojure.lang.PersistentVector;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
 import clojure.lang.Var;
 import org.apache.hadoop.io.BytesWritable;
+
+import cascading.tuple.Tuple;
+import cascading.tuple.TupleEntryCollector;
 
 public class OperationUtil {
 
@@ -16,6 +21,12 @@ public class OperationUtil {
     require.invoke(Symbol.intern("pigpen.cascading.runtime"));
     require.invoke(Symbol.intern("pigpen.extensions.core"));
     EVAL_STRING.invoke(initCode);
+  }
+
+  public static void emitOutputTuples(TupleEntryCollector collector, LazySeq outputSeq) {
+    for (Object obj : outputSeq) {
+      collector.add(new Tuple(((PersistentVector)obj).toArray()));
+    }
   }
 
   public static IFn getFn(String funcCode) {

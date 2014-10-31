@@ -37,8 +37,6 @@ public class PigPenFunction extends BaseOperation implements Function {
     IFn fn = (IFn)functionCall.getContext();
     TupleEntry tupleEntry = functionCall.getArguments();
     LazySeq result = (LazySeq)fn.invoke(tupleEntry.getTuple());
-    for (Object obj : result) {
-      functionCall.getOutputCollector().add(new Tuple(((PersistentVector)obj).toArray()));
-    }
+    OperationUtil.emitOutputTuples(functionCall.getOutputCollector(), result);
   }
 }

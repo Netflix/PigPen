@@ -18,6 +18,7 @@ import cascading.operation.OperationCall;
 import cascading.pipe.joiner.JoinerClosure;
 import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
+import cascading.tuple.TupleEntryCollector;
 
 public class GroupBuffer extends BaseOperation implements Buffer {
 
@@ -78,9 +79,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     }
     // TODO: do this in clojure
     LazySeq result = (LazySeq)fn.invoke(args);
-    for (Object obj : result) {
-      bufferCall.getOutputCollector().add(new Tuple(((PersistentVector)obj).toArray()));
-    }
+    OperationUtil.emitOutputTuples(bufferCall.getOutputCollector(), result);
   }
 
   private ISeq wrapIterator(Iterator iterator) {
