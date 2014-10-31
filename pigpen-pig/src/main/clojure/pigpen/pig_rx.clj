@@ -194,7 +194,9 @@ See pigpen.core and pigpen.pig
                                    (catch Throwable t (rx/on-error s t))))))
                         (rx/finally
                           (println "Stop reading from " location)))]
-    (.observeOn o (Schedulers/io))))
+    (-> o
+      (.onBackpressureBuffer)
+      (.observeOn (Schedulers/io)))))
 
 (defmethod graph->local :store
   [{:keys [location], :as command} data]
