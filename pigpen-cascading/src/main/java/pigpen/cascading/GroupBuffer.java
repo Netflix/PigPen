@@ -5,10 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import clojure.lang.IFn;
-import clojure.lang.ISeq;
-import clojure.lang.IteratorSeq;
-import clojure.lang.LazySeq;
-import clojure.lang.PersistentVector;
+import clojure.lang.RT;
+import clojure.lang.Var;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
@@ -18,7 +16,6 @@ import cascading.operation.OperationCall;
 import cascading.pipe.joiner.JoinerClosure;
 import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
-import cascading.tuple.TupleEntryCollector;
 
 public class GroupBuffer extends BaseOperation implements Buffer {
 
@@ -71,22 +68,16 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     IFn fn = (IFn)bufferCall.getContext();
     Object group = bufferCall.getGroup().getObject(0);
     JoinerClosure joinerClosure = bufferCall.getJoinerClosure();
-    // TODO: do this in clojure
-    LazySeq result = (LazySeq)fn.invoke(getArgs(group, joinerClosure));
-    OperationUtil.emitOutputTuples(bufferCall.getOutputCollector(), result);
+    Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
+    emitFn.invoke(fn, group, getIterators(joinerClosure), bufferCall.getOutputCollector());
   }
 
-  private List getArgs(Object group, JoinerClosure joinerClosure) {
-    List args = new ArrayList(3);
-    args.add(group);
+  private List<Iterator> getIterators(JoinerClosure joinerClosure) {
+    List<Iterator> args = new ArrayList<Iterator>(numIterators);
     for (int i = 0; i < numIterators; i++) {
       Iterator<Tuple> iterator = joinerClosure.getIterator(i);
-      args.add(wrapIterator(iterator));
+      args.add(new BufferIterator(iterator));
     }
     return args;
-  }
-
-  private ISeq wrapIterator(Iterator iterator) {
-    return IteratorSeq.create(new BufferIterator(iterator));
   }
 }

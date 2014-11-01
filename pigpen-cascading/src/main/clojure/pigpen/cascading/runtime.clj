@@ -2,11 +2,23 @@
   (:import (org.apache.hadoop.io BytesWritable)
            (pigpen.cascading OperationUtil)
            (java.util ArrayList)
-           (clojure.lang ISeq))
+           (clojure.lang ISeq)
+           (cascading.tuple TupleEntryCollector Tuple))
   (:require [pigpen.runtime :as rt]
             [pigpen.raw :as raw]
             [pigpen.oven :as oven]
             [taoensso.nippy :refer [freeze thaw]]))
+
+(defn emit-tuples
+  "Given a seq containing the results of an operation, emit the corresponding cascading tuples."
+  [seq ^TupleEntryCollector collector]
+  (doseq [r seq] (.add collector (Tuple. (.toArray r)))))
+
+(defn emit-group-buffer-tuples
+  "Emit the results from a GroupBuffer."
+  [f key iterators ^TupleEntryCollector collector]
+  (let [result (f (concat [key] (map iterator-seq iterators)))]
+    (emit-tuples result collector)))
 
 (defmulti hybrid->clojure
           "Converts a hybrid cascading/clojure data structure into 100% clojure.
