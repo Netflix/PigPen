@@ -58,7 +58,7 @@
   (-> value (OperationUtil/getBytes) thaw))
 
 (defmethod hybrid->clojure ISeq [^ISeq value]
-  (mapv hybrid->clojure value))
+  (map hybrid->clojure value))
 
 ;; ******* Serialization ********
 (defn ^:private cs-freeze [value]
