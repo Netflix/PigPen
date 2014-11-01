@@ -44,20 +44,6 @@
         {:args          '[offset line]
          :field-type-in :native})))
 
-(defn store-text [location f relation]
-  (-> relation
-      (raw/bind$ `(rt/map->bind ~f)
-                 {:args (:fields relation), :field-type-out :native})
-      (raw/store$ location :string {})))
-
-(defn store-tsv
-  ([location relation] (store-tsv location "\t" relation))
-  ([location delimiter relation]
-   (store-text location `(fn [~'s] (clojure.string/join ~delimiter (map print-str ~'s))) relation)))
-
-(defn store-clj [location relation]
-  (store-text location `clojure.core/pr-str relation))
-
 ;; ******* Commands ********
 
 (defmulti command->flowdef
