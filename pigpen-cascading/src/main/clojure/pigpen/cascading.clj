@@ -114,7 +114,8 @@
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
   {:pre [code alias]}
-  (command->flowdef (assoc code :pipe pipe :field-projections (or field-projections [{:alias alias}])) flowdef))
+  (command->flowdef (assoc code :pipe pipe
+                           :field-projections (or field-projections [{:alias alias}])) flowdef))
 
 (defmethod command->flowdef :generate
   [{:keys [id ancestors projections field-projections opts]} flowdef]
@@ -129,7 +130,10 @@
                                   (println "ancestors" ancestors)
                                   (throw (Exception. "not implemented"))))
         flat-projections (filter #(= :projection-flat (:type %)) projections)
-        new-flowdef (reduce (fn [def cmd] (command->flowdef (assoc cmd :pipe id :field-projections field-projections) def))
+        new-flowdef (reduce (fn [def cmd] (command->flowdef
+                                            (assoc cmd :pipe id
+                                                   :field-projections field-projections)
+                                            def))
                             new-flowdef
                             flat-projections)]
     new-flowdef))
