@@ -177,17 +177,12 @@
         sources-map (into {} (map (fn [s] [(str s) (sources s)]) (keys sources)))
         sinks-map (into {} (map (fn [[p s]] [(str p) (sinks s)]) pipe-to-sink))
         tail-pipes (into-array Pipe (map #(pipes %) (keys pipe-to-sink)))]
-    (println "\n\nflowdef" flowdef)
-    (println "sources-map" sources-map)
-    (println "sinks-map" sinks-map)
-    (println "tail-pipes" (map identity tail-pipes))
     (.connect (HadoopFlowConnector.) sources-map sinks-map tail-pipes)))
 
 (defn generate-flow
   "Transforms the relation specified into a Cascading flow that is ready to be executed."
   ([query] (generate-flow {} query))
   ([opts query]
-   (clojure.pprint/pprint (oven/bake :cascading opts query))
    (->> query
         (oven/bake :cascading opts)
         commands->flow)))

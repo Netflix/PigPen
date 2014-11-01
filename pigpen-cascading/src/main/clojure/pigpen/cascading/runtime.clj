@@ -37,7 +37,7 @@
 (defmulti hybrid->clojure
           "Converts a hybrid cascading/clojure data structure into 100% clojure.
 
-           DataByteArrays are assumed to be frozen clojure structures.
+           ByteWritables are assumed to be frozen clojure structures.
 
            Only raw pig types are expected here - anything normal (Boolean, String, etc)
            should be frozen."
