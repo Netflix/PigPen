@@ -3,7 +3,7 @@
            (pigpen.cascading OperationUtil)
            (java.util ArrayList)
            (clojure.lang ISeq)
-           (cascading.tuple TupleEntryCollector Tuple))
+           (cascading.tuple TupleEntryCollector Tuple TupleEntry))
   (:require [pigpen.runtime :as rt]
             [pigpen.raw :as raw]
             [pigpen.oven :as oven]
@@ -19,6 +19,20 @@
   [f key iterators ^TupleEntryCollector collector]
   (let [result (f (concat [key] (map iterator-seq iterators)))]
     (emit-tuples result collector)))
+
+(defn emit-join-buffer-tuples
+  "Emit the results from a JoinBuffer."
+  [f iterator ^TupleEntryCollector collector]
+  (doseq [^TupleEntry t (iterator-seq iterator)]
+    ; The incoming tuple contains <key1, value1, key2, value2>. The function only cares about the values, hence
+    ; the indices are 1 and 3
+    (let [result (f [(.getObject t 1) (.getObject t 3)])]
+      (emit-tuples result collector))))
+
+(defn emit-function-tuples
+  "Emit the results from a PigPenFunction."
+  [f ^Tuple tuple ^TupleEntryCollector collector]
+  (emit-tuples (f tuple) collector))
 
 (defmulti hybrid->clojure
           "Converts a hybrid cascading/clojure data structure into 100% clojure.

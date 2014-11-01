@@ -5,6 +5,8 @@ import java.util.Iterator;
 
 import clojure.lang.IFn;
 import clojure.lang.LazySeq;
+import clojure.lang.RT;
+import clojure.lang.Var;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
@@ -37,11 +39,7 @@ public class JoinBuffer extends BaseOperation implements Buffer {
   public void operate(FlowProcess flowProcess, BufferCall bufferCall) {
     IFn fn = (IFn)bufferCall.getContext();
     Iterator<TupleEntry> iterator = bufferCall.getArgumentsIterator();
-    while (iterator.hasNext()) {
-      TupleEntry entry = iterator.next();
-      // TODO: do this in clojure
-      LazySeq result = (LazySeq)fn.invoke(Arrays.asList(entry.getObject(1), entry.getObject(3)));
-      OperationUtil.emitOutputTuples(bufferCall.getOutputCollector(), result);
-    }
+    Var emitFn = RT.var("pigpen.cascading.runtime", "emit-join-buffer-tuples");
+    emitFn.invoke(fn, iterator, bufferCall.getOutputCollector());
   }
 }

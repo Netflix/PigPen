@@ -3,6 +3,8 @@ package pigpen.cascading;
 import clojure.lang.IFn;
 import clojure.lang.LazySeq;
 import clojure.lang.PersistentVector;
+import clojure.lang.RT;
+import clojure.lang.Var;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
@@ -36,7 +38,7 @@ public class PigPenFunction extends BaseOperation implements Function {
   public void operate(FlowProcess flowProcess, FunctionCall functionCall) {
     IFn fn = (IFn)functionCall.getContext();
     TupleEntry tupleEntry = functionCall.getArguments();
-    LazySeq result = (LazySeq)fn.invoke(tupleEntry.getTuple());
-    OperationUtil.emitOutputTuples(functionCall.getOutputCollector(), result);
+    Var emitFn = RT.var("pigpen.cascading.runtime", "emit-function-tuples");
+    emitFn.invoke(fn, tupleEntry.getTuple(), functionCall.getOutputCollector());
   }
 }
