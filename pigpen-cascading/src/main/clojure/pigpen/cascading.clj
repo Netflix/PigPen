@@ -80,14 +80,14 @@
         get-group-info #(cond (instance? CoGroup %) {:num-streams (alength (.getPrevious %))
                                                      :type        (if (.startsWith (.getName %) "join") :join :group)}
                               (or (nil? %) (instance? Every %)) nil
-                              :else (recur (first (.getPrevious %))))]
-    (let [group-info (get-group-info (get-in flowdef [:pipes pipe]))]
-      (if-not (nil? group-info)
-        (let [buffer ({:group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
-                       :join  (JoinBuffer. (str init) (str func) fields)}
-                      (:type group-info))]
-          (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
-        (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS))))))
+                              :else (recur (first (.getPrevious %))))
+        group-info (get-group-info (get-in flowdef [:pipes pipe]))]
+    (if-not (nil? group-info)
+      (let [buffer ({:group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
+                     :join  (JoinBuffer. (str init) (str func) fields)}
+                    (:type group-info))]
+        (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
+      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
 
 (defmethod command->flowdef :group
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
