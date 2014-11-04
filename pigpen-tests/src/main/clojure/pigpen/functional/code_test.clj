@@ -44,10 +44,11 @@
   "make sure for doesn't produce hidden vars we can't serialize"
   [harness]
   (test-diff
-    (t/dump harness
-      (apply pig/concat
-        (for [x [1 2 3]]
-          (->>
-            (t/data harness [1 2 3])
-            (pig/map (fn [y] (+ x y)))))))
-    [4 3 2 5 4 3 6 5 4]))
+    (sort
+      (t/dump harness
+        (apply pig/concat
+          (for [x [1 2 3]]
+            (->>
+              (t/data harness [1 2 3])
+              (pig/map (fn [y] (+ x y))))))))
+    [2 3 3 4 4 4 5 5 6]))

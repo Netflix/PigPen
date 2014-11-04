@@ -51,7 +51,7 @@
                      :ancestors [{:fields [value]}]
                      :opts {:type :bind-opts
                             :implicit-schema true}}]})
-    
+
     (test-diff
       (#'pigpen.join/select->generate {:join-nils false} '{:from {:fields [value]} :key-selector (fn [x] x)})
       '{:type :generate
@@ -89,9 +89,11 @@
       '{:type :bind
         :id bind5
         :description nil
-        :func (pigpen.runtime/map->bind (clojure.core/fn [k v] (clojure.lang.MapEntry. k v)))
+        :func (pigpen.runtime/map->bind
+                (pigpen.join/seq-groups
+                  (clojure.core/fn [k v] (clojure.lang.MapEntry. k v))))
         :args [value0 value1]
-        :requires []
+        :requires [pigpen.join]
         :fields [value]
         :field-type-out :frozen
         :field-type-in :frozen
@@ -153,7 +155,7 @@
         :func (pigpen.runtime/map->bind (clojure.core/partial clojure.core/into []))
         :args [[[r0] value]]
         :requires []
-        :fields [value]        
+        :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen
         :opts {:type :bind-opts}
@@ -232,10 +234,11 @@
         :id bind7
         :description nil
         :func (pigpen.runtime/map->bind
-                (pigpen.runtime/with-ns pigpen.join-test
-                  (fn [_ x y] (* x y))))
+                (pigpen.join/seq-groups
+                  (pigpen.runtime/with-ns pigpen.join-test
+                    (fn [_ x y] (* x y)))))
         :args [value0 value1 value2]
-        :requires []
+        :requires [pigpen.join]
         :fields [value]
         :field-type-in :frozen
         :field-type-out :frozen

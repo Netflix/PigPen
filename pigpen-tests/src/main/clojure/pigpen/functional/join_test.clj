@@ -331,8 +331,11 @@
         (pig/cogroup [(data)
                       (data)]
                      vector)
-        (t/dump harness))
-      '[[2 (2) (2)] [0 (0) (0)] [1 (1) (1)]])))
+        (t/dump harness)
+        (set))
+      '#{[0 (0) (0)]
+         [1 (1) (1)]
+         [2 (2) (2)]})))
 
 (t/deftest test-cogroup-self-join+fold
   "cogroup self join, with fold"
@@ -343,8 +346,11 @@
         (pig/cogroup [(data :fold (fold/count))
                       (data :fold (fold/count))]
                      vector)
-        (t/dump harness))
-      '[[2 1 1] [0 1 1] [1 1 1]])))
+        (t/dump harness)
+        (set))
+      '#{[0 1 1]
+         [1 1 1]
+         [2 1 1]})))
 
 (t/deftest test-join-inner-implicit
   "inner join - implicit :required"
@@ -534,8 +540,9 @@
         (pig/join [(data)
                    (data)]
                   vector)
-        (t/dump harness))
-      [[2 2] [0 0] [1 1]])))
+        (t/dump harness)
+        (set))
+      #{[0 0] [1 1] [2 2]})))
 
 (t/deftest test-join-default-key-selector
   "key-selector defaults to identity"
