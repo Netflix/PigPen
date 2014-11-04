@@ -322,7 +322,7 @@ See pigpen.core and pigpen.pig
 (defmethod graph->local :rank [{:keys [sort-keys]} data]
   (cond->> (first data)
     (not-empty sort-keys) (rx/sort (partial pig-compare sort-keys))
-    true                  (rx/map-indexed (fn [i v] (assoc v '$0 i)))))
+    true                  (rx/map-indexed (fn [i v] (assoc v '$0 (inc i)))))) ; inc to match pig's 1-based rank
 
 ;; ********** Filter **********
 
