@@ -35,7 +35,8 @@ test with the default test suite."
         test-meta (meta test-var)]
     (assert test-var)
     (assert test-meta)
-    `(clojure.test/deftest ~(symbol (str name "-" (ns-name (:ns test-meta)) "-" (:name test-meta)))
+    `(clojure.test/deftest ~(symbol (str name "-" (clojure.string/replace (ns-name (:ns test-meta)) "." "-") "-" (:name test-meta)))
+       (println "Testing:" ~test-var)
        (clojure.test/testing ~(:doc test-meta)
          ((deref ~test-var) ~harness)))))
 
