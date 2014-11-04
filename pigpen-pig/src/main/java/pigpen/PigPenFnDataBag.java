@@ -21,6 +21,7 @@ package pigpen;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -31,15 +32,33 @@ import org.apache.pig.data.Tuple;
  * @author mbossenbroek
  *
  */
-public class PigPenFnDataBag extends PigPenFn<DataBag> {
+public class PigPenFnDataBag extends PigPenFn<DataBag> implements Accumulator<DataBag> {
 
     public PigPenFnDataBag(String init, String func) {
         super(init, func);
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public DataBag exec(Tuple input) throws IOException {
         return BagFactory.getInstance().newDefaultBag((List<Tuple>) EVAL.invoke(func, input));
+    }
+
+    private Object state = null;
+
+    @Override
+    public void accumulate(Tuple input) throws IOException {
+        state = ACCUMULATE.invoke(func, state, input);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public DataBag getValue() {
+        return BagFactory.getInstance().newDefaultBag((List<Tuple>) GET_VALUE.invoke(state));
+    }
+
+    @Override
+    public void cleanup() {
+        state = CLEANUP.invoke(state);
     }
 }
