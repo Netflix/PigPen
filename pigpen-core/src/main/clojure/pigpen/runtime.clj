@@ -137,7 +137,7 @@ the fields to serialize. It will be one of:
   (fn [platform serialization-type]
     [platform serialization-type]))
 
-(defmethod post-process :default [_ _] identity)
+(defmethod post-process :default [_ _] first)
 
 (defn exec
   "Applies the composition of fs, flattening intermediate results. Each f must
