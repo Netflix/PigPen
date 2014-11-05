@@ -19,7 +19,8 @@
 (ns pigpen.functional.code-test
   (:require [pigpen.functional-test :as t]
             [pigpen.extensions.test :refer [test-diff]]
-            [pigpen.core :as pig]
+            [pigpen.map :as pig-map]
+            [pigpen.set :as pig-set]
             [pigpen.fold :as fold]))
 
 (defn test-fn [x]
@@ -28,7 +29,7 @@
 (defn test-param [y data]
   (let [z 42]
     (->> data
-      (pig/map (fn [x] (+ (test-fn x) y z))))))
+      (pig-map/map (fn [x] (+ (test-fn x) y z))))))
 
 (t/deftest test-closure
   "make sure fns are available"
@@ -46,9 +47,9 @@
   (test-diff
     (sort
       (t/dump harness
-        (apply pig/concat
+        (apply pig-set/concat
           (for [x [1 2 3]]
             (->>
               (t/data harness [1 2 3])
-              (pig/map (fn [y] (+ x y))))))))
+              (pig-map/map (fn [y] (+ x y))))))))
     [2 3 3 4 4 4 5 5 6]))

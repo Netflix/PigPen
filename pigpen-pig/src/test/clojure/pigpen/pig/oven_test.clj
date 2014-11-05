@@ -20,7 +20,8 @@
   (:require [clojure.test :refer :all]
             [pigpen.raw :as raw]
             [pigpen.oven]
-            [pigpen.core :as pig]
+            [pigpen.io :as pig-io]
+            [pigpen.map :as pig-map]
             [pigpen.pig.oven :as pig-oven]
             [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]))
 
@@ -69,9 +70,9 @@
 (deftest test-merge-order-rank
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [s (->> (pig/return ["b" "c" "a"])
-              (pig/sort)
-              (pig/map-indexed vector))]
+    (let [s (->> (pig-io/return ["b" "c" "a"])
+              (pig-map/sort)
+              (pig-map/map-indexed vector))]
 
       (test-diff
         (as-> s %
@@ -119,9 +120,9 @@
 (deftest test-clean
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [s (->> (pig/return ["b" "c" "a"])
-              (pig/sort)
-              (pig/map-indexed vector))]
+    (let [s (->> (pig-io/return ["b" "c" "a"])
+              (pig-map/sort)
+              (pig-map/map-indexed vector))]
 
       (test-diff
         (as-> s %

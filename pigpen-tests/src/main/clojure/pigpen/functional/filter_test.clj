@@ -19,7 +19,7 @@
 (ns pigpen.functional.filter-test
   (:require [pigpen.functional-test :as t]
             [pigpen.extensions.test :refer [test-diff]]
-            [pigpen.core :as pig]
+            [pigpen.filter :as pig-filter]
             [pigpen.fold :as fold]))
 
 (t/deftest test-filter
@@ -28,7 +28,7 @@
   (test-diff
     (->>
       (t/data harness [1 2])
-      (pig/filter odd?)
+      (pig-filter/filter odd?)
       (t/dump harness))
     '[1]))
 
@@ -38,6 +38,10 @@
   (test-diff
     (->>
       (t/data harness [1 2])
-      (pig/remove odd?)
+      (pig-filter/remove odd?)
       (t/dump harness))
     '[2]))
+
+;; TODO test-distinct
+;; TODO test-take
+;; TODO test-sample

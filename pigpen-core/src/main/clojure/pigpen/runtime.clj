@@ -137,7 +137,12 @@ the fields to serialize. It will be one of:
   (fn [platform serialization-type]
     [platform serialization-type]))
 
-(defmethod post-process :default [_ _] first)
+;; TODO this is terrible behavior inherited from pig. It should be fixed.
+(defmethod post-process :default [_ _]
+  (fn [args]
+    (if (next args)
+      args
+      (first args))))
 
 (defn exec
   "Applies the composition of fs, flattening intermediate results. Each f must

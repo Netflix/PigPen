@@ -19,7 +19,8 @@
 (ns pigpen.functional.map-test
   (:require [pigpen.functional-test :as t]
             [pigpen.extensions.test :refer [test-diff]]
-            [pigpen.core :as pig]
+            [pigpen.join :as pig-join]
+            [pigpen.map :as pig-map]
             [pigpen.fold :as fold]))
 
 (t/deftest test-map
@@ -29,7 +30,7 @@
     (->>
       (t/data harness [{:x 1, :y 2}
                        {:x 2, :y 4}])
-      (pig/map (fn [{:keys [x y]}] (+ x y)))
+      (pig-map/map (fn [{:keys [x y]}] (+ x y)))
       (t/dump harness))
     '[3 6]))
 
@@ -40,7 +41,7 @@
     (->>
       (t/data harness [{:x 1, :y 2}
                        {:x 2, :y 4}])
-      (pig/mapcat (juxt :x :y))
+      (pig-map/mapcat (juxt :x :y))
       (t/dump harness))
     '[1 2 2 4]))
 
@@ -50,7 +51,7 @@
   (test-diff
     (->>
       (t/data harness [{:a 2} {:a 1} {:a 3}])
-      (pig/map-indexed vector)
+      (pig-map/map-indexed vector)
       (t/dump harness))
     '[[0 {:a 2}] [1 {:a 1}] [2 {:a 3}]]))
 
@@ -60,8 +61,8 @@
   (test-diff
     (->>
       (t/data harness [{:a 2} {:a 1} {:a 3}])
-      (pig/sort-by :a)
-      (pig/map-indexed vector)
+      (pig-map/sort-by :a)
+      (pig-map/map-indexed vector)
       (t/dump harness))
     '[[0 {:a 1}] [1 {:a 2}] [2 {:a 3}]]))
 
@@ -71,7 +72,7 @@
   (test-diff
     (->>
       (t/data harness [2 1 4 3])
-      (pig/sort)
+      (pig-map/sort)
       (t/dump harness))
     '[1 2 3 4]))
 
@@ -81,7 +82,7 @@
   (test-diff
     (->>
       (t/data harness [2 1 4 3])
-      (pig/sort :desc)
+      (pig-map/sort :desc)
       (t/dump harness))
     '[4 3 2 1]))
 
@@ -91,7 +92,7 @@
   (test-diff
     (->>
       (t/data harness [{:a 2} {:a 1} {:a 3}])
-      (pig/sort-by :a)
+      (pig-map/sort-by :a)
       (t/dump harness))
     '[{:a 1} {:a 2} {:a 3}]))
 
@@ -101,7 +102,7 @@
   (test-diff
     (->>
       (t/data harness [{:a 2} {:a 1} {:a 3}])
-      (pig/sort-by :a :desc)
+      (pig-map/sort-by :a :desc)
       (t/dump harness))
     '[{:a 3} {:a 2} {:a 1}]))
 
@@ -111,7 +112,7 @@
   (test-diff
     (->>
       (t/data harness [1 2 3 1 2 3 1 2 3])
-      (pig/sort-by identity)
+      (pig-map/sort-by identity)
       (t/dump harness))
     [1 1 1 2 2 2 3 3 3]))
 
@@ -121,8 +122,8 @@
   (test-diff
     (->>
       (t/data harness [-2 -1 0 1 2])
-      (pig/map inc)
-      (pig/fold (->> (fold/filter #(> % 0)) (fold/count)))
+      (pig-map/map inc)
+      (pig-join/fold (->> (fold/filter #(> % 0)) (fold/count)))
       (t/dump harness))
     [3]))
 
@@ -132,7 +133,7 @@
   (test-diff
     (->>
       (t/data harness [-2 -1 0 1 2])
-      (pig/map #(> % 0))
-      (pig/fold (->> (fold/filter identity) (fold/count)))
+      (pig-map/map #(> % 0))
+      (pig-join/fold (->> (fold/filter identity) (fold/count)))
       (t/dump harness))
     [2]))

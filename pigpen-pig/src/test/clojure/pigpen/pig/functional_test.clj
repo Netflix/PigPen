@@ -48,7 +48,7 @@
       (t/read harness)
       (map read-string))))
 
-(defn pig-harness []
+(def-functional-tests "pig"
   (reify TestHarness
     (data [this data]
       (let [input-file (t/file this)]
@@ -73,18 +73,7 @@
     (write [this lines]
       (let [file (t/file this)]
         (spit file (clojure.string/join "\n" lines))
-        file))))
+        file)))
 
-; TODO this is dumb
-(defmacro def-pig-tests []
-  `(def-functional-tests "pig"
-     (pig-harness)
-     ~(remove
-        #{
-          ; TODO fix these problems
-          'pigpen.functional.map-test/test-sort-desc
-          'pigpen.functional.map-test/test-sort-by-desc
-          }
-        @t/all-tests)))
-
-(def-pig-tests)
+  #{pigpen.functional.map-test/test-sort-desc
+    pigpen.functional.map-test/test-sort-by-desc})

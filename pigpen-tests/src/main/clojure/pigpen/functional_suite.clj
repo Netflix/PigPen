@@ -45,9 +45,12 @@ test with the default test suite."
 an instance of TestHarness, and optionally a list of tests to run (a list of
 namespace qualified symbols)."
   ([name harness]
-    `(def-functional-tests ~name ~harness ~(deref all-tests)))
-  ([name harness tests]
+    `(def-functional-tests ~name ~harness #{} ~(deref all-tests)))
+  ([name harness blacklist]
+    `(def-functional-tests ~name ~harness ~blacklist ~(deref all-tests)))
+  ([name harness blacklist tests]
     (satisfies? TestHarness harness)
     `(do
-       ~@(for [test# tests]
-           (suite-test name harness test#)))))
+       ~@(for [test tests
+               :when (not (blacklist test))]
+           (suite-test name harness test)))))

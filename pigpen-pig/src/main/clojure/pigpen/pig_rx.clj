@@ -31,6 +31,7 @@ See pigpen.core and pigpen.pig
             [pigpen.rx.extensions.core :refer [multicast]]
             [pigpen.extensions.io :refer [list-files]]
             [pigpen.extensions.core :refer [zipv]]
+            [pigpen.local :as local]
             [pigpen.pig.runtime :as pig])
   (:import [pigpen PigPenException]
            [org.apache.pig EvalFunc]
@@ -155,40 +156,21 @@ See pigpen.core and pigpen.pig
 
 ;; ********** IO **********
 
-(defmulti load
-  "Defines a local implementation of a loader. Should return a PigPenLocalLoader."
-  :storage)
-
-(defprotocol PigPenLocalLoader
-  (locations [this])
-  (init-reader [this file])
-  (read [this reader])
-  (close-reader [this reader]))
-
-(defmulti store
-  "Defines a local implementation of storage. Should return a PigPenLocalStorage."
-  :storage)
-
-(defprotocol PigPenLocalStorage
-  (init-writer [this])
-  (write [this writer value])
-  (close-writer [this writer]))
-
 (defmethod graph->local :load
   [{:keys [location], :as command} _]
-  (let [local-loader (load command)
+  (let [local-loader (local/load command)
         ^Observable o (->> (rx/observable*
                              (fn [^Subscriber s]
                                (future
                                  (try
                                    (println "Start reading from " location)
-                                   (doseq [file (locations local-loader)
+                                   (doseq [file (local/locations local-loader)
                                            :while (not (.isUnsubscribed s))]
-                                     (let [reader (init-reader local-loader file)]
-                                       (doseq [value (read local-loader reader)
+                                     (let [reader (local/init-reader local-loader file)]
+                                       (doseq [value (local/read local-loader reader)
                                                :while (not (.isUnsubscribed s))]
                                          (rx/on-next s value))
-                                       (close-reader local-loader reader)))
+                                       (local/close-reader local-loader reader)))
                                    (rx/on-completed s)
                                    ;; TODO test this more. Errors seem to cause deadlocks
                                    (catch Throwable t (rx/on-error s t))))))
@@ -200,20 +182,20 @@ See pigpen.core and pigpen.pig
 
 (defmethod graph->local :store
   [{:keys [location], :as command} data]
-  (let [local-storage (store command)
+  (let [local-storage (local/store command)
         writer (delay
                  (println "Start writing to " location)
-                 (init-writer local-storage))]
+                 (local/init-writer local-storage))]
     (->> data
       first
       (dereference-all)
       (rx/map (fn [value]
-                (write local-storage @writer value)
+                (local/write local-storage @writer value)
                 value))
       (rx/finally
         (when (realized? writer)
           (println "Stop writing to " location)
-          (close-writer local-storage @writer))))))
+          (local/close-writer local-storage @writer))))))
 
 (defmethod graph->local :return [{:keys [^Iterable data]} _]
   (->> data
@@ -222,49 +204,6 @@ See pigpen.core and pigpen.pig
 
 (defmethod graph->local :return-debug [{:keys [^Iterable data]} _]
   (rx/seq->o data))
-
-(defmulti load-list (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
-
-(defmethod load-list :default [location]
-  (list-files location))
-
-(defmulti load-reader (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
-
-(defmethod load-reader :default [location]
-  (io/reader location))
-
-(defn ^:private pig-loader [location field line-fn]
-  (reify PigPenLocalLoader
-    (locations [_]
-      (load-list location))
-    (init-reader [_ file]
-      (load-reader file))
-    (read [_ reader]
-      (for [line (line-seq reader)]
-        {field (line-fn line)}))
-    (close-reader [_ reader]
-      (.close ^Closeable reader))))
-
-(defmethod load :string [{:keys [location fields opts]}]
-  {:pre [(= 1 (count fields))]}
-  (pig-loader location (first fields) identity))
-
-(defmethod load :binary [{:keys [location fields opts]}]
-  {:pre [(= 1 (count fields))]}
-  (pig-loader location (first fields) #(.getBytes ^String %)))
-
-;; TODO implement :binary version. I don't know that it would have worked before...
-
-(defmethod store :string [{:keys [location fields]}]
-  {:pre [(= 1 (count fields))]}
-  (reify PigPenLocalStorage
-    (init-writer [_]
-      (io/writer location))
-    (write [_ writer value]
-      (let [line (str (clojure.string/join "\t" (for [f fields] (str (f value)))) "\n")]
-        (.write ^Writer writer line)))
-    (close-writer [_ writer]
-      (.close ^Writer writer))))
 
 ;; ********** Map **********
 

@@ -19,7 +19,7 @@
 (ns pigpen.functional.join-test
   (:require [pigpen.functional-test :as t]
             [pigpen.extensions.test :refer [test-diff]]
-            [pigpen.core :as pig]
+            [pigpen.join :as pig-join]
             [pigpen.fold :as fold]))
 
 (t/deftest test-group-by
@@ -30,7 +30,7 @@
       (t/data harness [{:a 1 :b 2}
                        {:a 1 :b 3}
                        {:a 2 :b 4}])
-      (pig/group-by :a)
+      (pig-join/group-by :a)
       (t/dump harness)
       (set))
     '#{[1 ({:a 1, :b 2} {:a 1, :b 3})]
@@ -42,7 +42,7 @@
   (test-diff
     (->>
       (t/data harness [2 4 6])
-      (pig/into [])
+      (pig-join/into [])
       (t/dump harness))
     '[[2 4 6]]))
 
@@ -52,7 +52,7 @@
   (test-diff
     (->>
       (t/data harness [])
-      (pig/into {})
+      (pig-join/into {})
       (t/dump harness))
     '[]))
 
@@ -62,7 +62,7 @@
   (test-diff
     (->>
       (t/data harness [2 4 6])
-      (pig/reduce conj [])
+      (pig-join/reduce conj [])
       (t/dump harness))
     '[[2 4 6]]))
 
@@ -72,7 +72,7 @@
   (test-diff
     (->>
       (t/data harness [2 4 6])
-      (pig/reduce +)
+      (pig-join/reduce +)
       (t/dump harness))
     '[12]))
 
@@ -82,7 +82,7 @@
   (test-diff
     (->>
       (t/data harness [])
-      (pig/reduce +)
+      (pig-join/reduce +)
       (t/dump harness))
     '[]))
 
@@ -99,7 +99,7 @@
   (test-diff
     (->>
       (t/data harness fold-data)
-      (pig/group-by :k
+      (pig-join/group-by :k
                     {:fold (fold/fold-fn +
                                          (fn [acc value]
                                            (+ acc (:v value))))})
@@ -114,7 +114,7 @@
   (test-diff
     (->>
       (t/data harness fold-data)
-      (pig/group-by :k
+      (pig-join/group-by :k
                     {:fold (fold/fold-fn (fn ([] 0)
                                            ([a b] (+ a b)))
                                          (fn [acc _] (inc acc)))})
@@ -129,7 +129,7 @@
   (test-diff
     (->>
       (t/data harness fold-data)
-      (pig/group-by :k
+      (pig-join/group-by :k
                     {:fold (fold/count)})
       (t/dump harness)
       (set))
@@ -151,7 +151,7 @@
                                {:k :bar, :b 5}])]
     (test-diff
       (->>
-        (pig/cogroup [(data0 :on :k, :required true, :fold (->> (fold/map :a) (fold/sum)))
+        (pig-join/cogroup [(data0 :on :k, :required true, :fold (->> (fold/map :a) (fold/sum)))
                       (data1 :on :k, :required true, :fold (->> (fold/map :b) (fold/sum)))]
                      vector)
         (t/dump harness)
@@ -165,7 +165,7 @@
   (test-diff
     (->>
       (t/data harness [1 2 3 4])
-      (pig/fold +)
+      (pig-join/fold +)
       (t/dump harness))
     '[10]))
 
@@ -175,7 +175,7 @@
   (test-diff
     (->>
       (t/data harness [1 2 3 4])
-      (pig/fold (fold/count))
+      (pig-join/fold (fold/count))
       (t/dump harness))
     '[4]))
 
@@ -185,7 +185,7 @@
   (test-diff
     (->>
       (t/data harness [])
-      (pig/fold (fold/count))
+      (pig-join/fold (fold/count))
       (t/dump harness))
     '[]))
 
@@ -210,7 +210,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/cogroup [((t/data harness join-data1) :by :k :type :required)
+      (pig-join/cogroup [((t/data harness join-data1) :by :k :type :required)
                     ((t/data harness join-data2) :by :k :type :required)]
                    vector)
       (t/dump harness)
@@ -222,7 +222,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/cogroup [((t/data harness join-data1) :on :k :type :required)
+      (pig-join/cogroup [((t/data harness join-data1) :on :k :type :required)
                     ((t/data harness join-data2) :on :k :type :optional)]
                    vector)
       (t/dump harness)
@@ -237,7 +237,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/cogroup [((t/data harness join-data1) :on :k :type :optional)
+      (pig-join/cogroup [((t/data harness join-data1) :on :k :type :optional)
                     ((t/data harness join-data2) :on :k :type :required)]
                    vector)
       (t/dump harness)
@@ -251,7 +251,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/cogroup [((t/data harness join-data1) :on :k :type :optional)
+      (pig-join/cogroup [((t/data harness join-data1) :on :k :type :optional)
                     ((t/data harness join-data2) :on :k :type :optional)]
                    vector)
       (t/dump harness)
@@ -267,7 +267,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/cogroup [((t/data harness join-data1) :on :k :type :required)
+      (pig-join/cogroup [((t/data harness join-data1) :on :k :type :required)
                     ((t/data harness join-data2) :on :k :type :required)]
                    vector
                    {:join-nils true})
@@ -281,7 +281,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/cogroup [((t/data harness join-data1) :on :k :type :required)
+      (pig-join/cogroup [((t/data harness join-data1) :on :k :type :required)
                     ((t/data harness join-data2) :on :k :type :optional)]
                    vector
                    {:join-nils true})
@@ -296,7 +296,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/cogroup [((t/data harness join-data1) :on :k :type :optional)
+      (pig-join/cogroup [((t/data harness join-data1) :on :k :type :optional)
                     ((t/data harness join-data2) :on :k :type :required)]
                    vector
                    {:join-nils true})
@@ -311,7 +311,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/cogroup [((t/data harness join-data1) :on :k :type :optional)
+      (pig-join/cogroup [((t/data harness join-data1) :on :k :type :optional)
                     ((t/data harness join-data2) :on :k :type :optional)]
                    vector
                    {:join-nils true})
@@ -328,7 +328,7 @@
   (let [data (t/data harness [0 1 2])]
     (test-diff
       (->>
-        (pig/cogroup [(data)
+        (pig-join/cogroup [(data)
                       (data)]
                      vector)
         (t/dump harness)
@@ -343,7 +343,7 @@
   (let [data (t/data harness [0 1 2])]
     (test-diff
       (->>
-        (pig/cogroup [(data :fold (fold/count))
+        (pig-join/cogroup [(data :fold (fold/count))
                       (data :fold (fold/count))]
                      vector)
         (t/dump harness)
@@ -357,7 +357,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k)
+      (pig-join/join [((t/data harness join-data1) :on :k)
                  ((t/data harness join-data2) :on :k)]
                 vector)
       (t/dump harness)
@@ -372,7 +372,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k :type :required)
+      (pig-join/join [((t/data harness join-data1) :on :k :type :required)
                  ((t/data harness join-data2) :on :k :type :required)]
                 vector)
       (t/dump harness)
@@ -387,7 +387,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k :type :required)
+      (pig-join/join [((t/data harness join-data1) :on :k :type :required)
                  ((t/data harness join-data2) :on :k :type :optional)]
                 vector)
       (t/dump harness)
@@ -406,7 +406,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k :type :optional)
+      (pig-join/join [((t/data harness join-data1) :on :k :type :optional)
                  ((t/data harness join-data2) :on :k :type :required)]
                 vector)
       (t/dump harness)
@@ -425,7 +425,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k :type :optional)
+      (pig-join/join [((t/data harness join-data1) :on :k :type :optional)
                  ((t/data harness join-data2) :on :k :type :optional)]
                 vector)
       (t/dump harness)
@@ -448,7 +448,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k :type :required)
+      (pig-join/join [((t/data harness join-data1) :on :k :type :required)
                  ((t/data harness join-data2) :on :k :type :required)]
                 vector
                 {:join-nils true})
@@ -468,7 +468,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k :type :required)
+      (pig-join/join [((t/data harness join-data1) :on :k :type :required)
                  ((t/data harness join-data2) :on :k :type :optional)]
                 vector
                 {:join-nils true})
@@ -490,7 +490,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k :type :optional)
+      (pig-join/join [((t/data harness join-data1) :on :k :type :optional)
                  ((t/data harness join-data2) :on :k :type :required)]
                 vector
                 {:join-nils true})
@@ -512,7 +512,7 @@
   [harness]
   (test-diff
     (->>
-      (pig/join [((t/data harness join-data1) :on :k :type :optional)
+      (pig-join/join [((t/data harness join-data1) :on :k :type :optional)
                  ((t/data harness join-data2) :on :k :type :optional)]
                 vector
                 {:join-nils true})
@@ -537,7 +537,7 @@
   (let [data (t/data harness [0 1 2])]
     (test-diff
       (->>
-        (pig/join [(data)
+        (pig-join/join [(data)
                    (data)]
                   vector)
         (t/dump harness)
@@ -551,7 +551,7 @@
         data2 (t/data harness [2 3])]
     (test-diff
       (->>
-        (pig/join [(data1)
+        (pig-join/join [(data1)
                    (data2)]
                   vector)
         (t/dump harness)
@@ -565,7 +565,7 @@
     (test-diff
       (->>
         (t/data harness join-data1)
-        (pig/filter-by :k keys)
+        (pig-join/filter-by :k keys)
         (t/dump harness)
         (set))
       '#{{:k :i, :v 5}
@@ -578,7 +578,7 @@
     (test-diff
       (->>
         (t/data harness join-data1)
-        (pig/filter-by :k keys)
+        (pig-join/filter-by :k keys)
         (t/dump harness)
         (set))
       '#{{:k nil, :v 1}
@@ -593,7 +593,7 @@
     (test-diff
       (->>
         (t/data harness join-data1)
-        (pig/filter-by :k keys)
+        (pig-join/filter-by :k keys)
         (t/dump harness))
       '[{:k :i, :v 5}
         {:k :i, :v 7}
@@ -607,7 +607,7 @@
     (test-diff
       (->>
         (t/data harness join-data1)
-        (pig/remove-by :k keys)
+        (pig-join/remove-by :k keys)
         (t/dump harness)
         (set))
       '#{{:k nil, :v 1}
@@ -622,7 +622,7 @@
     (test-diff
       (->>
         (t/data harness join-data1)
-        (pig/remove-by :k keys)
+        (pig-join/remove-by :k keys)
         (t/dump harness)
         (set))
       '#{{:k :l, :v 9}
@@ -635,7 +635,7 @@
     (test-diff
       (->>
         (t/data harness join-data1)
-        (pig/remove-by :k keys)
+        (pig-join/remove-by :k keys)
         (t/dump harness)
         (set))
       '#{{:k nil, :v 1}
