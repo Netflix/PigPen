@@ -43,7 +43,6 @@
         file)))
   #{
     pigpen.functional.code-test/test-for
-    pigpen.functional.join-test/test-group-by
     pigpen.functional.join-test/test-into
     pigpen.functional.join-test/test-into-empty
     pigpen.functional.join-test/test-reduce-conj
@@ -56,15 +55,6 @@
     pigpen.functional.join-test/test-fold-all-sum
     pigpen.functional.join-test/test-fold-all-count
     pigpen.functional.join-test/test-fold-all-empty
-    pigpen.functional.join-test/test-cogroup-inner
-    pigpen.functional.join-test/test-cogroup-left-outer
-    pigpen.functional.join-test/test-cogroup-right-outer
-    pigpen.functional.join-test/test-cogroup-full-outer
-    pigpen.functional.join-test/test-cogroup-inner-join-nils
-    pigpen.functional.join-test/test-cogroup-left-outer-join-nils
-    pigpen.functional.join-test/test-cogroup-right-outer-join-nils
-    pigpen.functional.join-test/test-cogroup-full-outer-join-nils
-    pigpen.functional.join-test/test-cogroup-self-join
     pigpen.functional.join-test/test-cogroup-self-join+fold
     pigpen.functional.join-test/test-join-inner-implicit
     pigpen.functional.join-test/test-join-inner

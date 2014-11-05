@@ -1,11 +1,36 @@
 (ns pigpen.local
   (:refer-clojure :exclude [load load-reader read])
-  (:require [pigpen.oven :as oven]
+  (:require [pigpen.runtime]
+            [pigpen.oven :as oven]
             [clojure.java.io :as io]
             [pigpen.extensions.io :refer [list-files]]
-            [pigpen.extensions.core :refer [forcat]])
+            [pigpen.extensions.core :refer [forcat zipv]])
   (:import [java.io Closeable]
            [java.io Writer]))
+
+; For local mode, we want to differentiate between nils in the data and nils as
+; the lack of existence of data. We convert nil values into a sentinel nil value
+; that we see when grouping and joining values.
+
+(defn induce-sentinel-nil [value]
+  (or value ::nil))
+
+(defn remove-sentinel-nil [value]
+  (when-not (= value ::nil)
+    value))
+
+(defmethod pigpen.runtime/pre-process [:local :frozen]
+  [_ _]
+  (fn [args]
+    (mapv remove-sentinel-nil args)))
+
+(defmethod pigpen.runtime/post-process [:local :frozen]
+  [_ _]
+  (fn [args]
+    (let [args (mapv induce-sentinel-nil args)]
+      (if (next args)
+        args
+        (first args)))))
 
 (defn cross-product [data]
   (if (empty? data) [{}]
@@ -192,3 +217,45 @@
 (defmethod graph->local :order
   [[data] {:keys [sort-keys]}]
   (sort (pigpen-comparator sort-keys) data))
+
+;; ********** Join **********
+
+(defmethod graph->local :group
+  [data {:keys [ancestors keys join-types fields]}]
+  (->>
+    ;; map
+    (zipv [a ancestors
+           [k] keys
+           d data
+           j join-types]
+      (forcat [values d]
+        ;; This selects all of the fields that are produced by this relation
+        (for [[[r] v :as f] (next fields)
+              :when (= r a)]
+          {:field f
+           ;; This changes a nil values into a relation specific nil value
+           ;; TODO use a better sentinel value here
+           :key (or (values k) (keyword (name a) "nil"))
+           :values (values v)
+           :required (= j :required)})))
+    ;; shuffle
+    (apply concat)
+    ;; reduce
+    (group-by :key)
+    (map (fn [[key key-group]]
+           (->> key-group
+             (group-by :field)
+             (map (fn [[field field-group]]
+                    [field (map :values field-group)]))
+             (into
+               ;; Start with the group key. If it's a single value, flatten it.
+               ;; Keywords are the fake nils we put in earlier
+               {(first fields) (if (and (keyword? key) (= "nil" (name key))) nil key)}))))
+    ; remove rows that were required, but are not present (inner joins)
+    (filter (fn [value]
+              (every? identity
+                      (zipv [a ancestors
+                             [k] keys
+                             j join-types]
+                        (or (= j :optional)
+                            (contains? value [[a] k]))))))))
