@@ -70,7 +70,7 @@
 (defmethod pigpen.runtime/pre-process [:cascading :frozen]
   [_ _]
   (fn [args]
-    (mapv hybrid->clojure args)))
+    (map hybrid->clojure args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :native]
   [_ _]
@@ -79,12 +79,12 @@
 (defmethod pigpen.runtime/post-process [:cascading :frozen]
   [_ _]
   (fn [args]
-    (mapv cs-freeze args)))
+    (map cs-freeze args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :frozen-with-nils]
   [_ _]
   (fn [args]
-    (mapv cs-freeze-with-nils args)))
+    (map cs-freeze-with-nils args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :native-key-frozen-val]
   [_ _]
