@@ -19,7 +19,7 @@
 (ns pigpen.functional.set-test
   (:require [pigpen.functional-test :as t]
             [pigpen.extensions.test :refer [test-diff]]
-            [pigpen.core :as pig]
+            [pigpen.set :as pig-set]
             [pigpen.fold :as fold]))
 
 (t/deftest test-concat
@@ -29,7 +29,7 @@
         data2 (t/data harness [2 3 4])
         data3 (t/data harness [3 4 5])
 
-        command (pig/concat data1 data2 data3)]
+        command (pig-set/concat data1 data2 data3)]
     (test-diff
       (sort (t/dump harness command))
       '[1 2 2
@@ -43,7 +43,7 @@
         data2 (t/data harness [2 3 4])
         data3 (t/data harness [3 4 5])
 
-        command (pig/union data1 data2 data3)]
+        command (pig-set/union data1 data2 data3)]
     (test-diff
       (set (t/dump harness command))
       '#{1 2 3 4 5})))
@@ -55,7 +55,7 @@
         data2 (t/data harness [2 3 4])
         data3 (t/data harness [3 4 5])
 
-        command (pig/union-multiset data1 data2 data3)]
+        command (pig-set/union-multiset data1 data2 data3)]
     (test-diff
       (sort (t/dump harness command))
       '[1 2 2
@@ -69,7 +69,7 @@
         data2 (t/data harness [3 2 3 4 3])
         data3 (t/data harness [3 4 3 5 2])
 
-        command (pig/intersection data1 data2 data3)]
+        command (pig-set/intersection data1 data2 data3)]
     (test-diff
       (sort (t/dump harness command))
       '[2 3])))
@@ -81,7 +81,7 @@
         data2 (t/data harness [3 2 3 4 3])
         data3 (t/data harness [3 4 3 5 2])
 
-        command (pig/intersection-multiset data1 data2 data3)]
+        command (pig-set/intersection-multiset data1 data2 data3)]
     (test-diff
       (sort (t/dump harness command))
       '[2 3 3])))
@@ -93,7 +93,7 @@
         data2 (t/data harness [1 2])
         data3 (t/data harness [4 5])
 
-        command (pig/difference data1 data2 data3)]
+        command (pig-set/difference data1 data2 data3)]
     (test-diff
       (sort (t/dump harness command))
       '[3])))
@@ -105,7 +105,7 @@
         data2 (t/data harness [1 2 3])
         data3 (t/data harness [3 4 5])
 
-        command (pig/difference-multiset data1 data2 data3)]
+        command (pig-set/difference-multiset data1 data2 data3)]
     (test-diff
       (sort (t/dump harness command))
       '[3])))

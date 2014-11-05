@@ -19,7 +19,7 @@
 (ns pigpen.functional.io-test
   (:require [pigpen.functional-test :as t]
             [pigpen.extensions.test :refer [test-diff]]
-            [pigpen.core :as pig]))
+            [pigpen.io :as pig-io]))
 
 (t/deftest test-load-string
   "normal load string"
@@ -27,7 +27,7 @@
   (let [file (t/write harness ["The quick brown fox" "jumps over the lazy dog"])]
     (test-diff
       (->>
-        (pig/load-string file)
+        (pig-io/load-string file)
         (t/dump harness)
         (set))
       '#{"The quick brown fox"
@@ -39,7 +39,7 @@
   (let [file (t/write harness ["a\tb\tc" "1\t2\t3"])]
     (test-diff
       (->>
-        (pig/load-tsv file)
+        (pig-io/load-tsv file)
         (t/dump harness)
         (set))
       '#{["a" "b" "c"]
@@ -51,7 +51,7 @@
   (let [file (t/write harness ["a,b,c" "1,2,3"])]
     (test-diff
       (->>
-        (pig/load-tsv file #",")
+        (pig-io/load-tsv file #",")
         (t/dump harness)
         (set))
       '#{["a" "b" "c"]
@@ -63,7 +63,7 @@
   (let [file (t/write harness ["a\tb\tc" "1\t2\t3"])]
     (test-diff
       (->>
-        (pig/load-tsv file #",")
+        (pig-io/load-tsv file #",")
         (t/dump harness)
         (set))
       '#{["a\tb\tc"]
@@ -75,7 +75,7 @@
   (let [file (t/write harness ["{:a 1, :b \"foo\"}" "{:a 2, :b \"bar\"}"])]
     (test-diff
       (->>
-        (pig/load-clj file)
+        (pig-io/load-clj file)
         (t/dump harness)
         (set))
       '#{{:a 2, :b "bar"}
@@ -87,7 +87,7 @@
   (let [file (t/write harness ["{\"a\" 1, \"b\" \"foo\"}" "{\"a\" 2, \"b\" \"bar\"}"])]
     (test-diff
       (->>
-        (pig/load-json file)
+        (pig-io/load-json file)
         (t/dump harness)
         (set))
       '#{{:a 2, :b "bar"}
@@ -99,7 +99,7 @@
   (let [file (t/write harness ["{\"a\" 1, \"b\" \"foo\"}" "{\"a\" 2, \"b\" \"bar\"}"])]
     (test-diff
       (->>
-        (pig/load-json file {})
+        (pig-io/load-json file {})
         (t/dump harness)
         (set))
       '#{{"a" 2, "b" "bar"}
@@ -111,7 +111,7 @@
   (let [file (t/write harness ["{\"a\" 1, \"b\" \"foo\"}" "{\"a\" 2, \"b\" \"bar\"}"])]
     (test-diff
       (->>
-        (pig/load-json file {:key-fn keyword
+        (pig-io/load-json file {:key-fn keyword
                              :value-fn (fn [k v]
                                          (case k
                                            :a (* v v)
@@ -127,7 +127,7 @@
   (let [file (t/write harness ["a\tb\tc" "1\t2\t3"])]
     (test-diff
       (->>
-        (pig/load-tsv file)
+        (pig-io/load-tsv file)
         (t/dump harness)
         (set))
       '#{("a" "b" "c")
@@ -142,7 +142,7 @@
                        "jumps over the lazy dog"
                        42
                        :foo])
-      (pig/store-string file)
+      (pig-io/store-string file)
       (t/dump harness))
     (test-diff (t/read harness file)
                ["The quick brown fox" "jumps over the lazy dog" "42" ":foo"])))
@@ -154,7 +154,7 @@
     (->>
       (t/data harness [[1 "foo" :a]
                        [2 "bar" :b]])
-      (pig/store-tsv file)
+      (pig-io/store-tsv file)
       (t/dump harness))
     (test-diff (t/read harness file)
                ["1\tfoo\t:a" "2\tbar\t:b"])))
@@ -166,7 +166,7 @@
     (->>
       (t/data harness [(array-map :a 1, :b "foo")
                        (array-map :a 2, :b "bar")])
-      (pig/store-clj file)
+      (pig-io/store-clj file)
       (t/dump harness))
     (test-diff (t/read harness file)
                ["{:a 1, :b \"foo\"}" "{:a 2, :b \"bar\"}"])))
@@ -178,7 +178,7 @@
     (->>
       (t/data harness [(array-map :a 1, :b "foo")
                        (array-map :a 2, :b "bar")])
-      (pig/store-json file)
+      (pig-io/store-json file)
       (t/dump harness))
     (test-diff (t/read harness file)
                ["{\"a\":1,\"b\":\"foo\"}" "{\"a\":2,\"b\":\"bar\"}"])))
