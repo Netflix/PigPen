@@ -39,7 +39,7 @@
 
 (defn load-clj [location]
   (-> (load-text location)
-      (raw/bind$
+      (raw/bind$ '[clojure.edn]
         `(rt/map->bind (fn [~'offset ~'line] (clojure.edn/read-string ~'line)))
         {:args          '[offset line]
          :field-type-in :native})))
@@ -183,6 +183,6 @@
   "Transforms the relation specified into a Cascading flow that is ready to be executed."
   ([query] (generate-flow {} query))
   ([opts query]
-   (->> query
-        (oven/bake :cascading opts)
-        commands->flow)))
+   (-> query
+     (oven/bake :cascading {} opts)
+     commands->flow)))
