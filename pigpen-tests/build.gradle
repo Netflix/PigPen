@@ -1,0 +1,4 @@
+dependencies {
+    compile project(':pigpen')
+    provided 'org.clojure:clojure:1.6.0'
+}

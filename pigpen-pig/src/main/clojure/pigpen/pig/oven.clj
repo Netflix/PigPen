@@ -1,5 +1,24 @@
+;;
+;;
+;;  Copyright 2013 Netflix, Inc.
+;;
+;;     Licensed under the Apache License, Version 2.0 (the "License");
+;;     you may not use this file except in compliance with the License.
+;;     You may obtain a copy of the License at
+;;
+;;         http://www.apache.org/licenses/LICENSE-2.0
+;;
+;;     Unless required by applicable law or agreed to in writing, software
+;;     distributed under the License is distributed on an "AS IS" BASIS,
+;;     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;;     See the License for the specific language governing permissions and
+;;     limitations under the License.
+;;
+;;
+
 (ns pigpen.pig.oven
-  (:require [pigpen.pig.raw :as pig-raw]
+  (:require [pigpen.raw :as raw]
+            [pigpen.pig.raw :as pig-raw]
             [pigpen.oven]))
 
 (defmulti command->references :type)
@@ -33,20 +52,98 @@
 (defn ^:private extract-references
   "Extract all references from commands and create new reference commands at
    the head of the list."
-  [commands]
-  (extract-* command->references pig-raw/register$ commands))
+  [commands {:keys [extract-references?]}]
+  (when extract-references?
+    (extract-* command->references pig-raw/register$ commands)))
 
 (defn ^:private extract-options
   "Extract all options from commands and create new option commands at
    the head of the list."
-  [commands]
-  (extract-* command->options (fn [[o v]] (pig-raw/option$ o v)) commands))
+  [commands {:keys [extract-options?]}]
+  (when extract-options?
+    (extract-* command->options (fn [[o v]] (pig-raw/option$ o v)) commands)))
 
 (defn ^:private add-pigpen-jar
-  [commands jar-location]
-  (cons
-    (pig-raw/register$ jar-location)
-    commands))
+  [commands {:keys [add-pigpen-jar? pigpen-jar-location]}]
+  (when add-pigpen-jar?
+    (cons
+      (pig-raw/register$ pigpen-jar-location)
+      commands)))
+
+;; **********
+
+(defn ^:private next-order-rank
+  "Finds a pig/sort or pig/sort-by followed by a pig/map-indexed."
+  [commands lookup]
+  (->> commands
+    ;; Look for rank commands
+    (filter #(= (:type %) :rank))
+    ;; Find the first that's after an order & has no sort of its own
+    (some (fn [c]
+            ;; rank will only ever have a single ancestor
+            (let [a (-> c :ancestors first lookup)]
+              (when (and (= (:sort-keys c) [])
+                         (= (:type a) :order))
+                ;; Return both the rank & order commands
+                [c a]))))))
+
+(defn ^:private merge-order-rank
+  "Looks for a pig/sort or pig/sort-by followed by a pig/map-indexed. Moves the
+   order operation into the rank command."
+  [commands _]
+  ;; Build an id > command lookup
+  (let [lookup (->> commands (map (juxt :id identity)) (into {}))]
+    ;; Try to find the next potential rank command.
+    (if-let [[next-rank {:keys [sort-keys ancestors]}] (next-order-rank commands lookup)]
+      ;; If we find one, update the rank & recur
+      (recur
+        (for [command commands]
+          (if-not (= command next-rank)
+            command
+            ;; When we find the rank command, add the sort-keys to it and update it
+            ;; to point at the sort's generate command.
+            (assoc command
+                   :sort-keys sort-keys
+                   :ancestors ancestors))) _)
+      ;; If we don't find one, we're done
+      commands)))
+
+;; **********
+
+(defn ^:private expand-load-filters
+  "Load commands can specify a native filter. This filter must be defined with
+   the load command because of some nuances in Pig. This expands that into an
+   actual command."
+  [commands _]
+  ;; TODO possibly make expansion available to all commands?
+  (->> commands
+    (mapcat (fn [{:keys [type id opts fields] :as c}]
+              (if (and (= type :load) (:filter opts))
+                (let [filter (:filter opts)
+                      id' (symbol (str id "_0"))]
+                  [(assoc c :id id')
+                   (-> id'
+                     (raw/filter-native$* fields filter {})
+                     (assoc :id id))])
+                [c])))))
+
+;; **********
+
+(defn ^:private dec-rank
+  "Pig starts rank at 1. This decrements every rank to match clojure."
+  [commands _]
+  (->> commands
+    (mapcat (fn [{:keys [type id opts fields] :as c}]
+              (if (= type :rank)
+                (let [id' (symbol (str id "_0"))]
+                  [(assoc c :id id')
+                   (-> id'
+                     (raw/bind$* '(fn [[i v]]
+                                    [[(dec i) v]])
+                                 {:args ['$0 'value]
+                                  :fields ['$0 'value]})
+                     (assoc :id id))])
+                [c])))))
 
 ;; **********
 
@@ -73,14 +170,19 @@ produces a non-pigpen output.
             pigpen.core/dump, pigpen.core/show
 "
   {:added "0.3.0"}
-  ([query] (bake {} query))
-  ([opts query]
-    {:pre [(->> query meta keys (some #{:pig :baked})) (map? opts)]}
-    (if (-> query meta :baked)
+  ([query] (bake query {}))
+  ([query opts]
+    (pigpen.oven/bake
       query
-      (as-> query %
-        (pigpen.oven/bake :pig opts %)
-        (extract-references %)
-        (extract-options %)
-        (add-pigpen-jar % (or (:pigpen-jar-location opts) "pigpen.jar"))
-        (with-meta % {:baked true})))))
+      :pig
+      {extract-options     1.1
+       extract-references  1.2
+       add-pigpen-jar      1.3
+       merge-order-rank    1.4
+       expand-load-filters 2.1
+       dec-rank            2.2}
+      (merge {:extract-references? true
+              :extract-options?    true
+              :add-pigpen-jar?     true
+              :pigpen-jar-location "pigpen.jar"}
+             opts))))

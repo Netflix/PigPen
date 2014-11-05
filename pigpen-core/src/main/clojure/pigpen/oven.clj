@@ -66,7 +66,7 @@ number of optimizations and transforms to the graph.
                              (:projection-func :projection-flat)
                              (update-in p [:code :args]
                                         (fn [args] (mapv #(update-field % id-mapping) args)))
-                             
+
                              :projection-field
                              (update-in p [:field] #(update-field % id-mapping)))))]
       (assoc command :projections projections'))))
@@ -75,7 +75,7 @@ number of optimizations and transforms to the graph.
   "The default way to update ids in a command. This updates the id of the
    command and any ancestors."
   [command id-mapping]
-  {:pre [(map? command) (map? id-mapping)]}  
+  {:pre [(map? command) (map? id-mapping)]}
   (-> command
     (update-in [:id] (fn [id] (id-mapping id id)))
     (update-in [:ancestors] #(mapv (fn [id] (id-mapping id id)) %))
@@ -95,7 +95,7 @@ number of optimizations and transforms to the graph.
    and this returns the list of that node and its ancestors, in the order
    they'll need to be executed. This also calls tree->edge on each node, such
    that it will now refer to the id of the node instead of the actual node."
-  [command]
+  [command _]
   (->> command
     (ancestors)
     (map tree->command)
@@ -133,57 +133,19 @@ number of optimizations and transforms to the graph.
   "Collapses duplicate commands in a graph. The strategy is to take the set of
    distinct commands, find the first two that can be merged, and merge them to
    produce graph'. Rinse & repeat until there are no more duplicate commands."
-  [commands]
+  [commands _]
   (let [distinct-commands (vec (distinct commands))
         next-merge (next-match distinct-commands)]
     (if next-merge
-      (recur (merge-command distinct-commands next-merge))
+      (recur (merge-command distinct-commands next-merge) _)
       distinct-commands)))
-
-;; **********
-
-(defn ^:private next-order-rank
-  "Finds a pig/sort or pig/sort-by followed by a pig/map-indexed."
-  [commands lookup]
-  (->> commands
-    ;; Look for rank commands
-    (filter #(= (:type %) :rank))
-    ;; Find the first that's after an order & has no sort of its own
-    (some (fn [c]
-            ;; rank will only ever have a single ancestor
-            (let [a (-> c :ancestors first lookup)]
-              (when (and (= (:sort-keys c) [])
-                         (= (:type a) :order))
-                ;; Return both the rank & order commands
-                [c a]))))))
-
-(defn ^:private merge-order-rank
-  "Looks for a pig/sort or pig/sort-by followed by a pig/map-indexed. Moves the
-   order operation into the rank command."
-  [commands]
-  ;; Build an id > command lookup
-  (let [lookup (->> commands (map (juxt :id identity)) (into {}))]
-    ;; Try to find the next potential rank command.
-    (if-let [[next-rank {:keys [sort-keys ancestors]}] (next-order-rank commands lookup)]
-      ;; If we find one, update the rank & recur
-      (recur
-        (for [command commands]
-          (if-not (= command next-rank)
-            command
-            ;; When we find the rank command, add the sort-keys to it and update it
-            ;; to point at the sort's generate command.
-            (assoc command
-                   :sort-keys sort-keys
-                   :ancestors ancestors))))
-      ;; If we don't find one, we're done
-      commands)))
 
 ;; **********
 
 (defn ^:private command->debug
   "Adds an extra store statement after the command. Returns nil if no debug is
    available"
-  [command location]
+  [location command]
   (when-let [field-type (or (:field-type command) (:field-type-out command))]
     (when-not (get-in command [:opts :implicit-schema])
       (-> command
@@ -192,15 +154,17 @@ number of optimizations and transforms to the graph.
         ;; TODO Fix the location of store commands to match generates instead of binds
         (raw/store$ (str location (:id command)) :string {})))))
 
+;; TODO add a debug-lite version
 (defn ^:private debug
   "Creates a debug version of a script. This adds a store command after every command."
-  [script location]
-  (->> script
-    (ancestors)
-    (map #(command->debug % location))
-    (filter identity)
-    (cons script)
-    (raw/script$)))
+  [command {:keys [debug]}]
+  (when debug
+    (->> command
+      (ancestors)
+      (map (partial command->debug debug))
+      (filter identity)
+      (cons command)
+      (raw/script$))))
 
 ;; **********
 
@@ -231,25 +195,26 @@ number of optimizations and transforms to the graph.
         last-field       (-> commands last :fields first)
         last-field-type  (-> commands last :field-type-out)
         implicit-schema  (some (comp :implicit-schema :opts) commands)
-        
+
         requires (code/build-requires (mapcat :requires commands))
-        
+
         func `(pigpen.runtime/exec
                 [(pigpen.runtime/process->bind (pigpen.runtime/pre-process ~platform ~first-field-type))
                  ~@(mapv :func commands)
                  (pigpen.runtime/process->bind (pigpen.runtime/post-process ~platform ~last-field-type))])
-        
+
         projection (raw/projection-flat$ last-field
                      (raw/code$ :sequence first-args
                        (raw/expr$ requires func)))
-        
+
         description (->> commands (map :description) (clojure.string/join))]
-  
+
     (raw/generate$* first-relation [projection] {:field-type last-field-type
                                                  :description description
                                                  :implicit-schema implicit-schema})))
 
-(defn ^:private optimize-binds [commands platform]
+(defn ^:private optimize-binds
+  [commands {:keys [platform] :as opts}]
   (if (= 1 (count commands))
     commands
     (let [[before binds after] (find-bind-sequence commands)]
@@ -258,26 +223,7 @@ number of optimizations and transforms to the graph.
         (let [generate (bind->generate binds platform)
               next (concat before [generate] after)
               next (merge-command next {(-> binds last :id) (:id generate)})]
-          (recur next platform))))))
-
-;; **********
-
-(defn ^:private expand-load-filters
-  "Load commands can specify a native filter. This filter must be defined with
-   the load command because of some nuances in Pig. This expands that into an
-   actual command."
-  [commands]
-  ;; TODO possibly make expansion available to all commands?
-  (->> commands
-    (mapcat (fn [{:keys [type id opts fields] :as c}]
-              (if (and (= type :load) (:filter opts))
-                (let [filter (:filter opts)
-                      id' (symbol (str id "_0"))]
-                  [(assoc c :id id')
-                   (-> id'
-                     (raw/filter-native$* fields filter {})
-                     (assoc :id id))])
-                [c])))))
+          (recur next opts))))))
 
 ;; **********
 
@@ -315,7 +261,7 @@ number of optimizations and transforms to the graph.
 (defn ^:private alias-self-joins
   "Self-joins create ambiguous fields and are not supported by Pig. This changes
 the alias of each key-selector so that they are unique."
-  [commands]
+  [commands _]
   (let [command-lookup (->> commands (map (juxt :id identity)) (into {}))
         id-map (atom {})]
     (->> commands
@@ -335,7 +281,7 @@ the alias of each key-selector so that they are unique."
 
 (defn ^:private clean
   "Some optimizations produce unused commands. This prunes them from the graph."
-  [commands]
+  [commands _]
   (let [referenced-commands (->> commands
                               (mapcat :ancestors) ;; Get all referenced commands
                               (cons (-> commands last :id)) ;; Add the last command
@@ -345,9 +291,21 @@ the alias of each key-selector so that they are unique."
                              (referenced-commands id)))]
     (if (every? command-valid? commands)
       commands
-      (recur (filter command-valid? commands)))))
+      (recur (filter command-valid? commands) _))))
 
 ;; **********
+
+(defn mark-baked [commands _]
+  (with-meta commands {:baked true}))
+
+(defn default-operations []
+  {debug               0
+   braise              1
+   dedupe              2
+   optimize-binds      3
+   alias-self-joins    4
+   clean               5
+   mark-baked          6})
 
 (defn bake
   "Takes a query as a tree of commands and returns a sequence of commands as a
@@ -371,19 +329,17 @@ produces a non-pigpen output.
   See also: pigpen.core/generate-script, pigpen.core/write-script,
             pigpen.core/dump, pigpen.core/show
 "
-  {:added "0.2.5"} ; since 0.1.0, but exposed 0.2.5
-  ([platform query] (bake platform {} query))
-  ([platform opts query]
-    {:pre [(->> query meta keys (some #{:pig :baked})) (map? opts)]}
-    (if (-> query meta :baked)
-      query
-      (cond-> query
-        (:debug opts) (debug (:debug opts)) ;; TODO add a debug-lite version
-        true braise
-        true merge-order-rank
-        (not= false (:dedupe opts)) dedupe
-        true expand-load-filters
-        true (optimize-binds platform)
-        true alias-self-joins
-        true clean
-        true (with-meta {:baked true})))))
+
+  [query platform operations opts]
+  {:pre [(map? opts)]}
+  (assert (->> query meta keys (some #{:pig :baked})) "Query was not a pigpen query")
+  (if (-> query meta :baked)
+    query
+    (->>
+      (merge (default-operations) operations)
+      (sort-by second)
+      (reduce (fn [commands [op _]]
+                (if-let [commands' (op commands (assoc opts :platform platform))]
+                  commands'
+                  commands))
+              query))))

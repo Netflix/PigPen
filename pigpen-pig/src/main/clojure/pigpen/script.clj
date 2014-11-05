@@ -68,7 +68,7 @@ See pigpen.core and pigpen.pig
                       (and (instance? Long expr)
                            (not (< Integer/MIN_VALUE expr Integer/MAX_VALUE)))
                       (str expr "L")
-                      
+
                       :else (str expr))
      (string? expr) (escape+quote expr)
      (symbol? expr) (if-let [v (scope expr)]
@@ -77,21 +77,21 @@ See pigpen.core and pigpen.pig
      ;; TODO Verify arities
      ;; TODO Add NOT
      (seq? expr) (case (first expr)
-                   
+
                    clojure.core/let
                    (let [[_ scope body] expr
                          scope (->> scope (partition 2) (map vec) (into {}))]
                      (expr->script scope body))
-                   
+
                    quote
                    (expr->script scope (second expr))
-                   
+
                    (let [[op & exprs] expr
                            exprs' (map (partial expr->script scope) exprs)
                            pig-expr (clojure.string/join (clj->op (name op)) exprs')]
                      (str "(" pig-expr ")")))
-                   
-     
+
+
      :else (throw (IllegalArgumentException. (str "Unknown expression:" (type expr) " " expr))))))
 
 ;; Hadoop doesn't allow for configuration of partitioners, so we make a lot of them
@@ -132,12 +132,6 @@ See pigpen.core and pigpen.pig
 
 ;; ********** IO **********
 
-(defmethod command->script :storage
-  [{:keys [func args]} state]
-  {:pre [func args]}
-  (let [pig-args (->> args (map #(str "'" % "'")) (join ", "))]
-    (str "\n    USING " func "(" pig-args ")")))
-
 (defmulti storage->script (juxt :type :storage))
 
 (defmethod storage->script [:load :binary]
@@ -151,7 +145,7 @@ See pigpen.core and pigpen.pig
   (let [pig-fields (->> fields
                      (map #(str % ":chararray"))
                      (join ", "))]
-    (str "PigStorage(\\n)\n    AS (" pig-fields ")")))
+    (str "PigStorage('\\n')\n    AS (" pig-fields ")")))
 
 (defmethod storage->script [:store :binary]
   [_]

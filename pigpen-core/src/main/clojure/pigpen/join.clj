@@ -66,6 +66,12 @@ coerced to ::nil so they can be differentiated from outer joins later."
     (raw/projection-func$ alias (raw/code$ :algebraic [field] (raw/expr$ "" fold)))
     (raw/projection-field$ field alias)))
 
+(defn seq-groups
+  "Calls seq on the result of all co-groupings to enforce consistency across platforms"
+  [f]
+  (fn [key & groups]
+    (apply f key (map #(if (seq? %) (seq %) %) groups))))
+
 (defn group*
   "See pigpen.core/group-by, pigpen.core/cogroup"
   [selects f opts]
@@ -78,7 +84,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
     (-> relations
       (raw/group$ keys join-types (dissoc opts :fold))
       (raw/generate$ folds {})
-      (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args (mapv :alias folds)}))))
+      (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f)) {:args (mapv :alias folds)}))))
 
 (defn group-all*
   "See pigpen.core/into, pigpen.core/reduce"

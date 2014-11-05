@@ -17,10 +17,9 @@
 ;;
 
 (ns pigpen.functional.code-test
-  (:use clojure.test)
-  (:require [pigpen.extensions.test :refer [test-diff]]
+  (:require [pigpen.functional-test :as t]
+            [pigpen.extensions.test :refer [test-diff]]
             [pigpen.core :as pig]
-            [pigpen.pig :refer [dump]]
             [pigpen.fold :as fold]))
 
 (defn test-fn [x]
@@ -31,18 +30,25 @@
     (->> data
       (pig/map (fn [x] (+ (test-fn x) y z))))))
 
-(deftest test-closure
-  (let [data (pig/return [1 2 3])
-        command (test-param 37 data)]
-    (test-diff
-      (dump command)
-      '[80 83 88])))
+(t/deftest test-closure
+  "make sure fns are available"
+  [harness]
+  (test-diff
+    (->>
+      (t/data harness [1 2 3])
+      (test-param 37)
+      (t/dump harness))
+    '[80 83 88]))
 
-(deftest test-for
-  (is (= (dump
-           (apply pig/concat
-             (for [x [1 2 3]]
-               (->>
-                 (pig/return [1 2 3])
-                 (pig/map (fn [y] (+ x y)))))))
-         [4 3 2 5 4 3 6 5 4])))
+(t/deftest test-for
+  "make sure for doesn't produce hidden vars we can't serialize"
+  [harness]
+  (test-diff
+    (sort
+      (t/dump harness
+        (apply pig/concat
+          (for [x [1 2 3]]
+            (->>
+              (t/data harness [1 2 3])
+              (pig/map (fn [y] (+ x y))))))))
+    [2 3 3 4 4 4 5 5 6]))
