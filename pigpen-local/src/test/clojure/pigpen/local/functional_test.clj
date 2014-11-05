@@ -42,7 +42,6 @@
         (spit file (clojure.string/join "\n" lines))
         file)))
   #{
-    pigpen.functional.code-test/test-for
     pigpen.functional.join-test/test-into
     pigpen.functional.join-test/test-into-empty
     pigpen.functional.join-test/test-reduce-conj
@@ -75,11 +74,4 @@
     pigpen.functional.join-test/test-remove-by-duplicate-keys
     pigpen.functional.map-test/test-map+fold1
     pigpen.functional.map-test/test-map+fold2
-    pigpen.functional.set-test/test-concat
-    pigpen.functional.set-test/test-union
-    pigpen.functional.set-test/test-union-multiset
-    pigpen.functional.set-test/test-intersection
-    pigpen.functional.set-test/test-intersection-multiset
-    pigpen.functional.set-test/test-difference
-    pigpen.functional.set-test/test-difference-multiset
     })

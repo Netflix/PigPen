@@ -218,6 +218,16 @@
   [[data] {:keys [sort-keys]}]
   (sort (pigpen-comparator sort-keys) data))
 
+;; ********** Filter **********
+
+(defmethod graph->local :limit
+  [[data] {:keys [n]}]
+  (take n data))
+
+(defmethod graph->local :sample
+  [[data] {:keys [p]}]
+  (filter (fn [_] (< (rand) p)) data))
+
 ;; ********** Join **********
 
 (defmethod graph->local :group
@@ -259,3 +269,13 @@
                              j join-types]
                         (or (= j :optional)
                             (contains? value [[a] k]))))))))
+
+;; ********** Set **********
+
+(defmethod graph->local :distinct
+  [[data] _]
+  (distinct data))
+
+(defmethod graph->local :union
+  [data _]
+  (apply concat data))
