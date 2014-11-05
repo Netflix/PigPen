@@ -61,7 +61,7 @@ combine them. Optionally takes a map of options.
   {:added "0.1.0"}
   ([query] (generate-script {} query))
   ([opts query]
-    (->> query
+    (-> query
       (oven/bake opts)
       script/commands->script)))
 
@@ -97,7 +97,7 @@ combine them. Optionally takes a map of options.
 (defn query->observable
   (^Observable [query] (query->observable {} query))
   (^Observable [opts query]
-    (->> query
+    (-> query
       (oven/bake opts)
       (local/graph->observable))))
 
@@ -150,7 +150,7 @@ This command uses a terse description for each operation.
   {:added "0.1.0"}
   [query]
   (->> query
-    (oven/bake {})
+    (oven/bake)
     (viz/view-graph viz/command->description)))
 
 (defn show+
@@ -167,5 +167,5 @@ This command uses a verbose description for each operation, including user code.
   {:added "0.1.0"}
   [query]
   (->> query
-    (oven/bake {})
+    (oven/bake)
     (viz/view-graph viz/command->description+)))

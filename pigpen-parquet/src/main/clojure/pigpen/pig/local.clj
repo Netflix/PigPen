@@ -17,7 +17,7 @@
 ;;
 
 (ns pigpen.pig.local
-  (:require [pigpen.pig-rx :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
+  (:require [pigpen.local :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
             [pigpen.extensions.io :as io]
             [pigpen.hadoop.local :as hadoop])
   (:import [org.apache.hadoop.mapreduce RecordWriter]
@@ -34,7 +34,7 @@
         job (hadoop/job config)
         _ (.setLocation load-func location job)
         _ (.setUDFContextSignature load-func (str (gensym)))
-        
+
         job-context (hadoop/job-context job)
         input-format (.getInputFormat load-func)
         splits (.getSplits input-format job-context)]
@@ -61,15 +61,15 @@
 (defn store-func->writer
   [^StoreFuncInterface store-func ^String schema ^String location]
   (io/clean location)
-  
+
   (let [config (hadoop/config {})
         job (hadoop/job config)
         _ (.setStoreLocation store-func location job)
         _ (.setStoreFuncUDFContextSignature store-func (str (gensym)))
-        
+
         schema' (Utils/getSchemaFromString schema)
         _ (.checkSchema store-func (ResourceSchema. schema'))
-        
+
         task-context (hadoop/task-context job)
         output-format (.getOutputFormat store-func)
         record-writer (-> output-format

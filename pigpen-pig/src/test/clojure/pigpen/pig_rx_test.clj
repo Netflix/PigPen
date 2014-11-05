@@ -19,7 +19,8 @@
 (ns pigpen.pig-rx-test
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff pigsym-inc]]
-            [pigpen.pig-rx :as local :refer [PigPenLocalLoader]]
+            [pigpen.local :as local :refer [PigPenLocalLoader]]
+            [pigpen.pig-rx :as pig-rx]
             [pigpen.pig.runtime :refer [freeze-vals thaw-anything]]
             [pigpen.raw :as raw]
             [pigpen.pig.raw :as pig-raw]
@@ -33,13 +34,13 @@
 (defn debug-script-raw [query]
   (->> query
     exec/query->observable
-    local/observable->raw-data))
+    pig-rx/observable->raw-data))
 
 (defn debug-script [query]
   (map 'value (debug-script-raw query)))
 
 (deftest test-eval-code
-  
+
   (let [code (raw/code$ :normal '[x y]
                (raw/expr$ '(require (quote [pigpen.runtime]))
                           '(pigpen.runtime/exec
@@ -53,7 +54,7 @@
            '((tuple (freeze 79)))))))
 
 (deftest test-cross-product
-  
+
   (testing "normal join"
     (let [data '[[{r1v1 1, r1v2 2} {r1v1 3, r1v2 4}]
                  [{r2v1 5, r2v2 6} {r2v1 7, r2v2 8}]]]
@@ -63,7 +64,7 @@
            {r1v1 1, r1v2 2, r2v2 8, r2v1 7}
            {r1v1 3, r1v2 4, r2v2 6, r2v1 5}
            {r1v1 3, r1v2 4, r2v2 8, r2v1 7}})))
-  
+
   (testing "single flatten"
     (let [data '[[{key 1}]
                  [{val1 :a}]
@@ -71,7 +72,7 @@
       (test-diff
         (set (#'pigpen.pig-rx/cross-product data))
         '#{{key 1, val1 :a, val2 "a"}})))
-  
+
   (testing "multi flatten"
     (let [data '[[{key 1}]
                  [{val1 :a} {val1 :b}]
@@ -82,7 +83,7 @@
            {key 1, val1 :a, val2 "b"}
            {key 1, val1 :b, val2 "a"}
            {key 1, val1 :b, val2 "b"}})))
-  
+
   (testing "inner join"
     (let [data '[[{r1v1 1, r1v2 2} {r1v1 3, r1v2 4}]
                  [{r2v1 5, r2v2 6} {r2v1 7, r2v2 8}]
@@ -90,7 +91,7 @@
       (test-diff
         (set (#'pigpen.pig-rx/cross-product data))
         '#{})))
-  
+
   (testing "outer join"
     (let [data '[[{r1v1 1, r1v2 2} {r1v1 3, r1v2 4}]
                  [{r2v1 5, r2v2 6} {r2v1 7, r2v2 8}]
@@ -194,15 +195,15 @@
 ;; ********** Filter **********
 
 (deftest test-filter-native
-  
+
   (let [data (pig-raw/return-debug$ '[{foo 1, bar 3}
                               {foo 2, bar 1}])]
-    
+
     (testing "with filter"
       (let [command (raw/filter-native$ data '(and (= foo 1) (> bar 2)) {:fields '[foo bar]})]
         (test-diff
           (debug-script-raw command)
-          '[{foo 1, bar 3}])))  
+          '[{foo 1, bar 3}])))
 
     (testing "no filter"
       (let [command' (raw/filter-native$ data nil {:fields '[foo bar]})]
@@ -212,7 +213,7 @@
             {foo 2, bar 1}])))))
 
 (deftest test-limit
-  
+
   (let [data (pig-raw/return-debug$
                (map freeze-vals '[{x 1, y 2}
                                   {x 2, y 4}]))
@@ -222,7 +223,7 @@
       '[{x (freeze 1), y (freeze 2)}])))
 
 (deftest test-sample
-  
+
   (let [data (io/return (repeat 1000 {:x 1, :y 2}))
         command (raw/sample$ data 0.5 {})]
     (< 490
@@ -232,7 +233,7 @@
 ;; ********** Set **********
 
 (deftest test-distinct
-  
+
   (let [data (io/return [{:x 1, :y 2}
                          {:x 2, :y 4}
                          {:x 1, :y 2}
@@ -256,7 +257,7 @@
                   (map freeze-vals '[{key :a, value 8}
                                      {key :b, value 10}
                                      {key :b, value 12}]))
-          
+
           command (raw/group$ [data1 data2]
                               '[[key] [key]]
                               [:optional :optional]
@@ -285,12 +286,12 @@
                   (map freeze-vals '[{key :a, value 8}
                                      {key :b, value 10}
                                      {key :b, value 12}]))
-          
+
           command (raw/join$ [data1 data2]
                              '[[key] [key]]
                              '[:required :required]
                              {})]
-      
+
       (test-diff
         (set (debug-script-raw command))
         #{'{[[return-debug1 key]] (freeze :a), [[return-debug1 value]] (freeze 2), [[return-debug2 key]] (freeze :a), [[return-debug2 value]] (freeze 8)}

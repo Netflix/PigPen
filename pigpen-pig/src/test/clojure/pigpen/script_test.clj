@@ -75,7 +75,7 @@
                             :opts {:type :load-opts}}
                           {})))
   (is (= "load0 = LOAD 'foo'
-    USING PigStorage(\\n)
+    USING PigStorage('\\n')
     AS (a:chararray, b:chararray, c:chararray);\n\n"
          (command->script '{:type :load
                             :id load0
@@ -183,7 +183,7 @@ generate0 = FOREACH relation0 GENERATE
              :opts {:type :rank-opts
                     :dense true}}
            {})))
-  
+
   (is (= "rank0 = RANK relation0;\n\n"
          (command->script
            '{:type :rank

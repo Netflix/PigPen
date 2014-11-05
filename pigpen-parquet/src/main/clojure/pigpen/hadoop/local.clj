@@ -17,7 +17,7 @@
 ;;
 
 (ns pigpen.hadoop.local
-  (:require [pigpen.pig-rx :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
+  (:require [pigpen.local :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
             [pigpen.extensions.io :as io])
   (:import [java.io File]
            [org.apache.hadoop.fs Path]
@@ -64,7 +64,7 @@
   (let [config (config config-values)
         ^Job job (job config)
         _ (FileInputFormat/setInputPaths job location)
-        
+
         job-context (job-context job)
         splits (.getSplits input-format job-context)]
     (apply concat
@@ -91,11 +91,11 @@
   "Uses a Hadoop OutputFormat to write values to a file. This creates the writer."
   [^OutputFormat output-format config-values ^String location]
   (io/clean location)
-  
+
   (let [config (config config-values)
         job (job config)
         _ (FileOutputFormat/setOutputPath job (Path. location))
-        
+
         task-context (task-context job)
         record-writer (-> output-format
                         (.getRecordWriter task-context))]
@@ -114,7 +114,7 @@
            ^OutputFormat output-format
            ^RecordWriter record-writer]}]
   (-> record-writer
-    (.close task-context))  
+    (.close task-context))
   (-> output-format
     (.getOutputCommitter task-context)
     (.commitTask  task-context)))

@@ -17,24 +17,31 @@
 ;;
 
 (ns pigpen.functional.filter-test
-  (:use clojure.test)
-  (:require [pigpen.extensions.test :refer [test-diff]]
-            [pigpen.core :as pig]
-            [pigpen.pig :refer [dump]]
+  (:require [pigpen.functional-test :as t]
+            [pigpen.extensions.test :refer [test-diff]]
+            [pigpen.filter :as pig-filter]
             [pigpen.fold :as fold]))
 
-(deftest test-filter
-  
-  (let [data (pig/return [1 2])
-        command (pig/filter odd? data)]
-    (test-diff
-      (dump command)
-      '[1])))
+(t/deftest test-filter
+  "normal filter"
+  [harness]
+  (test-diff
+    (->>
+      (t/data harness [1 2])
+      (pig-filter/filter odd?)
+      (t/dump harness))
+    '[1]))
 
-(deftest test-remove
-  
-  (let [data (pig/return [1 2])
-        command (pig/remove odd? data)]
-    (test-diff
-      (dump command)
-      '[2])))
+(t/deftest test-remove
+  "normal remove"
+  [harness]
+  (test-diff
+    (->>
+      (t/data harness [1 2])
+      (pig-filter/remove odd?)
+      (t/dump harness))
+    '[2]))
+
+;; TODO test-distinct
+;; TODO test-take
+;; TODO test-sample
