@@ -73,6 +73,37 @@
     pigpen.functional.code-test/test-for
     ;pigpen.functional.filter-test/test-filter
     ;pigpen.functional.filter-test/test-remove
+    pigpen.functional.filter-test/test-take
+    pigpen.functional.filter-test/test-sample
+    pigpen.functional.fold-test/test-vec
+    pigpen.functional.fold-test/test-map
+    pigpen.functional.fold-test/test-mapcat
+    pigpen.functional.fold-test/test-filter
+    pigpen.functional.fold-test/test-remove
+    pigpen.functional.fold-test/test-keep
+    pigpen.functional.fold-test/test-distinct
+    pigpen.functional.fold-test/test-take
+    pigpen.functional.fold-test/test-first
+    pigpen.functional.fold-test/test-last
+    pigpen.functional.fold-test/test-sort
+    pigpen.functional.fold-test/test-sort-desc
+    pigpen.functional.fold-test/test-sort-by
+    pigpen.functional.fold-test/test-sort-by-desc
+    pigpen.functional.fold-test/test-juxt-stats
+    pigpen.functional.fold-test/test-juxt-min-max
+    pigpen.functional.fold-test/test-count
+    pigpen.functional.fold-test/test-sum
+    pigpen.functional.fold-test/test-avg
+    pigpen.functional.fold-test/test-avg-with-cogroup
+    pigpen.functional.fold-test/test-top
+    pigpen.functional.fold-test/test-top-desc
+    pigpen.functional.fold-test/test-top-by
+    pigpen.functional.fold-test/test-top-by-desc
+    pigpen.functional.fold-test/test-min
+    pigpen.functional.fold-test/test-min+map
+    pigpen.functional.fold-test/test-min-key
+    pigpen.functional.fold-test/test-max
+    pigpen.functional.fold-test/test-max-key
     pigpen.functional.io-test/test-load-string
     pigpen.functional.io-test/test-load-tsv
     pigpen.functional.io-test/test-load-tsv-non-tab
@@ -137,6 +168,7 @@
     pigpen.functional.map-test/test-sort-by-with-duplicates
     pigpen.functional.map-test/test-map+fold1
     pigpen.functional.map-test/test-map+fold2
+    ;pigpen.functional.set-test/test-distinct
     pigpen.functional.set-test/test-concat
     pigpen.functional.set-test/test-union
     pigpen.functional.set-test/test-union-multiset
