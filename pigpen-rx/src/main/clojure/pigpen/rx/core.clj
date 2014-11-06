@@ -143,7 +143,7 @@
 
 ;; ********** Join **********
 
-(defmethod graph->observable :group
+(defn graph->observable-group
   [data {:keys [ancestors keys join-types fields]}]
   (->>
     ;; map
@@ -188,6 +188,31 @@
                                 j join-types]
                            (or (= j :optional)
                                (contains? value [[a] k]))))))))
+
+(defn graph->observable-group-all
+  [data {:keys [fields]}]
+  (->>
+    (zipv [[[r] v :as f] (next fields)
+           d data]
+      (->> d
+        (rx/map (fn [values]
+                  {:field f
+                   :values (v values)}))))
+    (apply rx/merge)
+    (rx/group-by :field)
+    (rx/flatmap (fn [[field field-group-o]]
+                  (->> field-group-o
+                    (rx/into [])
+                    (rx/map (fn [field-group]
+                              [field (map :values field-group)])))))
+    (rx/into {(first fields) nil})
+    (rx/filter next)))
+
+(defmethod graph->observable :group
+  [data {:keys [keys] :as command}]
+  (if (= keys [:pigpen.raw/group-all])
+    (graph->observable-group-all data command)
+    (graph->observable-group data command)))
 
 ;; ********** Set **********
 

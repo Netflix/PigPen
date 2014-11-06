@@ -26,6 +26,8 @@
   (:import [java.io Closeable]
            [java.io Writer]))
 
+(require '[pigpen.extensions.test :refer [debug]])
+
 ; For local mode, we want to differentiate between nils in the data and nils as
 ; the lack of existence of data. We convert nil values into a sentinel nil value
 ; that we see when grouping and joining values.
@@ -247,7 +249,7 @@
 
 ;; ********** Join **********
 
-(defmethod graph->local :group
+(defn graph->local-group
   [data {:keys [ancestors keys join-types fields]}]
   (->>
     ;; map
@@ -286,6 +288,27 @@
                              j join-types]
                         (or (= j :optional)
                             (contains? value [[a] k]))))))))
+
+(defn graph->local-group-all
+  [data {:keys [fields]}]
+  (->>
+    (zipv [[[r] v :as f] (next fields)
+           d data]
+      (for [values d]
+        {:field f
+         :values (v values)}))
+    (apply concat)
+    (group-by :field)
+    (map (fn [[field field-group]]
+           [field (map :values field-group)]))
+    (into {(first fields) nil})
+    (vector)
+    (filter next)))
+
+(defmethod graph->local :group [data {:keys [keys] :as command}]
+  (if (= keys [:pigpen.raw/group-all])
+    (graph->local-group-all data command)
+    (graph->local-group data command)))
 
 ;; ********** Set **********
 

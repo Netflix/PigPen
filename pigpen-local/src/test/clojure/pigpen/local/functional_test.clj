@@ -42,11 +42,6 @@
         (spit file (clojure.string/join "\n" lines))
         file)))
   #{
-    pigpen.functional.join-test/test-into
-    pigpen.functional.join-test/test-into-empty
-    pigpen.functional.join-test/test-reduce-conj
-    pigpen.functional.join-test/test-reduce-+
-    pigpen.functional.join-test/test-reduce-empty
     pigpen.functional.join-test/test-fold-inline-sum
     pigpen.functional.join-test/test-fold-inline-count
     pigpen.functional.join-test/test-fold-count
