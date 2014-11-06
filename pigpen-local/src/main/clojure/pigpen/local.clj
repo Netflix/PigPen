@@ -1,3 +1,21 @@
+;;
+;;
+;;  Copyright 2013 Netflix, Inc.
+;;
+;;     Licensed under the Apache License, Version 2.0 (the "License");
+;;     you may not use this file except in compliance with the License.
+;;     You may obtain a copy of the License at
+;;
+;;         http://www.apache.org/licenses/LICENSE-2.0
+;;
+;;     Unless required by applicable law or agreed to in writing, software
+;;     distributed under the License is distributed on an "AS IS" BASIS,
+;;     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;;     See the License for the specific language governing permissions and
+;;     limitations under the License.
+;;
+;;
+
 (ns pigpen.local
   (:refer-clojure :exclude [load load-reader read])
   (:require [pigpen.runtime]
@@ -7,6 +25,8 @@
             [pigpen.extensions.core :refer [forcat zipv]])
   (:import [java.io Closeable]
            [java.io Writer]))
+
+(require '[pigpen.extensions.test :refer [debug]])
 
 ; For local mode, we want to differentiate between nils in the data and nils as
 ; the lack of existence of data. We convert nil values into a sentinel nil value
@@ -57,9 +77,31 @@
     (equals [this obj]
       (= this obj))))
 
-(defn ^:private eval-code [{:keys [init func]}]
-  (eval init)
-  (eval func))
+(defmulti eval-func (fn [udf f args] udf))
+
+(defmethod eval-func :sequence
+  [_ f args]
+  (f args))
+
+(defmethod eval-func :algebraic
+  [_ {:keys [pre combinef reducef post]} [values]]
+  (->> values
+    (mapv remove-sentinel-nil)
+    pre
+    (split-at (/ (count values) 2))
+    (map (partial reduce reducef (combinef)))
+    (reduce combinef)
+    post))
+
+(defn eval-code [{:keys [udf expr args]} values]
+  (let [{:keys [init func]} expr
+        _ (eval init)
+        f (eval func)
+        ;; TODO don't like - need to mediate on this one for a bit
+        arg-values (map #(if (string? %) % (get values %)) args)
+        result (eval-func udf f arg-values)]
+    ;(prn 'eval-code udf func args arg-values result)
+    result))
 
 (defmulti graph->local (fn [data command] (:type command)))
 
@@ -71,13 +113,43 @@
     ;(prn 'result result)
     (assoc data id result)))
 
-(defn dump [query]
-  (let [graph (oven/bake query :local {} {})
-        last-command (:id (last graph))]
-    (->> graph
-      (reduce graph->local+ {})
-      (last-command)
-      (map 'value))))
+;; TODO add a version that returns a multiset
+(defn dump
+  "Executes a script locally and returns the resulting values as a clojure
+sequence. This command is very useful for unit tests.
+
+  Example:
+
+    (->>
+      (pig/load-clj \"input.clj\")
+      (pig/map inc)
+      (pig/filter even?)
+      (pig/dump)
+      (clojure.core/map #(* % %))
+      (clojure.core/filter even?))
+
+    (deftest test-script
+      (is (= (->>
+               (pig/load-clj \"input.clj\")
+               (pig/map inc)
+               (pig/filter even?)
+               (pig/dump))
+             [2 4 6])))
+
+  Note: pig/store commands return an empty set
+        pig/script commands merge their results
+
+  See also: pigpen.core/show, pigpen.core/dump&show
+"
+  {:added "0.1.0"}
+  ([query] (dump {} query))
+  ([opts query]
+    (let [graph (oven/bake query :local {} opts)
+          last-command (:id (last graph))]
+      (->> graph
+        (reduce graph->local+ {})
+        (last-command)
+        (map 'value)))))
 
 ;; ********** IO **********
 
@@ -186,16 +258,17 @@
     ; compound field names (to be deprecated)
     (vector? field) [{alias (values field)}]
     ; used to select an index from a tuple output. Assumes a single field
-    (number? field) [{alias (get-in (-> values vals first) [field])}]
+    (number? field) [{alias (nth (-> values vals first) field)}]
     :else (throw (IllegalStateException. (str "Unknown field " field)))))
+
+(defmethod graph->local :projection-func
+  [values {:keys [code alias]}]
+  [{alias (eval-code code values)}])
 
 (defmethod graph->local :projection-flat
   [values {:keys [code alias] :as command}]
-  (let [args (:args code)
-        f (eval-code (:expr code))
-        result (f (map values args))]
-    (for [value' result]
-      {alias value'})))
+  (for [value' (eval-code code values)]
+    {alias value'}))
 
 (defmethod graph->local :generate
   [[data] {:keys [projections]}]
@@ -203,8 +276,7 @@
     (fn [values]
       (->> projections
         (map (partial graph->local values))
-        (cross-product)
-        (seq)))
+        (cross-product)))
     data))
 
 (defmethod graph->local :rank
@@ -230,7 +302,7 @@
 
 ;; ********** Join **********
 
-(defmethod graph->local :group
+(defn graph->local-group
   [data {:keys [ancestors keys join-types fields]}]
   (->>
     ;; map
@@ -270,6 +342,61 @@
                         (or (= j :optional)
                             (contains? value [[a] k]))))))))
 
+(defn graph->local-group-all
+  [data {:keys [fields]}]
+  (->>
+    (zipv [[[r] v :as f] (next fields)
+           d data]
+      (for [values d]
+        {:field f
+         :values (v values)}))
+    (apply concat)
+    (group-by :field)
+    (map (fn [[field field-group]]
+           [field (map :values field-group)]))
+    (into {(first fields) nil})
+    (vector)
+    (filter next)))
+
+(defmethod graph->local :group
+  [data {:keys [keys] :as command}]
+  (if (= keys [:pigpen.raw/group-all])
+    (graph->local-group-all data command)
+    (graph->local-group data command)))
+
+(defmethod graph->local :join
+  [data {:keys [ancestors keys join-types fields]}]
+  (->>
+    (zipv [a ancestors
+           [k] keys
+           d data]
+      (for [values d]
+        ;; This selects all of the fields that are in this relation
+        {:values (into {} (for [[[r v] :as f] fields
+                                :when (= r a)]
+                            [f (values v)]))
+         ;; This is to emulate the way pig handles nils
+         ;; This changes a nil values into a relation specific nil value
+         :key (or (values k) (keyword (name a) "nil"))
+         :relation a}))
+    (apply concat)
+    (group-by :key)
+    (mapcat (fn [[_ key-group]]
+              (->> key-group
+                (group-by :relation)
+                (map (fn [[relation relation-grouping]]
+                       [relation (map :values relation-grouping)]))
+                (into  (->>
+                         ;; This seeds the inner/outer joins, by placing a
+                         ;; defualt empty value for inner joins
+                         (zipmap ancestors join-types)
+                         (filter (fn [[_ j]] (= j :required)))
+                         (map (fn [[a _]] [a []]))
+                         (into {})))
+                (vector)
+                (mapcat (fn [relation-grouping]
+                          (cross-product (vals relation-grouping)))))))))
+
 ;; ********** Set **********
 
 (defmethod graph->local :distinct
@@ -277,5 +404,11 @@
   (distinct data))
 
 (defmethod graph->local :union
+  [data _]
+  (apply concat data))
+
+;; ********** Script **********
+
+(defmethod graph->local :script
   [data _]
   (apply concat data))

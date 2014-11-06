@@ -22,6 +22,7 @@
             [clojure.test]
             [pigpen.functional.code-test]
             [pigpen.functional.filter-test]
+            [pigpen.functional.fold-test]
             [pigpen.functional.io-test]
             [pigpen.functional.join-test]
             [pigpen.functional.map-test]

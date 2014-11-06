@@ -16,9 +16,9 @@
 ;;
 ;;
 
-(ns pigpen.rx.extensions.core-test
+(ns pigpen.rx.extensions-test
   (:use clojure.test
-        pigpen.rx.extensions.core)
+        pigpen.rx.extensions)
   (:require [rx.lang.clojure.core :as rx]
             [rx.lang.clojure.blocking :as rx-block])
   (:import [rx Observable Observer Subscriber Subscription]

@@ -61,4 +61,4 @@
                  (pig-filter/sample 0.5)
                  (t/dump harness)
                  count)]
-    (is (< 475 result 525))))
+    (is (< 400 result 600))))

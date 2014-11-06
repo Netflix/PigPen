@@ -19,18 +19,10 @@
 (ns pigpen.pig
   "Contains functions related to script generation and manipulation. These are
 how you 'use' a PigPen query.
-
-  Note: Most of these are present in pigpen.core. Normally you should use those instead.
 "
-  (:require [pigpen.raw :as raw]
-            [pigpen.pig.runtime :as pig]
-            [pigpen.pig.oven :as oven]
+  (:require [pigpen.pig.oven :as oven]
             [pigpen.script :as script]
-            [pigpen.pig-rx :as local]
-            [pigpen.viz :as viz]
-            [taoensso.nippy :refer [freeze thaw]])
-  (:import [rx Observable]
-           [rx.observables BlockingObservable]))
+            [pigpen.viz :as viz]))
 
 (set! *warn-on-reflection* true)
 
@@ -93,48 +85,6 @@ combine them. Optionally takes a map of options.
   ([location query] (write-script location {} query))
   ([location opts query]
     (spit location (generate-script opts query))))
-
-(defn query->observable
-  (^Observable [query] (query->observable {} query))
-  (^Observable [opts query]
-    (-> query
-      (oven/bake opts)
-      (local/graph->observable))))
-
-;; TODO add a version that returns a multiset
-(defn dump
-  "Executes a script locally and returns the resulting values as a clojure
-sequence. This command is very useful for unit tests.
-
-  Example:
-
-    (->>
-      (pig/load-clj \"input.clj\")
-      (pig/map inc)
-      (pig/filter even?)
-      (pig/dump)
-      (clojure.core/map #(* % %))
-      (clojure.core/filter even?))
-
-    (deftest test-script
-      (is (= (->>
-               (pig/load-clj \"input.clj\")
-               (pig/map inc)
-               (pig/filter even?)
-               (pig/dump))
-             [2 4 6])))
-
-  Note: pig/store commands return an empty set
-        pig/script commands merge their results
-
-  See also: pigpen.core/show, pigpen.core/dump&show
-"
-  {:added "0.1.0"}
-  ([query] (dump {} query))
-  ([opts query]
-    (->> query
-      (query->observable opts)
-      local/observable->data)))
 
 (defn show
   "Generates a graph image for a PigPen query. This allows you to see what steps

@@ -75,5 +75,6 @@
         (spit file (clojure.string/join "\n" lines))
         file)))
 
+  ; Pending https://issues.apache.org/jira/browse/PIG-4298
   #{pigpen.functional.map-test/test-sort-desc
     pigpen.functional.map-test/test-sort-by-desc})

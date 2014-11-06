@@ -4,9 +4,6 @@ dependencies {
 
     provided 'org.clojure:clojure:1.6.0'
 
-    compile 'io.reactivex:rxjava:1.0.0-rc.1'
-    compile 'io.reactivex:rxclojure:1.0.0-rc.1'
-
     compile 'joda-time:joda-time:2.4' // pig needs this to run locally
     provided 'org.apache.pig:pig:0.13.0'
     provided 'org.apache.hadoop:hadoop-core:1.1.2'
