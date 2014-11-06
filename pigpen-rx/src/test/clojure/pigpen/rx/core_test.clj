@@ -17,5 +17,51 @@
 ;;
 
 (ns pigpen.rx.core-test
-  (:require [pigpen.rx.core]))
+  (:require [clojure.test :refer :all]
+            [pigpen.rx.core :as rx]
+            [pigpen.raw :as raw]
+            [pigpen.core :as pig]
+            [pigpen.local :as local :refer [PigPenLocalLoader]]))
 
+(defmethod local/load :bad-storage [command]
+  (let [fail (get-in command [:opts :fail])]
+    (reify PigPenLocalLoader
+      (locations [_]
+        (if (= fail :locations)
+          (throw (Exception. "locations"))
+          ["foo" "bar"]))
+      (init-reader [_ _]
+        (if (= fail :init-reader)
+          (throw (Exception. "init-reader"))
+          :reader))
+      (read [_ _]
+        (if (= fail :read)
+          (throw (Exception. "read"))
+          [{'value 1}
+           {'value 2}
+           {'value 3}]))
+      (close-reader [_ _]
+        (when (= fail :close)
+          (throw (Exception. "close-reader")))))))
+
+(deftest test-load-exception-handling
+  (testing "normal"
+    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail nil})]
+      (is (= (rx/dump command) [1 2 3 1 2 3]))))
+  (testing "fail locations"
+    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail :locations})]
+      (is (thrown? Exception (rx/dump command)))))
+  (testing "fail init-reader"
+    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail :init-reader})]
+      (is (thrown? Exception (rx/dump command)))))
+  (testing "fail read"
+    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail :read})]
+      (is (thrown? Exception (rx/dump command)))))
+  (testing "fail close"
+    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail :close})]
+      (is (thrown? Exception (rx/dump command))))))
+
+(deftest test-exception-handling
+  (let [data (pig/return [1 2 3])
+        command (pig/map (fn [x] (throw (java.lang.Exception.))) data)]
+    (is (thrown? Exception (rx/dump command)))))

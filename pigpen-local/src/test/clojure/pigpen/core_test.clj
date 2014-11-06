@@ -16,7 +16,6 @@
 ;;
 ;;
 
-(ns pigpen.rx
-  (:require [pigpen.rx.core]))
+(ns pigpen.core-test
+  (:require [pigpen.core]))
 
-(intern *ns* (with-meta 'dump (meta #'pigpen.rx.core/dump)) @#'pigpen.rx.core/dump)

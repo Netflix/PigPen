@@ -77,9 +77,31 @@
     (equals [this obj]
       (= this obj))))
 
-(defn eval-code [{:keys [init func]}]
-  (eval init)
-  (eval func))
+(defmulti eval-func (fn [udf f args] udf))
+
+(defmethod eval-func :sequence
+  [_ f args]
+  (f args))
+
+(defmethod eval-func :algebraic
+  [_ {:keys [pre combinef reducef post]} [values]]
+  (->> values
+    (mapv remove-sentinel-nil)
+    pre
+    (split-at (/ (count values) 2))
+    (map (partial reduce reducef (combinef)))
+    (reduce combinef)
+    post))
+
+(defn eval-code [{:keys [udf expr args]} values]
+  (let [{:keys [init func]} expr
+        _ (eval init)
+        f (eval func)
+        ;; TODO don't like - need to mediate on this one for a bit
+        arg-values (map #(if (string? %) % (get values %)) args)
+        result (eval-func udf f arg-values)]
+    ;(prn 'eval-code udf func args arg-values result)
+    result))
 
 (defmulti graph->local (fn [data command] (:type command)))
 
@@ -91,13 +113,43 @@
     ;(prn 'result result)
     (assoc data id result)))
 
-(defn dump [query]
-  (let [graph (oven/bake query :local {} {})
-        last-command (:id (last graph))]
-    (->> graph
-      (reduce graph->local+ {})
-      (last-command)
-      (map 'value))))
+;; TODO add a version that returns a multiset
+(defn dump
+  "Executes a script locally and returns the resulting values as a clojure
+sequence. This command is very useful for unit tests.
+
+  Example:
+
+    (->>
+      (pig/load-clj \"input.clj\")
+      (pig/map inc)
+      (pig/filter even?)
+      (pig/dump)
+      (clojure.core/map #(* % %))
+      (clojure.core/filter even?))
+
+    (deftest test-script
+      (is (= (->>
+               (pig/load-clj \"input.clj\")
+               (pig/map inc)
+               (pig/filter even?)
+               (pig/dump))
+             [2 4 6])))
+
+  Note: pig/store commands return an empty set
+        pig/script commands merge their results
+
+  See also: pigpen.core/show, pigpen.core/dump&show
+"
+  {:added "0.1.0"}
+  ([query] (dump {} query))
+  ([opts query]
+    (let [graph (oven/bake query :local {} opts)
+          last-command (:id (last graph))]
+      (->> graph
+        (reduce graph->local+ {})
+        (last-command)
+        (map 'value)))))
 
 ;; ********** IO **********
 
@@ -206,16 +258,17 @@
     ; compound field names (to be deprecated)
     (vector? field) [{alias (values field)}]
     ; used to select an index from a tuple output. Assumes a single field
-    (number? field) [{alias (get-in (-> values vals first) [field])}]
+    (number? field) [{alias (nth (-> values vals first) field)}]
     :else (throw (IllegalStateException. (str "Unknown field " field)))))
+
+(defmethod graph->local :projection-func
+  [values {:keys [code alias]}]
+  [{alias (eval-code code values)}])
 
 (defmethod graph->local :projection-flat
   [values {:keys [code alias] :as command}]
-  (let [args (:args code)
-        f (eval-code (:expr code))
-        result (f (map values args))]
-    (for [value' result]
-      {alias value'})))
+  (for [value' (eval-code code values)]
+    {alias value'}))
 
 (defmethod graph->local :generate
   [[data] {:keys [projections]}]

@@ -41,16 +41,4 @@
     (write [this lines]
       (let [file (t/file this)]
         (spit file (clojure.string/join "\n" lines))
-        file)))
-  #{
-    pigpen.functional.join-test/test-fold-inline-sum
-    pigpen.functional.join-test/test-fold-inline-count
-    pigpen.functional.join-test/test-fold-count
-    pigpen.functional.join-test/test-fold-cogroup-dual
-    pigpen.functional.join-test/test-fold-all-sum
-    pigpen.functional.join-test/test-fold-all-count
-    pigpen.functional.join-test/test-fold-all-empty
-    pigpen.functional.join-test/test-cogroup-self-join+fold
-    pigpen.functional.map-test/test-map+fold1
-    pigpen.functional.map-test/test-map+fold2
-    })
+        file))))
