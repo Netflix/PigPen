@@ -16,22 +16,23 @@
 ;;
 ;;
 
-(ns pigpen.local.functional-test
+(ns pigpen.rx.functional-test
   (:require [clojure.test :refer [run-tests]]
             [pigpen.functional-test :as t :refer [TestHarness]]
             [pigpen.functional-suite :refer [def-functional-tests]]
-            [pigpen.core :as pig]))
+            [pigpen.core :as pig]
+            [pigpen.rx.core :as rx]))
 
-(def prefix "build/functional/local/")
+(def prefix "build/functional/rx/")
 
 (.mkdirs (java.io.File. prefix))
 
-(def-functional-tests "local"
+(def-functional-tests "rx"
   (reify TestHarness
     (data [this data]
       (pig/return data))
     (dump [this command]
-      (pig/dump command))
+      (rx/dump command))
     (file [this]
       (str prefix (gensym)))
     (read [this file]

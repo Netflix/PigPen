@@ -1,6 +1,7 @@
 dependencies {
 	compile project(':pigpen')
 	compile project(':pigpen-pig')
+	testCompile project(':pigpen-tests')
 
     provided 'org.clojure:clojure:1.6.0'
 

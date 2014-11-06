@@ -16,10 +16,12 @@
 ;;
 ;;
 
-(ns pigpen.rx.extensions.core
+(ns pigpen.rx.extensions
   (:require [clojure.set :as set]
             [rx.lang.clojure.core :as rx])
   (:import [rx Subscriber Subscription]))
+
+(require '[pigpen.extensions.test :refer [debug]])
 
 (set! *warn-on-reflection* true)
 
@@ -92,3 +94,6 @@
       (fn []
         (let [id (gensym)]
           (:current (swap! children add-observable id (observable id))))))))
+
+(defn multicast->observable [multicast-o]
+  (multicast-o))

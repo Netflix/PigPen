@@ -22,6 +22,17 @@
             [pigpen.set :as pig-set]
             [pigpen.fold :as fold]))
 
+(t/deftest test-distinct
+  "normal distinct"
+  [harness]
+  (test-diff
+    (->>
+      (t/data harness [5 1 2 3 4 3 2 1 5])
+      (pig-set/distinct)
+      (t/dump harness)
+      (sort))
+    '[1 2 3 4 5]))
+
 (t/deftest test-concat
   "normal concat"
   [harness]

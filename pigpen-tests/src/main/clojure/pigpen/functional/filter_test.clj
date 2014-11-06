@@ -17,7 +17,8 @@
 ;;
 
 (ns pigpen.functional.filter-test
-  (:require [pigpen.functional-test :as t]
+  (:require [clojure.test :refer [is]]
+            [pigpen.functional-test :as t]
             [pigpen.extensions.test :refer [test-diff]]
             [pigpen.filter :as pig-filter]
             [pigpen.fold :as fold]))
@@ -42,6 +43,22 @@
       (t/dump harness))
     '[2]))
 
-;; TODO test-distinct
-;; TODO test-take
-;; TODO test-sample
+(t/deftest test-take
+  "normal take"
+  [harness]
+  (test-diff
+    (->>
+      (t/data harness (range 10))
+      (pig-filter/take 5)
+      (t/dump harness))
+    '[0 1 2 3 4]))
+
+(t/deftest test-sample
+  "normal sample"
+  [harness]
+  (let [result (->>
+                 (t/data harness (repeat 1000 {:x 1, :y 2}))
+                 (pig-filter/sample 0.5)
+                 (t/dump harness)
+                 count)]
+    (is (< 400 result 600))))
