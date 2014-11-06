@@ -259,3 +259,9 @@
 (defmethod graph->observable :union
   [data _]
   (apply rx/merge data))
+
+;; ********** Script **********
+
+(defmethod graph->observable :script
+  [data _]
+  (apply rx/merge (vec data)))

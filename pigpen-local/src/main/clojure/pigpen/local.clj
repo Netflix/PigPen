@@ -353,3 +353,9 @@
 (defmethod graph->local :union
   [data _]
   (apply concat data))
+
+;; ********** Script **********
+
+(defmethod graph->local :script
+  [data _]
+  (apply concat data))
