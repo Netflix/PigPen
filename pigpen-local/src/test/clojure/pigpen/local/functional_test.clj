@@ -50,23 +50,6 @@
     pigpen.functional.join-test/test-fold-all-count
     pigpen.functional.join-test/test-fold-all-empty
     pigpen.functional.join-test/test-cogroup-self-join+fold
-    pigpen.functional.join-test/test-join-inner-implicit
-    pigpen.functional.join-test/test-join-inner
-    pigpen.functional.join-test/test-join-left-outer
-    pigpen.functional.join-test/test-join-right-outer
-    pigpen.functional.join-test/test-join-full-outer
-    pigpen.functional.join-test/test-join-inner-join-nils
-    pigpen.functional.join-test/test-join-left-outer-join-nils
-    pigpen.functional.join-test/test-join-right-outer-join-nils
-    pigpen.functional.join-test/test-join-full-outer-join-nils
-    pigpen.functional.join-test/test-join-self-join
-    pigpen.functional.join-test/test-join-default-key-selector
-    pigpen.functional.join-test/test-filter-by
-    pigpen.functional.join-test/test-filter-by-nil-keys
-    pigpen.functional.join-test/test-filter-by-duplicate-keys
-    pigpen.functional.join-test/test-remove-by
-    pigpen.functional.join-test/test-remove-by-nil-keys
-    pigpen.functional.join-test/test-remove-by-duplicate-keys
     pigpen.functional.map-test/test-map+fold1
     pigpen.functional.map-test/test-map+fold2
     })

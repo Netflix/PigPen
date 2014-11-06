@@ -214,6 +214,42 @@
     (graph->observable-group-all data command)
     (graph->observable-group data command)))
 
+(defmethod graph->observable :join
+  [data {:keys [ancestors keys join-types fields]}]
+  (->>
+    (zipv [a ancestors
+           [k] keys
+           d data]
+      (->> d
+        (rx/map (fn [values]
+                  ;; This selects all of the fields that are in this relation
+                  {:values (into {} (for [[[r v] :as f] fields
+                                          :when (= r a)]
+                                      [f (values v)]))
+                   ;; This is to emulate the way pig handles nils
+                   ;; This changes a nil values into a relation specific nil value
+                   :key (or (values k) (keyword (name a) "nil"))
+                   :relation a}))))
+    (apply rx/merge)
+    (rx/group-by :key)
+    (rx/flatmap (fn [[_ key-group]]
+                  (->> key-group
+                    (rx/group-by :relation)
+                    (rx/flatmap (fn [[relation relation-grouping-o]]
+                                  (->> relation-grouping-o
+                                    (rx/into [])
+                                    (rx/map (fn [relation-grouping]
+                                              [relation (map :values relation-grouping)])))))
+                    (rx/into (->>
+                               ;; This seeds the inner/outer joins, by placing a
+                               ;; defualt empty value for inner joins
+                               (zipmap ancestors join-types)
+                               (filter (fn [[_ j]] (= j :required)))
+                               (map (fn [[a _]] [a []]))
+                               (into {})))
+                    (rx/flatmap (fn [relation-grouping]
+                                  (rx/seq->o (local/cross-product (vals relation-grouping))))))))))
+
 ;; ********** Set **********
 
 (defmethod graph->observable :distinct

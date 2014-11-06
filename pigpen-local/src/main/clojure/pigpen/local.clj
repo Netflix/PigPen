@@ -305,10 +305,44 @@
     (vector)
     (filter next)))
 
-(defmethod graph->local :group [data {:keys [keys] :as command}]
+(defmethod graph->local :group
+  [data {:keys [keys] :as command}]
   (if (= keys [:pigpen.raw/group-all])
     (graph->local-group-all data command)
     (graph->local-group data command)))
+
+(defmethod graph->local :join
+  [data {:keys [ancestors keys join-types fields]}]
+  (->>
+    (zipv [a ancestors
+           [k] keys
+           d data]
+      (for [values d]
+        ;; This selects all of the fields that are in this relation
+        {:values (into {} (for [[[r v] :as f] fields
+                                :when (= r a)]
+                            [f (values v)]))
+         ;; This is to emulate the way pig handles nils
+         ;; This changes a nil values into a relation specific nil value
+         :key (or (values k) (keyword (name a) "nil"))
+         :relation a}))
+    (apply concat)
+    (group-by :key)
+    (mapcat (fn [[_ key-group]]
+              (->> key-group
+                (group-by :relation)
+                (map (fn [[relation relation-grouping]]
+                       [relation (map :values relation-grouping)]))
+                (into  (->>
+                         ;; This seeds the inner/outer joins, by placing a
+                         ;; defualt empty value for inner joins
+                         (zipmap ancestors join-types)
+                         (filter (fn [[_ j]] (= j :required)))
+                         (map (fn [[a _]] [a []]))
+                         (into {})))
+                (vector)
+                (mapcat (fn [relation-grouping]
+                          (cross-product (vals relation-grouping)))))))))
 
 ;; ********** Set **********
 
