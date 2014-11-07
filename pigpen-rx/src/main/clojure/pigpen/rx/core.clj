@@ -21,6 +21,7 @@
             [pigpen.local :as local]
             [pigpen.oven :as oven]
             [clojure.java.io :as io]
+            [clojure.core.reducers :as reducers]
             [rx.lang.clojure.core :as rx]
             [rx.lang.clojure.interop :as rx-interop]
             [rx.lang.clojure.blocking :as rx-blocking]
@@ -45,6 +46,14 @@
       (if (next args)
         args
         (first args)))))
+
+(defmethod local/eval-func :algebraic
+  [_ {:keys [pre combinef reducef post]} [values]]
+  (->> values
+    (mapv local/remove-sentinel-nil)
+    pre
+    (reducers/fold combinef reducef)
+    post))
 
 (defmulti graph->observable (fn [data command] (:type command)))
 
