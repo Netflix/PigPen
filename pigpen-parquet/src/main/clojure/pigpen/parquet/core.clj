@@ -18,7 +18,7 @@
 
 (ns pigpen.parquet.core
   (:require [pigpen.raw :as raw]
-            [pigpen.pig-rx]
+            [pigpen.local]
             [pigpen.script]
             [pigpen.hadoop.local :as hadoop]
             [pigpen.pig.local :as pig-local])
@@ -62,7 +62,7 @@ parquet column names.
       (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig.runtime/native->clojure))
                  {:args (clojure.core/mapcat (juxt str identity) fields), :field-type-in :native}))))
 
-(defmethod pigpen.pig-rx/load :parquet
+(defmethod pigpen.local/load :parquet
   [{:keys [location fields storage]}]
   (let [schema (first (:args storage))]
     (LoadFuncLoader. (ParquetLoader. schema) {} location fields)))
@@ -95,7 +95,7 @@ with keywords matching the parquet columns to be stored.
       (raw/generate$ (map-indexed raw/projection-field$ fields) {:field-type :native})
       (raw/store$ location :parquet {:schema schema}))))
 
-(defmethod pigpen.pig-rx/store :parquet
+(defmethod pigpen.local/store :parquet
   [{:keys [location fields opts]}]
   (let [schema (schema->pig-schema (:schema opts))]
     (StoreFuncStorage. (ParquetStorer.) schema location fields)))
