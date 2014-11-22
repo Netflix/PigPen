@@ -88,13 +88,13 @@
     pigpen.functional.map-test/test-map
     pigpen.functional.map-test/test-mapcat
     pigpen.functional.set-test/test-distinct
+    pigpen.functional.filter-test/test-take
 
     ;; In progress
-    ;pigpen.functional.filter-test/test-take
+    ;pigpen.functional.filter-test/test-sample
 
     ;; Not working
     pigpen.functional.code-test/test-for
-    pigpen.functional.filter-test/test-sample
     pigpen.functional.fold-test/test-vec
     pigpen.functional.fold-test/test-map
     pigpen.functional.fold-test/test-mapcat

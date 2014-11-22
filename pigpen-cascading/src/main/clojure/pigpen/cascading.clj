@@ -9,7 +9,7 @@
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
            (org.apache.hadoop.io BytesWritable)
            (cascading.pipe.assembly Unique)
-           (cascading.operation.filter Limit))
+           (cascading.operation.filter Limit Sample))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -150,6 +150,12 @@
   {:pre [id n (= 1 (count ancestors))]}
   (let [pipe ((:pipes flowdef) (first ancestors))]
     (update-in flowdef [:pipes] (partial merge {id (Each. pipe (Limit. n))}))))
+
+(defmethod command->flowdef :sample
+  [{:keys [id p ancestors]} flowdef]
+  {:pre [id p (= 1 (count ancestors))]}
+  (let [pipe ((:pipes flowdef) (first ancestors))]
+    (update-in flowdef [:pipes] (partial merge {id (Each. pipe (Sample. p))}))))
 
 (defmethod command->flowdef :script
   [_ flowdef]
