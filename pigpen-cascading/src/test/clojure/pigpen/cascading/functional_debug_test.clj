@@ -17,6 +17,8 @@
 ;;
 
 (ns pigpen.cascading.functional-debug-test
+  (:import (org.apache.hadoop.fs FileSystem Path)
+           (org.apache.hadoop.conf Configuration))
   (:require [clojure.test :refer [run-tests]]
             [pigpen.functional-test :as t :refer [TestHarness]]
             [pigpen.functional-suite :refer [def-functional-tests]]
@@ -24,8 +26,9 @@
             [pigpen.extensions.io :as io]
             [pigpen.cascading.core :as cascading]))
 
-(def prefix "build/functional/cascading/")
+(def prefix "/tmp/pigpen/cascading/")
 
+(.delete (FileSystem/get (Configuration.)) (Path. prefix) true)
 (.mkdirs (java.io.File. prefix))
 
 (defn run-flow [command]
@@ -87,15 +90,15 @@
     pigpen.functional.set-test/test-distinct
 
     ;; In progress
-    ;pigpen.functional.fold-test/test-filter
+    ;pigpen.functional.filter-test/test-take
 
     ;; Not working
     pigpen.functional.code-test/test-for
-    pigpen.functional.filter-test/test-take
     pigpen.functional.filter-test/test-sample
     pigpen.functional.fold-test/test-vec
     pigpen.functional.fold-test/test-map
     pigpen.functional.fold-test/test-mapcat
+    pigpen.functional.fold-test/test-filter
     pigpen.functional.fold-test/test-remove
     pigpen.functional.fold-test/test-keep
     pigpen.functional.fold-test/test-distinct
