@@ -8,7 +8,8 @@
            (cascading.operation Identity)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
            (org.apache.hadoop.io BytesWritable)
-           (cascading.pipe.assembly Unique))
+           (cascading.pipe.assembly Unique)
+           (cascading.operation.filter Limit))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -144,6 +145,12 @@
   (let [pipe ((:pipes flowdef) (first ancestors))]
     (update-in flowdef [:pipes] (partial merge {id (Unique. pipe Fields/ALL)}))))
 
+(defmethod command->flowdef :limit
+  [{:keys [id n ancestors]} flowdef]
+  {:pre [id n (= 1 (count ancestors))]}
+  (let [pipe ((:pipes flowdef) (first ancestors))]
+    (update-in flowdef [:pipes] (partial merge {id (Each. pipe (Limit. n))}))))
+
 (defmethod command->flowdef :script
   [_ flowdef]
   ; No-op, since the flowdef already contains everything needed to handle multiple outputs.
@@ -172,6 +179,7 @@
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
   [commands]
+  (clojure.pprint/pprint commands)
   (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} (preprocess-commands commands))
         {:keys [sources pipe-to-sink sinks pipes]} flowdef
         sources-map (into {} (map (fn [s] [(str s) (sources s)]) (keys sources)))
