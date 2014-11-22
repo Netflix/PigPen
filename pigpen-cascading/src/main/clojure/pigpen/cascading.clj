@@ -9,7 +9,7 @@
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
            (org.apache.hadoop.io BytesWritable)
            (cascading.pipe.assembly Unique)
-           (cascading.operation.filter Limit Sample))
+           (cascading.operation.filter Limit Sample FilterNull))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -32,18 +32,18 @@
 (defn load-tsv
   ([location] (load-tsv location "\t"))
   ([location delimiter]
-   (-> (load-text location)
-       (raw/bind$
-         `(rt/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
-         {:args          '[offset line]
-          :field-type-in :native}))))
+    (-> (load-text location)
+        (raw/bind$
+          `(rt/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
+          {:args          '[offset line]
+           :field-type-in :native}))))
 
 (defn load-clj [location]
   (-> (load-text location)
       (raw/bind$ '[clojure.edn]
-        `(rt/map->bind (fn [~'offset ~'line] (clojure.edn/read-string ~'line)))
-        {:args          '[offset line]
-         :field-type-in :native})))
+                 `(rt/map->bind (fn [~'offset ~'line] (clojure.edn/read-string ~'line)))
+                 {:args          '[offset line]
+                  :field-type-in :native})))
 
 ;; ******* Commands ********
 
@@ -86,7 +86,7 @@
     (if-not (nil? group-info)
       (let [buffer ({:group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
                      :join  (JoinBuffer. (str init) (str func) fields)}
-                    (:type group-info))]
+                     (:type group-info))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
 
@@ -100,12 +100,21 @@
                                                            (BufferJoin.))})))
 
 (defmethod command->flowdef :join
-  [{:keys [id keys fields join-types ancestors]} flowdef]
-  {:pre [id keys fields join-types ancestors]}
-  (let [joiner ({[:required :required] (InnerJoin.)
+  [{:keys [id keys fields join-types ancestors opts]} flowdef]
+  {:pre [id keys fields join-types ancestors opts]}
+  (let [join-nils (:join-nils opts)
+        joiner ({[:required :required] (InnerJoin.)
                  [:required :optional] (LeftJoin.)
                  [:optional :required] (RightJoin.)
-                 [:optional :optional] (OuterJoin.)} join-types)]
+                 [:optional :optional] (OuterJoin.)} join-types)
+        flowdef (if join-nils
+                  ; cascading includes nils in joins, no need to do anything.
+                  flowdef
+
+                  ; Add a FilterNull to each pipe before the join
+                  (let [key-pipe (map vector keys ancestors)]
+                    (reduce (fn [fd [key pipe]] (update-in fd [:pipes pipe] #(Each. % (Fields. (into-array (map str key))) (FilterNull.))))
+                            flowdef key-pipe)))]
     (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
                                                              (into-array Pipe (map (:pipes flowdef) ancestors))
                                                              (into-array (map #(Fields. (into-array (map str %))) keys))
@@ -197,6 +206,6 @@
   "Transforms the relation specified into a Cascading flow that is ready to be executed."
   ([query] (generate-flow {} query))
   ([opts query]
-   (-> query
-     (oven/bake :cascading {} opts)
-     commands->flow)))
+    (-> query
+        (oven/bake :cascading {} opts)
+        commands->flow)))

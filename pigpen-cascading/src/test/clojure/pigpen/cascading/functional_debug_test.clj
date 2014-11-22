@@ -89,11 +89,21 @@
     pigpen.functional.map-test/test-mapcat
     pigpen.functional.set-test/test-distinct
     pigpen.functional.filter-test/test-take
+    pigpen.functional.filter-test/test-sample
 
     ;; In progress
-    ;pigpen.functional.filter-test/test-sample
+    ;pigpen.functional.join-test/test-join-inner
 
     ;; Not working
+    pigpen.functional.join-test/test-join-inner-implicit
+    pigpen.functional.join-test/test-join-left-outer
+    pigpen.functional.join-test/test-join-right-outer
+    pigpen.functional.join-test/test-join-full-outer
+    pigpen.functional.join-test/test-join-self-join
+    pigpen.functional.join-test/test-remove-by
+    pigpen.functional.join-test/test-remove-by-nil-keys
+    pigpen.functional.join-test/test-remove-by-duplicate-keys
+
     pigpen.functional.code-test/test-for
     pigpen.functional.fold-test/test-vec
     pigpen.functional.fold-test/test-map
@@ -159,15 +169,6 @@
     pigpen.functional.join-test/test-cogroup-full-outer-join-nils
     pigpen.functional.join-test/test-cogroup-self-join
     pigpen.functional.join-test/test-cogroup-self-join+fold
-    pigpen.functional.join-test/test-join-inner-implicit
-    pigpen.functional.join-test/test-join-inner
-    pigpen.functional.join-test/test-join-left-outer
-    pigpen.functional.join-test/test-join-right-outer
-    pigpen.functional.join-test/test-join-full-outer
-    pigpen.functional.join-test/test-join-self-join
-    pigpen.functional.join-test/test-remove-by
-    pigpen.functional.join-test/test-remove-by-nil-keys
-    pigpen.functional.join-test/test-remove-by-duplicate-keys
     pigpen.functional.map-test/test-map-indexed
     pigpen.functional.map-test/test-map-indexed+sort
     pigpen.functional.map-test/test-sort
