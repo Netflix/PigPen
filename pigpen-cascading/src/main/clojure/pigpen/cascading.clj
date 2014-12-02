@@ -9,7 +9,8 @@
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
            (org.apache.hadoop.io BytesWritable)
            (cascading.pipe.assembly Unique)
-           (cascading.operation.filter Limit Sample FilterNull))
+           (cascading.operation.filter Limit Sample FilterNull)
+           (cascading.util NullNotEquivalentComparator))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -103,21 +104,17 @@
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors opts]}
   (let [join-nils (:join-nils opts)
-        joiner ({[:required :required] (InnerJoin.)
+        joiner (case join-types
+                 [:required :required] (InnerJoin.)
                  [:required :optional] (LeftJoin.)
                  [:optional :required] (RightJoin.)
-                 [:optional :optional] (OuterJoin.)} join-types)
-        flowdef (if join-nils
-                  ; cascading includes nils in joins, no need to do anything.
-                  flowdef
-
-                  ; Add a FilterNull to each pipe before the join
-                  (let [key-pipe (map vector keys ancestors)]
-                    (reduce (fn [fd [key pipe]] (update-in fd [:pipes pipe] #(Each. % (Fields. (into-array (map str key))) (FilterNull.))))
-                            flowdef key-pipe)))]
+                 [:optional :optional] (OuterJoin.))
+        fields (Fields. (into-array (map str fields)))]
     (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
                                                              (into-array Pipe (map (:pipes flowdef) ancestors))
-                                                             (into-array (map #(Fields. (into-array (map str %))) keys))
+                                                             (into-array (map #(let [f (Fields. (into-array (map str %)))]
+                                                                                (when-not join-nils (.setComparator f (str (first %)) (NullNotEquivalentComparator.)))
+                                                                                f) keys))
                                                              (Fields. (into-array (map str fields)))
                                                              joiner)}))))
 
