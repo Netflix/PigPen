@@ -7,9 +7,8 @@
            (cascading.tuple Fields)
            (cascading.operation Identity)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
-           (org.apache.hadoop.io BytesWritable)
            (cascading.pipe.assembly Unique)
-           (cascading.operation.filter Limit Sample FilterNull)
+           (cascading.operation.filter Limit Sample)
            (cascading.util NullNotEquivalentComparator))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
@@ -85,9 +84,9 @@
                               :else (recur (first (.getPrevious %))))
         group-info (get-group-info (get-in flowdef [:pipes pipe]))]
     (if-not (nil? group-info)
-      (let [buffer ({:group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
-                     :join  (JoinBuffer. (str init) (str func) fields)}
-                     (:type group-info))]
+      (let [buffer (case (:type group-info)
+                     :group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
+                     :join (JoinBuffer. (str init) (str func) fields))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
 
@@ -108,10 +107,13 @@
                  [:required :required] (InnerJoin.)
                  [:required :optional] (LeftJoin.)
                  [:optional :required] (RightJoin.)
-                 [:optional :optional] (OuterJoin.))
-        fields (Fields. (into-array (map str fields)))]
+                 [:optional :optional] (OuterJoin.))]
     (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
-                                                             (into-array Pipe (map (:pipes flowdef) ancestors))
+                                                             ;; TODO: adding an Each with Identity here is a hack around a possible bug in Cascading involving self-joins.
+                                                             (into-array Pipe (map-indexed (fn [i a] (let [p ((:pipes flowdef) a)
+                                                                                                           p (Pipe. (str (nth fields (* i 2))) p)
+                                                                                                           p (Each. p (Identity.))]
+                                                                                                       p)) ancestors))
                                                              (into-array (map #(let [f (Fields. (into-array (map str %)))]
                                                                                 (when-not join-nils (.setComparator f (str (first %)) (NullNotEquivalentComparator.)))
                                                                                 f) keys))
@@ -174,24 +176,27 @@
 
 (defn preprocess-commands [commands]
   (let [is-field-projection #(= :projection-field (get-in % [:projections 0 :type]))
-        ancestors-map (->> commands
-                           (filter is-field-projection)
-                           (map (fn [c] [(:id c) (first (:ancestors c))]))
-                           (into {}))]
+        fp-by-key (fn [key-fn] (->> commands
+                                    (filter is-field-projection)
+                                    (map (fn [c] [(key-fn c) c]))
+                                    (into {})))
+        fp-by-ancestor (fp-by-key #(first (:ancestors %)))
+        fp-by-id (fp-by-key :id)]
     (->> commands
-         (map-indexed (fn [i c]
-                        (let [c (if (is-field-projection (get commands (+ i 1)))
-                                  (assoc c :field-projections (get-in (get commands (+ i 1)) [:projections]))
-                                  c)]
-                          (update-in c [:ancestors] (fn [a] (map #(if (contains? ancestors-map %)
-                                                                   (ancestors-map %)
-                                                                   %) a))))))
+         (map (fn [c]
+                (let [fp (fp-by-ancestor (:id c))
+                      c (if fp
+                          (assoc c :field-projections (:projections fp))
+                          c)]
+                  (update-in c [:ancestors] (fn [a] (map #(if (fp-by-id %)
+                                                           (first (:ancestors (fp-by-id %)))
+                                                           %) a))))))
          (remove is-field-projection))))
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
   [commands]
-  (clojure.pprint/pprint commands)
+  (clojure.pprint/pprint (preprocess-commands commands))
   (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} (preprocess-commands commands))
         {:keys [sources pipe-to-sink sinks pipes]} flowdef
         sources-map (into {} (map (fn [s] [(str s) (sources s)]) (keys sources)))

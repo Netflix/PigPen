@@ -95,12 +95,12 @@
     pigpen.functional.join-test/test-join-inner-implicit
     pigpen.functional.join-test/test-join-right-outer
     pigpen.functional.join-test/test-join-full-outer
+    pigpen.functional.join-test/test-join-self-join
 
     ;; In progress
-    ;pigpen.functional.join-test/test-join-self-join
+    ;pigpen.functional.join-test/test-remove-by
 
     ;; Not working
-    pigpen.functional.join-test/test-remove-by
     pigpen.functional.join-test/test-remove-by-nil-keys
     pigpen.functional.join-test/test-remove-by-duplicate-keys
     pigpen.functional.code-test/test-for
