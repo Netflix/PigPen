@@ -16,17 +16,19 @@
 
 (defn emit-group-buffer-tuples
   "Emit the results from a GroupBuffer."
-  [f key iterators ^TupleEntryCollector collector]
-  (let [result (f (concat [key] (map iterator-seq iterators)))]
+  [f key iterators ^TupleEntryCollector collector group-all]
+  (let [result (if group-all (f [(iterator-seq (first iterators))])
+                             (f (concat [key] (map iterator-seq iterators))))]
     (emit-tuples result collector)))
 
 (defn emit-join-buffer-tuples
   "Emit the results from a JoinBuffer."
-  [f iterator ^TupleEntryCollector collector]
+  [f iterator ^TupleEntryCollector collector all-args]
   (doseq [^TupleEntry t (iterator-seq iterator)]
-    ; The incoming tuple contains <key1, value1, key2, value2>. The function only cares about the values, hence
-    ; the indices are 1 and 3
-    (let [result (f [(.getObject t 1) (.getObject t 3)])]
+    ; The incoming tuple contains <key1, value1, key2, value2>. Unless all-args is true, the function only
+    ; cares about the values, hence the indices are 1 and 3
+    (let [result (f (if all-args (.getTuple t)
+                                 [(.getObject t 1) (.getObject t 3)]))]
       (emit-tuples result collector))))
 
 (defn emit-function-tuples
@@ -58,7 +60,7 @@
   (-> value (OperationUtil/getBytes) thaw))
 
 (defmethod hybrid->clojure ISeq [^ISeq value]
-  (mapv hybrid->clojure value))
+  (map hybrid->clojure value))
 
 ;; ******* Serialization ********
 (defn ^:private cs-freeze [value]
@@ -70,7 +72,7 @@
 (defmethod pigpen.runtime/pre-process [:cascading :frozen]
   [_ _]
   (fn [args]
-    (mapv hybrid->clojure args)))
+    (map hybrid->clojure args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :native]
   [_ _]
@@ -79,12 +81,12 @@
 (defmethod pigpen.runtime/post-process [:cascading :frozen]
   [_ _]
   (fn [args]
-    (mapv cs-freeze args)))
+    (map cs-freeze args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :frozen-with-nils]
   [_ _]
   (fn [args]
-    (mapv cs-freeze-with-nils args)))
+    (map cs-freeze-with-nils args)))
 
 (defmethod pigpen.runtime/post-process [:cascading :native-key-frozen-val]
   [_ _]

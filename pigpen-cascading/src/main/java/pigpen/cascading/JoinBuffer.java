@@ -1,10 +1,8 @@
 package pigpen.cascading;
 
-import java.util.Arrays;
 import java.util.Iterator;
 
 import clojure.lang.IFn;
-import clojure.lang.LazySeq;
 import clojure.lang.RT;
 import clojure.lang.Var;
 
@@ -20,11 +18,13 @@ public class JoinBuffer extends BaseOperation implements Buffer {
 
   private final String init;
   private final String func;
+  private final boolean allArgs;
 
-  public JoinBuffer(String init, String func, Fields fields) {
+  public JoinBuffer(String init, String func, Fields fields, boolean allArgs) {
     super(fields);
     this.init = init;
     this.func = func;
+    this.allArgs = allArgs;
   }
 
   @Override
@@ -40,6 +40,6 @@ public class JoinBuffer extends BaseOperation implements Buffer {
     IFn fn = (IFn)bufferCall.getContext();
     Iterator<TupleEntry> iterator = bufferCall.getArgumentsIterator();
     Var emitFn = RT.var("pigpen.cascading.runtime", "emit-join-buffer-tuples");
-    emitFn.invoke(fn, iterator, bufferCall.getOutputCollector());
+    emitFn.invoke(fn, iterator, bufferCall.getOutputCollector(), allArgs);
   }
 }

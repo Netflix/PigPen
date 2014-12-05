@@ -47,12 +47,14 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   private final String init;
   private final String func;
   private final int numIterators;
+  private final boolean groupAll;
 
-  public GroupBuffer(String init, String func, Fields fields, int numIterators) {
+  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll) {
     super(fields);
     this.init = init;
     this.func = func;
     this.numIterators = numIterators;
+    this.groupAll = groupAll;
   }
 
   @Override
@@ -69,7 +71,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     Object group = bufferCall.getGroup().getObject(0);
     JoinerClosure joinerClosure = bufferCall.getJoinerClosure();
     Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
-    emitFn.invoke(fn, group, getIterators(joinerClosure), bufferCall.getOutputCollector());
+    emitFn.invoke(fn, group, getIterators(joinerClosure), bufferCall.getOutputCollector(), groupAll);
   }
 
   private List<Iterator> getIterators(JoinerClosure joinerClosure) {

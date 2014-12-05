@@ -1,6 +1,6 @@
 dependencies {
 
-    provided 'org.clojure:clojure:1.6.0'
+    compile 'org.clojure:clojure:1.6.0'
     compile 'org.clojure:data.json:0.2.5'
     compile 'org.clojure:core.async:0.1.267.0-0d7780-alpha'
     compile 'com.taoensso:nippy:2.6.3'
