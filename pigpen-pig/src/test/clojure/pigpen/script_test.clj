@@ -199,24 +199,9 @@ generate0 = FOREACH relation0 GENERATE
 ;; ********** Filter **********
 
 (deftest test-filter
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (is (= "DEFINE udf1 pigpen.PigPenFnBoolean('','(fn [x] (even? x))');
-
-filter0 = FILTER relation0 BY udf1('a', a);\n\n"
-           (command->script '{:type :filter
-                              :id filter0
-                              :ancestors [relation0]
-                              :code {:type :code
-                                     :expr {:init nil
-                                            :func (fn [x] (even? x))}
-                                     :udf :boolean
-                                     :args ["a" a]}}
-                            {})))))
-
-(deftest test-filter-native
   (is (= "filter_native0 = FILTER relation0 BY ((foo == 1) AND (bar > 2));\n\n"
-         (command->script '{:type :filter-native
-                            :id filter-native0
+         (command->script '{:type :filter
+                            :id filter0
                             :ancestors [relation0]
                             :expr '(and (= foo 1) (> bar 2))}
                           {}))))

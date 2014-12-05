@@ -29,7 +29,7 @@
         :id load1
         :description "foo"
         :location "foo"
-        :fields [value]
+        :fields [load1/value]
         :field-type :native
         :storage :binary
         :opts {:type :load-opts}})))
@@ -42,9 +42,9 @@
         :id bind2
         :description nil
         :func (pigpen.runtime/map->bind clojure.core/identity)
-        :args [value]
+        :args [load1/value]
         :requires []
-        :fields [value]
+        :fields [bind2/value]
         :field-type-in :native
         :field-type-out :frozen
         :opts {:type :bind-opts}
@@ -52,7 +52,7 @@
                      :id load1
                      :description "foo"
                      :location "foo"
-                     :fields [value]
+                     :fields [load1/value]
                      :field-type :native
                      :storage :string
                      :opts {:type :load-opts}}]})))
@@ -65,9 +65,9 @@
         :id bind2
         :description nil
         :func (pigpen.runtime/map->bind (clojure.core/fn [s] (if s (pigpen.extensions.core/structured-split s "\t"))))
-        :args [value]
+        :args [load1/value]
         :requires [pigpen.extensions.core]
-        :fields [value]
+        :fields [bind2/value]
         :field-type-in :native
         :field-type-out :frozen
         :opts {:type :bind-opts}
@@ -75,7 +75,7 @@
                      :id load1
                      :description "foo"
                      :location "foo"
-                     :fields [value]
+                     :fields [load1/value]
                      :field-type :native
                      :storage :string
                      :opts {:type :load-opts}}]})))
@@ -88,9 +88,9 @@
         :id bind2
         :description nil
         :func (pigpen.runtime/map->bind clojure.edn/read-string)
-        :args [value]
+        :args [load1/value]
         :requires [clojure.edn]
-        :fields [value]
+        :fields [bind2/value]
         :field-type-in :native
         :field-type-out :frozen
         :opts {:type :bind-opts}
@@ -98,7 +98,7 @@
                      :id load1
                      :description "foo"
                      :location "foo"
-                     :fields [value]
+                     :fields [load1/value]
                      :field-type :native
                      :storage :string
                      :opts {:type :load-opts}}]})))
@@ -115,9 +115,9 @@
                   (clojure.data.json/read-str s
                                               :key-fn (pigpen.runtime/with-ns pigpen.io-test
                                                         clojure.core/keyword))))
-        :args [value]
+        :args [load1/value]
         :requires [clojure.data.json]
-        :fields [value]
+        :fields [bind2/value]
         :field-type-in :native
         :field-type-out :frozen
         :opts {:type :bind-opts}
@@ -125,7 +125,7 @@
                      :id load1
                      :description "foo"
                      :location "foo"
-                     :fields [value]
+                     :fields [load1/value]
                      :field-type :native
                      :storage :string
                      :opts {:type :load-opts}}]})))
@@ -138,9 +138,9 @@
        :id bind2
        :description nil
        :func (pigpen.runtime/map->bind (clojure.core/fn [s] (pigpen.extensions.core/lazy-split s "\t")))
-       :args [value]
+       :args [load1/value]
        :requires [pigpen.extensions.core]
-       :fields [value]
+       :fields [bind2/value]
        :field-type-in :native
        :field-type-out :frozen
        :opts {:type :bind-opts}
@@ -148,7 +148,7 @@
                     :id load1
                     :description "foo"
                     :location "foo"
-                    :fields [value]
+                    :fields [load1/value]
                     :field-type :native
                     :storage :string
                     :opts {:type :load-opts}}]})))
@@ -156,35 +156,35 @@
 (deftest test-store-binary
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (io/store-binary "foo" {:fields '[value]})
+      (io/store-binary "foo" {:fields '[r0/value]})
       '{:type :store
         :id store1
         :description "foo"
         :location "foo"
-        :ancestors [{:fields [value]}]
-        :fields [value]
+        :ancestors [{:fields [r0/value]}]
+        :fields [store1/value]
         :opts {:type :store-opts}
         :storage :binary})))
 
 (deftest test-store-string
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (io/store-string "foo" {:fields '[value]})
+      (io/store-string "foo" {:fields '[r0/value]})
       '{:type :store
         :id store2
         :description "foo"
         :location "foo"
-        :fields [value]
+        :fields [store2/value]
         :opts {:type :store-opts}
         :storage :string
         :ancestors [{:type :bind
                      :id bind1
                      :description nil
-                     :ancestors [{:fields [value]}]
+                     :ancestors [{:fields [r0/value]}]
                      :func (pigpen.runtime/map->bind clojure.core/str)
-                     :args [value]
+                     :args [r0/value]
                      :requires []
-                     :fields [value]
+                     :fields [bind1/value]
                      :field-type-in :frozen
                      :field-type-out :native
                      :opts {:type :bind-opts}}]})))
@@ -192,22 +192,22 @@
 (deftest test-store-tsv
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (regex->string (io/store-tsv "foo" {:fields '[value]}))
+      (regex->string (io/store-tsv "foo" {:fields '[r0/value]}))
       '{:type :store
         :id store2
         :description "foo"
         :location "foo"
-        :fields [value]
+        :fields [store2/value]
         :opts {:type :store-opts}
         :storage :string
         :ancestors [{:type :bind
                      :id bind1
                      :description nil
-                     :ancestors [{:fields [value]}]
+                     :ancestors [{:fields [r0/value]}]
                      :func (pigpen.runtime/map->bind (clojure.core/fn [s] (clojure.string/join "\t" (clojure.core/map clojure.core/print-str s))))
-                     :args [value]
+                     :args [r0/value]
                      :requires []
-                     :fields [value]
+                     :fields [bind1/value]
                      :field-type-in :frozen
                      :field-type-out :native
                      :opts {:type :bind-opts}}]})))
@@ -215,22 +215,22 @@
 (deftest test-store-clj
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (io/store-clj "foo" {:fields '[value]})
+      (io/store-clj "foo" {:fields '[r0/value]})
       '{:type :store
         :id store2
         :description "foo"
         :location "foo"
-        :fields [value]
+        :fields [store2/value]
         :opts {:type :store-opts}
         :storage :string
         :ancestors [{:type :bind
                      :id bind1
                      :description nil
-                     :ancestors [{:fields [value]}]
+                     :ancestors [{:fields [r0/value]}]
                      :func (pigpen.runtime/map->bind clojure.core/pr-str)
-                     :args [value]
+                     :args [r0/value]
                      :requires []
-                     :fields [value]
+                     :fields [bind1/value]
                      :field-type-in :frozen
                      :field-type-out :native
                      :opts {:type :bind-opts}}]})))
@@ -238,24 +238,24 @@
 (deftest test-store-json
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (io/store-json "foo" {:fields '[value]})
+      (io/store-json "foo" {:fields '[r0/value]})
       '{:type :store
         :id store2
         :description "foo"
         :location "foo"
-        :fields [value]
+        :fields [store2/value]
         :opts {:type :store-opts}
         :storage :string
         :ancestors [{:type :bind
                      :id bind1
                      :description nil
-                     :ancestors [{:fields [value]}]
+                     :ancestors [{:fields [r0/value]}]
                      :func (pigpen.runtime/map->bind
                              (clojure.core/fn [s]
                                (clojure.data.json/write-str s)))
-                     :args [value]
+                     :args [r0/value]
                      :requires [clojure.data.json]
-                     :fields [value]
+                     :fields [bind1/value]
                      :field-type-in :frozen
                      :field-type-out :native
                      :opts {:type :bind-opts}}]})))
@@ -266,10 +266,10 @@
       (io/return [1 2 3])
       '{:type :return
         :id return0
-        :fields [value]
-        :data [{value 1}
-               {value 2}
-               {value 3}]})))
+        :fields [return0/value]
+        :data [{return0/value 1}
+               {return0/value 2}
+               {return0/value 3}]})))
 
 (deftest test-constantly
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
@@ -277,7 +277,7 @@
       ((io/constantly [1 2 3]))
       '{:type :return
         :id return0
-        :fields [value]
-        :data [{value 1}
-               {value 2}
-               {value 3}]})))
+        :fields [return0/value]
+        :data [{return0/value 1}
+               {return0/value 2}
+               {return0/value 3}]})))

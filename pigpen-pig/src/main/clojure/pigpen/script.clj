@@ -246,14 +246,6 @@ See pigpen.core and pigpen.pig
 ;; ********** Filter **********
 
 (defmethod command->script :filter
-  [{:keys [id ancestors code]} state]
-  {:pre [id ancestors code]}
-  (let [relation-id (escape-id (first ancestors))
-        pig-id (escape-id id)
-        [pig-define pig-code] (command->script code state)]
-    (str pig-define pig-id " = FILTER " relation-id " BY " pig-code ";\n\n")))
-
-(defmethod command->script :filter-native
   [{:keys [id ancestors expr]} state]
   {:pre [id ancestors]}
   (let [relation-id (escape-id (first ancestors))

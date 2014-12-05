@@ -44,12 +44,11 @@
   "Common base for most set operations"
   [f opts-relations]
   (let [[opts relations] (split-opts-relations opts-relations)
-        keys       (for [r relations] ['value])
-        values     (for [r relations] [[(:id r)] 'value])
-        join-types (for [r relations] :optional)]
+        fields     (mapcat :fields relations)
+        join-types (repeat (count relations) :optional)]
     (-> relations
-      (raw/group$ keys join-types opts)
-      (raw/bind$ '[pigpen.set] `(pigpen.runtime/mapcat->bind ~f) {:args values}))))
+      (raw/group$ fields join-types opts)
+      (raw/bind$ '[pigpen.set] `(pigpen.runtime/mapcat->bind ~f) {:args fields}))))
 
 (defn pig-intersection
   "Utility method used by #'pigpen.core/intersection"

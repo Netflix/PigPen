@@ -107,7 +107,7 @@
                     :storage :string
                     :opts {:type :load-opts
                            :filter (= foo 2)}}
-                   {:type :filter-native
+                   {:type :filter
                     :id load1
                     :description nil
                     :ancestors [load1_0]
@@ -115,7 +115,7 @@
                     :fields [foo]
                     :field-type :native
                     :args []
-                    :opts {:type :filter-native-opts}}]))))
+                    :opts {:type :filter-opts}}]))))
 
 (deftest test-clean
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

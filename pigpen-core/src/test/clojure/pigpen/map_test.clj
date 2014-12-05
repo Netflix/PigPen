@@ -24,144 +24,129 @@
 (deftest test-map
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [^:local r {:fields '[value]}
+    (let [^:local r1 {:fields '[r0/value]}
           bar 2
           baz (fn [v] v)]
-      
+
       (test-diff
-        (pig/map (fn [v] v) r)
+        (pig/map (fn [v] v) r1)
         '{:type :bind
           :id bind1
           :description "(fn [v] v)\n"
-          :ancestors [{:fields [value]}]
+          :ancestors [{:fields [r0/value]}]
           :func (pigpen.runtime/map->bind
                   (pigpen.runtime/with-ns pigpen.map-test
                     (clojure.core/let [bar (quote 2)]
                       (fn [v] v))))
-          :args [value]
+          :args [r0/value]
           :requires []
-          :fields [value]
+          :fields [bind1/value]
           :field-type-in :frozen
           :field-type-out :frozen
           :opts {:type :bind-opts}})
-      
-      (is (thrown? AssertionError (pig/map nil r)))
-      (is (thrown? clojure.lang.Compiler$CompilerException (pig/map foo r)))
-      (is (thrown? AssertionError (pig/map bar r)))
-      (is (thrown? clojure.lang.Compiler$CompilerException (pig/map baz r)))
-      (is (thrown? AssertionError (pig/map (fn [] 42) r)))
-      (is (thrown? AssertionError (pig/map #(vector %1 %2) r))))))
+
+      (is (thrown? AssertionError (pig/map nil r1)))
+      (is (thrown? clojure.lang.Compiler$CompilerException (pig/map foo r1)))
+      (is (thrown? AssertionError (pig/map bar r1)))
+      (is (thrown? clojure.lang.Compiler$CompilerException (pig/map baz r1)))
+      (is (thrown? AssertionError (pig/map (fn [] 42) r1)))
+      (is (thrown? AssertionError (pig/map #(vector %1 %2) r1))))))
 
 (deftest test-mapcat
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [^:local r {:fields '[value]}]
-      
+    (let [^:local r1 {:fields '[r0/value]}]
+
       (test-diff
-        (pig/mapcat (fn [v] [v]) r)
+        (pig/mapcat (fn [v] [v]) r1)
         '{:type :bind
           :id bind1
           :description "(fn [v] [v])\n"
-          :ancestors [{:fields [value]}]
+          :ancestors [{:fields [r0/value]}]
           :func (pigpen.runtime/mapcat->bind
                   (pigpen.runtime/with-ns pigpen.map-test
                     (fn [v] [v])))
-          :args [value]
+          :args [r0/value]
           :requires []
-          :fields [value]
+          :fields [bind1/value]
           :field-type-in :frozen
           :field-type-out :frozen
           :opts {:type :bind-opts}}))))
 
 (deftest test-map-indexed
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [^:local r {:fields '[value]}]
+    (let [^:local r0 {:fields '[r0/value]}]
       (test-diff
-        (pig/map-indexed vector r)
+        (pig/map-indexed vector r0)
         '{:type :bind
           :id bind2
           :description nil
           :func (pigpen.runtime/map->bind
                   (pigpen.runtime/with-ns pigpen.map-test
                     vector))
-          :args [$0 value]
+          :args [rank1/index rank1/value]
           :requires []
-          :fields [value]
+          :fields [bind2/value]
           :field-type-out :frozen
           :field-type-in :frozen
           :opts {:type :bind-opts}
           :ancestors [{:type :rank
                        :id rank1
                        :description "vector\n"
-                       :fields [value $0]
+                       :fields [rank1/index rank1/value]
                        :field-type :frozen
                        :opts {:type :rank-opts}
-                       :sort-keys []
-                       :ancestors [{:fields [value]}]}]}))))
+                       :ancestors [{:fields [r0/value]}]}]}))))
 
 (deftest test-sort
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [^:local r {:fields '[value]}]
+    (let [^:local r0 {:fields '[r0/value]}]
       (test-diff
-        (pig/sort r)
+        (pig/sort r0)
         '{:type :order
-          :id order3
+          :id order2
           :description nil
-          :fields [value]
+          :fields [order2/key order2/value]
           :field-type :frozen
           :opts {:type :order-opts}
-          :sort-keys [key :asc]
-          :ancestors [{:type :generate
-                       :id generate2
+          :key bind1/key
+          :comp :asc
+          :ancestors [{:type :bind
+                       :id bind1
                        :description nil
-                       :fields [key value]
-                       :field-type :frozen
-                       :opts {:type :generate-opts}
-                       :projections [{:type :projection-field, :field 0, :alias key}
-                                     {:type :projection-field, :field 1, :alias value}]
-                       :ancestors [{:type :bind
-                                    :id bind1
-                                    :description nil
-                                    :func (pigpen.runtime/key-selector->bind clojure.core/identity)
-                                    :args [value]
-                                    :requires []
-                                    :fields [value]
-                                    :field-type-in :frozen
-                                    :field-type-out :native-key-frozen-val
-                                    :ancestors [{:fields [value]}]
-                                    :opts {:type :bind-opts
-                                           :implicit-schema true}}]}]}))))
+                       :func (pigpen.runtime/key-selector->bind clojure.core/identity)
+                       :args [r0/value]
+                       :requires []
+                       :fields [bind1/key bind1/value]
+                       :field-type-in :frozen
+                       :field-type-out :native-key-frozen-val
+                       :ancestors [{:fields [r0/value]}]
+                       :opts {:type :bind-opts
+                              :implicit-schema true}}]}))))
 
 (deftest test-sort-by
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [^:local r {:fields '[value]}]
+    (let [^:local r0 {:fields '[r0/value]}]
       (test-diff
-        (pig/sort-by :a r)
+        (pig/sort-by :a r0)
         '{:type :order
-          :id order3
+          :id order2
           :description ":a\n"
-          :fields [value]
+          :fields [order2/key order2/value]
           :field-type :frozen
           :opts {:type :order-opts}
-          :sort-keys [key :asc]
-          :ancestors [{:type :generate
-                       :id generate2
+          :key bind1/key
+          :comp :asc
+          :ancestors [{:type :bind
+                       :id bind1
                        :description nil
-                       :fields [key value]
-                       :field-type :frozen
-                       :opts {:type :generate-opts}
-                       :projections [{:type :projection-field, :field 0, :alias key}
-                                     {:type :projection-field, :field 1, :alias value}]
-                       :ancestors [{:type :bind
-                                    :id bind1
-                                    :description nil
-                                    :func (pigpen.runtime/key-selector->bind
-                                            (pigpen.runtime/with-ns pigpen.map-test :a))
-                                    :args [value]
-                                    :requires []
-                                    :fields [value]
-                                    :field-type-in :frozen
-                                    :field-type-out :native-key-frozen-val
-                                    :ancestors [{:fields [value]}]
-                                    :opts {:type :bind-opts
-                                           :implicit-schema true}}]}]}))))
+                       :func (pigpen.runtime/key-selector->bind
+                               (pigpen.runtime/with-ns pigpen.map-test :a))
+                       :args [r0/value]
+                       :requires []
+                       :fields [bind1/key bind1/value]
+                       :field-type-in :frozen
+                       :field-type-out :native-key-frozen-val
+                       :ancestors [{:fields [r0/value]}]
+                       :opts {:type :bind-opts
+                              :implicit-schema true}}]}))))

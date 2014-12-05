@@ -41,7 +41,7 @@
         :ancestors (load1)
         :location "bar"
         :storage :string
-        :fields [foo]
+        :fields [store2/foo]
         :opts {:type :store-opts}})))
 
 (deftest test-braise
@@ -56,11 +56,11 @@
       '[{:ancestors []
          :type :load
          :id load1
-         :fields [foo]}
+         :fields [load1/foo]}
         {:type :store
          :id store2
          :ancestors (load1)
-         :fields [foo]}])))
+         :fields [store2/foo]}])))
 
 (deftest test-next-match
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -105,12 +105,12 @@
 
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [r ^:pig {:id 'r :fields '[value]}
-          s ^:pig {:id 's :fields '[value]}
+    (let [r ^:pig {:id 'r :fields '[r/value]}
+          s ^:pig {:id 's :fields '[s/value]}
           c (pig-join/join [(r :on identity)
                             (s :on identity)]
                            merge)
-          mapping '{r r0, s s0, generate1 g1, generate2 g2, join3 j3, generate4 g4}
+          mapping '{r r0, s s0, bind1 b1, bind2 b2, join3 j3, bind4 b4}
           commands (#'pigpen.oven/braise c {})]
 
       (test-diff
@@ -119,47 +119,30 @@
           (map #(select-keys % [:type :id :ancestors :keys :fields :projections :args]) %))
         '[{:id s0
            :ancestors []
-           :fields [value]
-           :args []}
+           :fields [s0/value]}
           {:type :bind
-           :id bind3
+           :id b2
            :ancestors [s0]
-           :fields [value]
-           :args [value]}
-          {:type :generate
-           :id g4
-           :ancestors [bind3]
-           :fields [key value]
-           :projections [{:type :projection-field, :field 0, :alias key}
-                         {:type :projection-field, :field 1, :alias value}]
-           :args []}
+           :fields [b2/key b2/value]
+           :args [s0/value]}
           {:id r0
            :ancestors []
-           :fields [value]
-           :args []}
+           :fields [r0/value]}
           {:type :bind
-           :id bind1
+           :id b1
            :ancestors [r0]
-           :fields [value]
-           :args [value]}
-          {:type :generate
-           :id g2
-           :ancestors [bind1]
-           :fields [key value]
-           :projections [{:type :projection-field, :field 0, :alias key}
-                         {:type :projection-field, :field 1, :alias value}]
-           :args []}
+           :fields [b1/key b1/value]
+           :args [r0/value]}
           {:type :join
-           :id join5
-           :ancestors [g2 g4]
-           :keys [[key] [key]]
-           :fields [[[g2 key]] [[g2 value]] [[g4 key]] [[g4 value]]]
-           :args []}
+           :id j3
+           :ancestors [b1 b2]
+           :keys [b1/key b2/key]
+           :fields [b1/key b1/value b2/key b2/value]}
           {:type :bind
-           :id bind6
-           :ancestors [join5]
-           :fields [value]
-           :args [[[g2 value]] [[g4 value]]]}]))))
+           :id b4
+           :ancestors [j3]
+           :fields [b4/value]
+           :args [b1/value b2/value]}]))))
 
 (deftest test-dedupe
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -188,7 +171,7 @@
 
     (let [script (->
                    (pig-raw/load$ "foo" '[foo] :string {})
-                   (pig-raw/generate$ [(pig-raw/projection-field$ 'foo 'bar)] {})
+                   (pig-raw/generate$ [(pig-raw/projection-field$ 'load1/foo ['bar])] {})
                    (pig-raw/store$ "bar" :string {})
                    (vector)
                    (pig-raw/script$))]
@@ -197,11 +180,6 @@
         (as-> script %
           (bake % :pig {} {:debug "/out/"})
           (map #(select-keys % [:type :id :ancestors :location]) %))
-        #_[{:location "foo", :ancestors [], :id load1, :type :load}
-           {:ancestors [load1], :id generate2, :type :generate}
-           {:location "bar", :ancestors [generate2], :id store3, :type :store}
-           {:ancestors [store3], :id script4, :type :script}
-           {:ancestors [script4], :id script5, :type :script}]
         '[{:type :load,     :id load1,     :ancestors []            :location "foo"}
           {:type :generate, :id generate10,:ancestors [load1]}
           {:type :store,    :id store9,    :ancestors [generate10], :location "/out/load1"}
@@ -295,8 +273,8 @@
       (test-diff (clean-bind-sequence
                    (#'pigpen.oven/find-bind-sequence s3))
                  '[[[load4 "in1"]]
-                   [[bind5 nil] [bind6 "dec\n"] [bind9 nil]]
-                   [[generate10 nil] [load1 "in0"] [bind2 nil] [bind3 "inc\n"] [bind7 nil] [generate8 nil] [join11 "merge\n"] [bind12 nil] [bind13 "(constantly true)\n"] [bind14 nil] [store15 "out"]]])))
+                   [[bind5 nil] [bind6 "dec\n"] [bind8 nil]]
+                   [[load1 "in0"] [bind2 nil] [bind3 "inc\n"] [bind7 nil] [join9 "merge\n"] [bind10 nil] [bind11 "(constantly true)\n"] [bind12 nil] [store13 "out"]]])))
 
   (deftest test-bind->generate
 
@@ -304,7 +282,7 @@
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
         (let [[_ binds _] (#'pigpen.oven/find-bind-sequence s1)]
           (test-diff (#'pigpen.oven/bind->generate binds :pig)
-                     '{:fields [value]
+                     '{:fields [generate1/value]
                        :ancestors [load1]
                        :projections [{:type :projection-flat
                                       :code {:type :code
@@ -317,15 +295,14 @@
                                                                                 (pigpen.runtime/map->bind clojure.core/pr-str)
                                                                                 (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :native))])}
                                              :udf :sequence
-                                             :args [value]}
-                                      :alias value}]
+                                             :args [load1/value]}
+                                      :alias [value]}]
                        :type :generate
                        :id generate1
                        :description "identity\n(constantly true)\nvector\n"
                        :field-type :native
                        :opts {:type :generate-opts
                               :implicit-schema nil}})))))
-
 
   (deftest test-optimize-binds
 
@@ -359,13 +336,11 @@
         (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s3 :pig))
                    '[[load4 "in1"]
                      [generate1 "dec\n"]
-                     [generate10 nil]
                      [load1 "in0"]
                      [generate2 "inc\n"]
-                     [generate8 nil]
-                     [join11 "merge\n"]
+                     [join9 "merge\n"]
                      [generate3 "(constantly true)\n"]
-                     [store15 "out"]])))))
+                     [store13 "out"]])))))
 
 (deftest test-alias-self-joins
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -373,12 +348,11 @@
           command (pig-join/join [(data) (data)] vector)]
       (test-diff (->> (bake command :pig {} {})
                    (map #(select-keys % [:fields :ancestors :id :type])))
-                 '[{:type :return,   :id return1,    :ancestors [],                      :fields [value]}
-                   {:type :generate, :id generate8,  :ancestors [return1],               :fields [value]}
-                   {:type :generate, :id generate10, :ancestors [generate8],             :fields [key value]}
-                   {:type :generate, :id generate11, :ancestors [generate8],             :fields [key value]}
-                   {:type :join,     :id join6,      :ancestors [generate10 generate11], :fields [[[generate10 key]] [[generate10 value]] [[generate11 key]] [[generate11 value]]]}
-                   {:type :generate, :id generate9,  :ancestors [join6],                 :fields [value]}]))))
+                 '[{:type :return,   :id return1,   :ancestors [],                    :fields [return1/value]}
+                   {:type :generate, :id generate8, :ancestors [return1],             :fields [generate8/key generate8/value]}
+                   {:type :generate, :id generate9, :ancestors [return1],             :fields [generate9/key generate9/value]}
+                   {:type :join,     :id join4,     :ancestors [generate8 generate9], :fields [generate8/key generate8/value generate9/key generate9/value]}
+                   {:type :generate, :id generate7, :ancestors [join4],               :fields [generate7/value]}]))))
 
 (deftest test-bake
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

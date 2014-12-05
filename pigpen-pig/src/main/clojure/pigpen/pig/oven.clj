@@ -123,7 +123,7 @@
                       id' (symbol (str id "_0"))]
                   [(assoc c :id id')
                    (-> id'
-                     (raw/filter-native$* fields filter {})
+                     (raw/filter$* fields filter {})
                      (assoc :id id))])
                 [c])))))
 
