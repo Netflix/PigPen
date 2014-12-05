@@ -79,14 +79,15 @@
                  (Fields. (into-array (map #(cascading-field (:alias %)) field-projections)))
                  Fields/UNKNOWN)
         get-group-info #(cond (instance? CoGroup %) {:num-streams (alength (.getPrevious %))
-                                                     :type        (if (.startsWith (.getName %) "join") :join :group)}
+                                                     :type        (if (.startsWith (.getName %) "join") :join :group)
+                                                     :all-args (.contains (.getName %) "all-args")}
                               (or (nil? %) (instance? Every %)) nil
                               :else (recur (first (.getPrevious %))))
         group-info (get-group-info (get-in flowdef [:pipes pipe]))]
     (if-not (nil? group-info)
       (let [buffer (case (:type group-info)
                      :group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
-                     :join (JoinBuffer. (str init) (str func) fields))]
+                     :join (JoinBuffer. (str init) (str func) fields (:all-args group-info)))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
 
@@ -103,12 +104,13 @@
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors opts]}
   (let [join-nils (:join-nils opts)
+        all-args (if (:all-args opts) "all-args" "")
         joiner (case join-types
                  [:required :required] (InnerJoin.)
                  [:required :optional] (LeftJoin.)
                  [:optional :required] (RightJoin.)
                  [:optional :optional] (OuterJoin.))]
-    (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
+    (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id all-args) ;; TODO: find a less hacky way to pass the all-args flag
                                                              ;; TODO: adding an Each with Identity here is a hack around a possible bug in Cascading involving self-joins.
                                                              (into-array Pipe (map-indexed (fn [i a] (let [p ((:pipes flowdef) a)
                                                                                                            p (Pipe. (str (nth fields (* i 2))) p)

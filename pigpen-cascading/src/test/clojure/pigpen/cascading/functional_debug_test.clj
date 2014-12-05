@@ -96,13 +96,35 @@
     pigpen.functional.join-test/test-join-right-outer
     pigpen.functional.join-test/test-join-full-outer
     pigpen.functional.join-test/test-join-self-join
-
-    ;; In progress
-    ;pigpen.functional.join-test/test-remove-by
-
-    ;; Not working
+    pigpen.functional.join-test/test-remove-by
     pigpen.functional.join-test/test-remove-by-nil-keys
     pigpen.functional.join-test/test-remove-by-duplicate-keys
+
+    ;; In progress
+    ;pigpen.functional.join-test/test-into
+
+    ;; Not working
+    pigpen.functional.join-test/test-into-empty
+    pigpen.functional.join-test/test-reduce-conj
+    pigpen.functional.join-test/test-reduce-+
+    pigpen.functional.join-test/test-reduce-empty
+    pigpen.functional.join-test/test-fold-inline-sum
+    pigpen.functional.join-test/test-fold-inline-count
+    pigpen.functional.join-test/test-fold-count
+    pigpen.functional.join-test/test-fold-cogroup-dual
+    pigpen.functional.join-test/test-fold-all-sum
+    pigpen.functional.join-test/test-fold-all-count
+    pigpen.functional.join-test/test-fold-all-empty
+    pigpen.functional.join-test/test-cogroup-inner
+    pigpen.functional.join-test/test-cogroup-left-outer
+    pigpen.functional.join-test/test-cogroup-right-outer
+    pigpen.functional.join-test/test-cogroup-full-outer
+    pigpen.functional.join-test/test-cogroup-inner-join-nils
+    pigpen.functional.join-test/test-cogroup-left-outer-join-nils
+    pigpen.functional.join-test/test-cogroup-right-outer-join-nils
+    pigpen.functional.join-test/test-cogroup-full-outer-join-nils
+    pigpen.functional.join-test/test-cogroup-self-join
+    pigpen.functional.join-test/test-cogroup-self-join+fold
     pigpen.functional.code-test/test-for
     pigpen.functional.fold-test/test-vec
     pigpen.functional.fold-test/test-map
@@ -146,28 +168,6 @@
     pigpen.functional.io-test/test-store-tsv
     pigpen.functional.io-test/test-store-clj
     pigpen.functional.io-test/test-store-json
-    pigpen.functional.join-test/test-into
-    pigpen.functional.join-test/test-into-empty
-    pigpen.functional.join-test/test-reduce-conj
-    pigpen.functional.join-test/test-reduce-+
-    pigpen.functional.join-test/test-reduce-empty
-    pigpen.functional.join-test/test-fold-inline-sum
-    pigpen.functional.join-test/test-fold-inline-count
-    pigpen.functional.join-test/test-fold-count
-    pigpen.functional.join-test/test-fold-cogroup-dual
-    pigpen.functional.join-test/test-fold-all-sum
-    pigpen.functional.join-test/test-fold-all-count
-    pigpen.functional.join-test/test-fold-all-empty
-    pigpen.functional.join-test/test-cogroup-inner
-    pigpen.functional.join-test/test-cogroup-left-outer
-    pigpen.functional.join-test/test-cogroup-right-outer
-    pigpen.functional.join-test/test-cogroup-full-outer
-    pigpen.functional.join-test/test-cogroup-inner-join-nils
-    pigpen.functional.join-test/test-cogroup-left-outer-join-nils
-    pigpen.functional.join-test/test-cogroup-right-outer-join-nils
-    pigpen.functional.join-test/test-cogroup-full-outer-join-nils
-    pigpen.functional.join-test/test-cogroup-self-join
-    pigpen.functional.join-test/test-cogroup-self-join+fold
     pigpen.functional.map-test/test-map-indexed
     pigpen.functional.map-test/test-map-indexed+sort
     pigpen.functional.map-test/test-sort

@@ -22,11 +22,12 @@
 
 (defn emit-join-buffer-tuples
   "Emit the results from a JoinBuffer."
-  [f iterator ^TupleEntryCollector collector]
+  [f iterator ^TupleEntryCollector collector all-args]
   (doseq [^TupleEntry t (iterator-seq iterator)]
-    ; The incoming tuple contains <key1, value1, key2, value2>. The function only cares about the values, hence
-    ; the indices are 1 and 3
-    (let [result (f [(.getObject t 1) (.getObject t 3)])]
+    ; The incoming tuple contains <key1, value1, key2, value2>. Unless all-args is true, the function only
+    ; cares about the values, hence the indices are 1 and 3
+    (let [result (f (if all-args (.getTuple t)
+                                 [(.getObject t 1) (.getObject t 3)]))]
       (emit-tuples result collector))))
 
 (defn emit-function-tuples
