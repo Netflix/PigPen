@@ -16,8 +16,9 @@
 
 (defn emit-group-buffer-tuples
   "Emit the results from a GroupBuffer."
-  [f key iterators ^TupleEntryCollector collector]
-  (let [result (f (concat [key] (map iterator-seq iterators)))]
+  [f key iterators ^TupleEntryCollector collector group-all]
+  (let [result (if group-all (f [(iterator-seq (first iterators))])
+                             (f (concat [key] (map iterator-seq iterators))))]
     (emit-tuples result collector)))
 
 (defn emit-join-buffer-tuples

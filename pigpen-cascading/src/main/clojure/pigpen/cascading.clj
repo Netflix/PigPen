@@ -5,7 +5,7 @@
            (cascading.flow.hadoop HadoopFlowConnector)
            (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer)
            (cascading.tuple Fields)
-           (cascading.operation Identity)
+           (cascading.operation Identity Insert)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
            (cascading.pipe.assembly Unique)
            (cascading.operation.filter Limit Sample)
@@ -80,13 +80,14 @@
                  Fields/UNKNOWN)
         get-group-info #(cond (instance? CoGroup %) {:num-streams (alength (.getPrevious %))
                                                      :type        (if (.startsWith (.getName %) "join") :join :group)
-                                                     :all-args (.contains (.getName %) "all-args")}
+                                                     :all-args    (.contains (.getName %) "all-args")
+                                                     :group-all   (.contains (.getName %) "group-all")}
                               (or (nil? %) (instance? Every %)) nil
                               :else (recur (first (.getPrevious %))))
         group-info (get-group-info (get-in flowdef [:pipes pipe]))]
     (if-not (nil? group-info)
       (let [buffer (case (:type group-info)
-                     :group (GroupBuffer. (str init) (str func) fields (:num-streams group-info))
+                     :group (GroupBuffer. (str init) (str func) fields (:num-streams group-info) (:group-all group-info))
                      :join (JoinBuffer. (str init) (str func) fields (:all-args group-info)))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
@@ -94,11 +95,19 @@
 (defmethod command->flowdef :group
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
-  (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
-                                                           (into-array Pipe (map (:pipes flowdef) ancestors))
-                                                           (into-array (map #(Fields. (into-array (map str %))) keys))
-                                                           Fields/NONE
-                                                           (BufferJoin.))})))
+  (let [is-group-all (= keys [:pigpen.raw/group-all])
+        keys (if is-group-all [["group_all"]] keys)
+        pipes (if is-group-all
+                [(Each. ((:pipes flowdef) (first ancestors))
+                        (Insert. (Fields. (into-array ["group_all"])) (into-array [1]))
+                        (Fields. (into-array ["group_all" "value"])))]
+                (map (:pipes flowdef) ancestors))]
+    (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id (if is-group-all "group-all" ""))
+                                                             (into-array Pipe pipes)
+                                                             (into-array (map #(Fields. (into-array (map str %)))
+                                                                              keys))
+                                                             Fields/NONE
+                                                             (BufferJoin.))}))))
 
 (defmethod command->flowdef :join
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
