@@ -51,20 +51,23 @@
           "Converts an individual command into the equivalent Cascading flow definition."
           (fn [{:keys [type]} flowdef] type))
 
+(defn- add-val [flowdef path id val]
+  (update-in flowdef path (partial merge {id val})))
+
 (defmethod command->flowdef :load
   [{:keys [id location storage fields opts]} flowdef]
   {:pre [id location storage fields]}
   (let [pipe (Pipe. (str id))]
     (-> flowdef
-        (update-in [:sources] (partial merge {id ((get-tap-fn storage) location opts)}))
-        (update-in [:pipes] (partial merge {id pipe})))))
+        (add-val [:sources] id ((get-tap-fn storage) location opts))
+        (add-val [:pipes] id pipe))))
 
 (defmethod command->flowdef :store
   [{:keys [id ancestors location storage opts]} flowdef]
   {:pre [id ancestors location storage]}
   (-> flowdef
-      (update-in [:pipe-to-sink] (partial merge {(first ancestors) id}))
-      (update-in [:sinks] (partial merge {id ((get-tap-fn storage) location opts)}))))
+      (add-val [:pipe-to-sink] (first ancestors) id)
+      (add-val [:sinks] id ((get-tap-fn storage) location opts))))
 
 (defn- cascading-field [name-or-number]
   (if (number? name-or-number)
@@ -99,18 +102,18 @@
         pipes (map (fn [p k t] (if (= :required t)
                                  (Each. p (Fields. (into-array (map str k))) (FilterNull.))
                                  p))
-                   pipes keys join-types)
-        flowdef (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
-                                                                         (into-array Pipe pipes)
-                                                                         (into-array (map #(Fields. (into-array (map str %)))
-                                                                                          keys))
-                                                                         Fields/NONE
-                                                                         (BufferJoin.))}))
-        flowdef (update-in flowdef [:cogroup-opts] (partial merge {id {:group-type  :group
-                                                                       :group-all   is-group-all
-                                                                       :num-streams (count pipes)
-                                                                       :inner-join  (= #{:required} (into #{} join-types))}}))]
-    flowdef))
+                   pipes keys join-types)]
+    (-> flowdef
+        (add-val [:pipes] id (CoGroup. (str id)
+                                       (into-array Pipe pipes)
+                                       (into-array (map #(Fields. (into-array (map str %)))
+                                                        keys))
+                                       Fields/NONE
+                                       (BufferJoin.)))
+        (add-val [:cogroup-opts] id {:group-type  :group
+                                     :group-all   is-group-all
+                                     :num-streams (count pipes)
+                                     :inner-join  (= #{:required} (into #{} join-types))}))))
 
 (defmethod command->flowdef :join
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
@@ -120,21 +123,21 @@
                  [:required :required] (InnerJoin.)
                  [:required :optional] (LeftJoin.)
                  [:optional :required] (RightJoin.)
-                 [:optional :optional] (OuterJoin.))
-        flowdef (update-in flowdef [:pipes] (partial merge {id (CoGroup. (str id)
-                                                                         ;; TODO: adding an Each with Identity here is a hack around a possible bug in Cascading involving self-joins.
-                                                                         (into-array Pipe (map-indexed (fn [i a] (let [p ((:pipes flowdef) a)
-                                                                                                                       p (Pipe. (str (nth fields (* i 2))) p)
-                                                                                                                       p (Each. p (Identity.))]
-                                                                                                                   p)) ancestors))
-                                                                         (into-array (map #(let [f (Fields. (into-array (map str %)))]
-                                                                                            (when-not join-nils (.setComparator f (str (first %)) (NullNotEquivalentComparator.)))
-                                                                                            f) keys))
-                                                                         (Fields. (into-array (map str fields)))
-                                                                         joiner)}))
-        flowdef (update-in flowdef [:cogroup-opts] (partial merge {id {:group-type  :join
-                                                                       :all-args (true? (:all-args opts))}}))]
-    flowdef))
+                 [:optional :optional] (OuterJoin.))]
+    (-> flowdef
+        (add-val [:pipes] id (CoGroup. (str id)
+                                       ;; TODO: adding an Each with Identity here is a hack around a possible bug in Cascading involving self-joins.
+                                       (into-array Pipe (map-indexed (fn [i a] (let [p ((:pipes flowdef) a)
+                                                                                     p (Pipe. (str (nth fields (* i 2))) p)
+                                                                                     p (Each. p (Identity.))]
+                                                                                 p)) ancestors))
+                                       (into-array (map #(let [f (Fields. (into-array (map str %)))]
+                                                          (when-not join-nils (.setComparator f (str (first %)) (NullNotEquivalentComparator.)))
+                                                          f) keys))
+                                       (Fields. (into-array (map str fields)))
+                                       joiner))
+        (add-val [:cogroup-opts] id {:group-type :join
+                                     :all-args   (true? (:all-args opts))}))))
 
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
@@ -147,7 +150,8 @@
   {:pre [id (= 1 (count ancestors)) (not-empty projections)]}
   (let [ancestor (first ancestors)
         pipe ((:pipes flowdef) ancestor)
-        flowdef (cond (contains? (:pipes flowdef) ancestor) (update-in flowdef [:pipes] (partial merge {id (Pipe. (str id) pipe)}))
+        flat-projections (filter #(= :projection-flat (:type %)) projections)
+        flowdef (cond (contains? (:pipes flowdef) ancestor) (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
                       :else (do
                               (println "flowdef" flowdef)
                               (println "id" id)
@@ -155,9 +159,8 @@
                               (throw (Exception. "not implemented"))))
         flowdef (let [pipe-opts (get-in flowdef [:cogroup-opts ancestor])]
                   (if pipe-opts
-                    (update-in flowdef [:cogroup-opts] (partial merge {id pipe-opts}))
+                    (add-val flowdef [:cogroup-opts] id pipe-opts)
                     flowdef))
-        flat-projections (filter #(= :projection-flat (:type %)) projections)
         flowdef (reduce (fn [def cmd] (command->flowdef
                                         (assoc cmd :pipe id
                                                :field-projections field-projections)
@@ -170,19 +173,19 @@
   [{:keys [id ancestors]} flowdef]
   {:pre [id (= 1 (count ancestors))]}
   (let [pipe ((:pipes flowdef) (first ancestors))]
-    (update-in flowdef [:pipes] (partial merge {id (Unique. pipe Fields/ALL)}))))
+    (add-val flowdef [:pipes] id (Unique. pipe Fields/ALL))))
 
 (defmethod command->flowdef :limit
   [{:keys [id n ancestors]} flowdef]
   {:pre [id n (= 1 (count ancestors))]}
   (let [pipe ((:pipes flowdef) (first ancestors))]
-    (update-in flowdef [:pipes] (partial merge {id (Each. pipe (Limit. n))}))))
+    (add-val flowdef [:pipes] id (Each. pipe (Limit. n)))))
 
 (defmethod command->flowdef :sample
   [{:keys [id p ancestors]} flowdef]
   {:pre [id p (= 1 (count ancestors))]}
   (let [pipe ((:pipes flowdef) (first ancestors))]
-    (update-in flowdef [:pipes] (partial merge {id (Each. pipe (Sample. p))}))))
+    (add-val flowdef [:pipes] id (Each. pipe (Sample. p)))))
 
 (defmethod command->flowdef :script
   [_ flowdef]
