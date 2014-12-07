@@ -104,12 +104,12 @@
     pigpen.functional.join-test/test-reduce-conj
     pigpen.functional.join-test/test-reduce-+
     pigpen.functional.join-test/test-reduce-empty
+    pigpen.functional.join-test/test-cogroup-inner
 
     ;; In progress
-    ;pigpen.functional.join-test/test-cogroup-inner
+    ;pigpen.functional.join-test/test-cogroup-left-outer
 
     ;; Not working
-    pigpen.functional.join-test/test-cogroup-left-outer
     pigpen.functional.join-test/test-cogroup-right-outer
     pigpen.functional.join-test/test-cogroup-full-outer
     pigpen.functional.join-test/test-cogroup-inner-join-nils

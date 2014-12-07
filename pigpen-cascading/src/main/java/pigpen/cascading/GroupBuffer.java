@@ -49,15 +49,15 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   private final String func;
   private final int numIterators;
   private final boolean groupAll;
-  private final boolean innerJoin;
+  private final List<Boolean> groupRequirements;
 
-  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll, boolean innerJoin) {
+  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll, List<Boolean> groupRequirements) {
     super(fields);
     this.init = init;
     this.func = func;
     this.numIterators = numIterators;
     this.groupAll = groupAll;
-    this.innerJoin = innerJoin;
+    this.groupRequirements = groupRequirements;
   }
 
   @Override
@@ -72,17 +72,17 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   public void operate(FlowProcess flowProcess, BufferCall bufferCall) {
     IFn fn = (IFn)bufferCall.getContext();
     Object group = bufferCall.getGroup().getObject(0);
-    if (!innerJoin || allGroupsPresent(bufferCall.getGroup())) {
-      JoinerClosure joinerClosure = bufferCall.getJoinerClosure();
+    List<Iterator> iterators = getIterators(bufferCall.getJoinerClosure());
+    if (requiredGroupsPresent(iterators)) {
       Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
-      emitFn.invoke(fn, group, getIterators(joinerClosure), bufferCall.getOutputCollector(), groupAll);
+      emitFn.invoke(fn, group, iterators, bufferCall.getOutputCollector(), groupAll);
     }
   }
 
-  private boolean allGroupsPresent(TupleEntry group) {
+  private boolean requiredGroupsPresent(List<Iterator> iterators) {
     boolean allPresent = true;
-    for (int i = 0; i < group.size(); i++) {
-      if (group.getObject(i) == null) {
+    for (int i = 0; i < groupRequirements.size(); i++) {
+      if (groupRequirements.get(i) && !iterators.get(i).hasNext()) {
         allPresent = false;
         break;
       }
