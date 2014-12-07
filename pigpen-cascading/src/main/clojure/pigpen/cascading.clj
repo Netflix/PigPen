@@ -93,7 +93,7 @@
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
       (let [buffer (case (:group-type cogroup-opts)
-                     :group (GroupBuffer. (str init) (str func) fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-requirements cogroup-opts))
+                     :group (GroupBuffer. (str init) (str func) fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts))
                      :join (JoinBuffer. (str init) (str func) fields (:all-args cogroup-opts)))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
@@ -102,7 +102,6 @@
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
   (let [is-group-all (= keys [:pigpen.raw/group-all])
-        join-nils (:join-nils opts)
         keys (if is-group-all [["group_all"]] keys)
         pipes (if is-group-all
                 [(Each. ((:pipes flowdef) (first ancestors))
@@ -111,16 +110,17 @@
                 (map (:pipes flowdef) ancestors))
         is-inner (= #{:required} (into #{} join-types))
         pipes (map (fn [p k] (if is-inner
-                                 (Each. p (cfields k) (FilterNull.))
-                                 p))
+                               (Each. p (cfields k) (FilterNull.))
+                               p))
                    pipes keys)]
     (-> flowdef
         (add-val [:pipes] id (CoGroup. (str id)
                                        (into-array Pipe pipes)
-                                       (group-key-cfields keys join-nils)
+                                       (into-array (map cfields keys))
                                        Fields/NONE
                                        (BufferJoin.)))
         (add-val [:cogroup-opts] id {:group-type        :group
+                                     :join-nils         (true? (:join-nils opts))
                                      :group-all         is-group-all
                                      :num-streams       (count pipes)
                                      :join-requirements (map #(= :required %) join-types)}))))
@@ -141,7 +141,7 @@
                                                                                      p (Pipe. (str (nth fields (* i 2))) p)
                                                                                      p (Each. p (Identity.))]
                                                                                  p)) ancestors))
-                                       (group-key-cfields keys join-nils)
+                                       (group-key-cfields keys join-types)
                                        (cfields fields)
                                        joiner))
         (add-val [:cogroup-opts] id {:group-type :join
