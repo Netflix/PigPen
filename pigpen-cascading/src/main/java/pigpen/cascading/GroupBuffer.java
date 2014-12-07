@@ -51,6 +51,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   private final int numIterators;
   private final boolean groupAll;
   private final boolean joinNils;
+  private final boolean isFullOuter;
   private final List<Boolean> groupRequirements;
 
   public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements) {
@@ -61,6 +62,13 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     this.groupAll = groupAll;
     this.joinNils = joinNils;
     this.groupRequirements = groupRequirements;
+    boolean fullOuter = true;
+    for (Boolean isRequired : groupRequirements) {
+      if (isRequired) {
+        fullOuter = false;
+      }
+    }
+    this.isFullOuter = fullOuter;
   }
 
   @Override
@@ -74,45 +82,79 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   @Override
   public void operate(FlowProcess flowProcess, BufferCall bufferCall) {
     IFn fn = (IFn)bufferCall.getContext();
-    Object key = getKey(bufferCall.getGroup());
-    List<Iterator> iterators = getIterators(bufferCall.getJoinerClosure(), bufferCall.getGroup());
-    if (requiredGroupsPresent(iterators)) {
-      Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
-      emitFn.invoke(fn, key, iterators, bufferCall.getOutputCollector(), groupAll);
+    boolean allKeysNull = allKeysNull(bufferCall.getGroup());
+    List<Object> keys = getKeys(bufferCall.getGroup(), allKeysNull);
+    List<List<Iterator>> iteratorsList = getIterators(bufferCall.getJoinerClosure(), bufferCall.getGroup(), allKeysNull);
+    for (int i = 0; i < iteratorsList.size(); i++) {
+      List<Iterator> iterators = iteratorsList.get(i);
+      Object key = keys.get(i);
+      if (requiredGroupsPresent(iterators)) {
+        Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
+        emitFn.invoke(fn, key, iterators, bufferCall.getOutputCollector(), groupAll);
+      }
     }
   }
 
-  private Object getKey(TupleEntry group) {
-    Object key = null;
+  private boolean allKeysNull(TupleEntry group) {
     for (int i = 0; i < group.size(); i++) {
-      if (key == null) {
-        key = group.getObject(i);
+      if (group.getObject(i) != null) {
+        return false;
       }
     }
-    return key;
+    return true;
+  }
+
+  private List<Object> getKeys(TupleEntry group, boolean allKeysNull) {
+    List<Object> keys = new ArrayList<Object>();
+    if (!isFullOuter || joinNils || !allKeysNull) {
+      Object key = null;
+      for (int i = 0; i < group.size(); i++) {
+        if (key == null) {
+          key = group.getObject(i);
+        }
+      }
+      keys.add(key);
+    } else {
+      for (int i = 0; i < numIterators; i++) {
+        keys.add(group.getObject(i));
+      }
+    }
+    return keys;
   }
 
   private boolean requiredGroupsPresent(List<Iterator> iterators) {
-    boolean allPresent = true;
     for (int i = 0; i < groupRequirements.size(); i++) {
       if (groupRequirements.get(i) && !iterators.get(i).hasNext()) {
-        allPresent = false;
-        break;
+        return false;
       }
     }
-    return allPresent;
+    return true;
   }
 
-  private List<Iterator> getIterators(JoinerClosure joinerClosure, TupleEntry group) {
-    List<Iterator> args = new ArrayList<Iterator>(numIterators);
-    for (int i = 0; i < numIterators; i++) {
-      boolean nullKey = group.getObject(i) == null;
-      // Cascading doesn't provide the option of treating null keys on one side of the join
-      // as the same but not on the other side. Thus we have to emulate that behavior by
-      // pretending that one of the streams was not joined.
-      Iterator<Tuple> iterator = (nullKey && !groupRequirements.get(i) && !joinNils) ? Collections.<Tuple>emptyList().iterator() : joinerClosure.getIterator(i);
-      args.add(new BufferIterator(iterator));
+  private List<List<Iterator>> getIterators(JoinerClosure joinerClosure, TupleEntry group, boolean allKeysNull) {
+    List<List<Iterator>> ret = new ArrayList<List<Iterator>>();
+    if (!isFullOuter || joinNils || !allKeysNull) {
+      List<Iterator> args = new ArrayList<Iterator>(numIterators);
+      for (int i = 0; i < numIterators; i++) {
+        boolean nullKey = group.getObject(i) == null;
+        // Cascading doesn't provide the option of treating null keys on one side of the join
+        // as the same but not on the other side. Thus we have to emulate that behavior by
+        // pretending that one of the streams was not joined.
+        Iterator<Tuple> iterator = (nullKey && !groupRequirements.get(i) && !joinNils) ? Collections.<Tuple>emptyList().iterator() : joinerClosure.getIterator(i);
+        args.add(new BufferIterator(iterator));
+      }
+      ret.add(args);
+    } else {
+      // Emulate joinNils == false by pretending the streams don't belong to the same group.
+      for (int active = 0; active < numIterators; active++) {
+        List<Iterator> args = new ArrayList<Iterator>(numIterators);
+        for (int i = 0; i < numIterators; i++) {
+          Iterator<Tuple> iterator = (i == active) ? joinerClosure.getIterator(i) : Collections.<Tuple>emptyList().iterator();
+          args.add(new BufferIterator(iterator));
+        }
+        ret.add(args);
+      }
     }
-    return args;
+    return ret;
   }
 }

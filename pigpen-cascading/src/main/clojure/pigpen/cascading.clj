@@ -141,7 +141,7 @@
                                                                                      p (Pipe. (str (nth fields (* i 2))) p)
                                                                                      p (Each. p (Identity.))]
                                                                                  p)) ancestors))
-                                       (group-key-cfields keys join-types)
+                                       (group-key-cfields keys join-nils)
                                        (cfields fields)
                                        joiner))
         (add-val [:cogroup-opts] id {:group-type :join
