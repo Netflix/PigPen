@@ -16,6 +16,7 @@ import cascading.operation.OperationCall;
 import cascading.pipe.joiner.JoinerClosure;
 import cascading.tuple.Fields;
 import cascading.tuple.Tuple;
+import cascading.tuple.TupleEntry;
 
 public class GroupBuffer extends BaseOperation implements Buffer {
 
@@ -48,13 +49,15 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   private final String func;
   private final int numIterators;
   private final boolean groupAll;
+  private final boolean innerJoin;
 
-  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll) {
+  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll, boolean innerJoin) {
     super(fields);
     this.init = init;
     this.func = func;
     this.numIterators = numIterators;
     this.groupAll = groupAll;
+    this.innerJoin = innerJoin;
   }
 
   @Override
@@ -69,9 +72,22 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   public void operate(FlowProcess flowProcess, BufferCall bufferCall) {
     IFn fn = (IFn)bufferCall.getContext();
     Object group = bufferCall.getGroup().getObject(0);
-    JoinerClosure joinerClosure = bufferCall.getJoinerClosure();
-    Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
-    emitFn.invoke(fn, group, getIterators(joinerClosure), bufferCall.getOutputCollector(), groupAll);
+    if (!innerJoin || allGroupsPresent(bufferCall.getGroup())) {
+      JoinerClosure joinerClosure = bufferCall.getJoinerClosure();
+      Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
+      emitFn.invoke(fn, group, getIterators(joinerClosure), bufferCall.getOutputCollector(), groupAll);
+    }
+  }
+
+  private boolean allGroupsPresent(TupleEntry group) {
+    boolean allPresent = true;
+    for (int i = 0; i < group.size(); i++) {
+      if (group.getObject(i) == null) {
+        allPresent = false;
+        break;
+      }
+    }
+    return allPresent;
   }
 
   private List<Iterator> getIterators(JoinerClosure joinerClosure) {
