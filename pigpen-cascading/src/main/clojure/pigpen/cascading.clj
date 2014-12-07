@@ -17,6 +17,17 @@
             [taoensso.nippy :refer [freeze thaw]]
             [clojure.pprint]))
 
+(defn- add-val [flowdef path id val]
+  (update-in flowdef path (partial merge {id val})))
+
+(defn- cfields [fields]
+  (Fields. (into-array (map str fields))))
+
+(defn- cascading-field [name-or-number]
+  (if (number? name-or-number)
+    (int name-or-number)
+    (str name-or-number)))
+
 (defmulti get-tap-fn
           identity)
 
@@ -51,8 +62,6 @@
           "Converts an individual command into the equivalent Cascading flow definition."
           (fn [{:keys [type]} flowdef] type))
 
-(defn- add-val [flowdef path id val]
-  (update-in flowdef path (partial merge {id val})))
 
 (defmethod command->flowdef :load
   [{:keys [id location storage fields opts]} flowdef]
@@ -69,17 +78,12 @@
       (add-val [:pipe-to-sink] (first ancestors) id)
       (add-val [:sinks] id ((get-tap-fn storage) location opts))))
 
-(defn- cascading-field [name-or-number]
-  (if (number? name-or-number)
-    (int name-or-number)
-    (str name-or-number)))
-
 (defmethod command->flowdef :code
   [{:keys [expr args pipe field-projections]} flowdef]
   {:pre [expr args]}
   (let [{:keys [init func]} expr
         fields (if field-projections
-                 (Fields. (into-array (map #(cascading-field (:alias %)) field-projections)))
+                 (cfields (map #(cascading-field (:alias %)) field-projections))
                  Fields/UNKNOWN)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
@@ -96,18 +100,17 @@
         keys (if is-group-all [["group_all"]] keys)
         pipes (if is-group-all
                 [(Each. ((:pipes flowdef) (first ancestors))
-                        (Insert. (Fields. (into-array ["group_all"])) (into-array [1]))
-                        (Fields. (into-array ["group_all" "value"])))]
+                        (Insert. (cfields ["group_all"]) (into-array [1]))
+                        (cfields ["group_all" "value"]))]
                 (map (:pipes flowdef) ancestors))
         pipes (map (fn [p k t] (if (= :required t)
-                                 (Each. p (Fields. (into-array (map str k))) (FilterNull.))
+                                 (Each. p (cfields k) (FilterNull.))
                                  p))
                    pipes keys join-types)]
     (-> flowdef
         (add-val [:pipes] id (CoGroup. (str id)
                                        (into-array Pipe pipes)
-                                       (into-array (map #(Fields. (into-array (map str %)))
-                                                        keys))
+                                       (into-array (map cfields keys))
                                        Fields/NONE
                                        (BufferJoin.)))
         (add-val [:cogroup-opts] id {:group-type  :group
@@ -131,10 +134,10 @@
                                                                                      p (Pipe. (str (nth fields (* i 2))) p)
                                                                                      p (Each. p (Identity.))]
                                                                                  p)) ancestors))
-                                       (into-array (map #(let [f (Fields. (into-array (map str %)))]
+                                       (into-array (map #(let [f (cfields %)]
                                                           (when-not join-nils (.setComparator f (str (first %)) (NullNotEquivalentComparator.)))
                                                           f) keys))
-                                       (Fields. (into-array (map str fields)))
+                                       (cfields fields)
                                        joiner))
         (add-val [:cogroup-opts] id {:group-type :join
                                      :all-args   (true? (:all-args opts))}))))
