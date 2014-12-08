@@ -108,7 +108,7 @@
                         (Insert. (cfields ["group_all"]) (into-array [1]))
                         (cfields ["group_all" "value"]))]
                 (map (:pipes flowdef) ancestors))
-        is-inner (= #{:required} (into #{} join-types))
+        is-inner (every? #{:required} join-types)
         pipes (map (fn [p k] (if is-inner
                                (Each. p (cfields k) (FilterNull.))
                                p))
