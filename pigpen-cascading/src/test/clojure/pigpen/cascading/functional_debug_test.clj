@@ -104,11 +104,7 @@
     pigpen.functional.join-test/test-reduce-conj
     pigpen.functional.join-test/test-reduce-+
     pigpen.functional.join-test/test-reduce-empty
-
-    ;; In progress
-    ;pigpen.functional.join-test/test-cogroup-inner
-
-    ;; Not working
+    pigpen.functional.join-test/test-cogroup-inner
     pigpen.functional.join-test/test-cogroup-left-outer
     pigpen.functional.join-test/test-cogroup-right-outer
     pigpen.functional.join-test/test-cogroup-full-outer
@@ -117,6 +113,10 @@
     pigpen.functional.join-test/test-cogroup-right-outer-join-nils
     pigpen.functional.join-test/test-cogroup-full-outer-join-nils
     pigpen.functional.join-test/test-cogroup-self-join
+
+    ;; In progress
+
+    ;; Not working
     pigpen.functional.join-test/test-cogroup-self-join+fold
     pigpen.functional.join-test/test-fold-inline-sum
     pigpen.functional.join-test/test-fold-inline-count
