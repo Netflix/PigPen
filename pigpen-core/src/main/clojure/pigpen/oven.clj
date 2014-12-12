@@ -213,10 +213,9 @@ number of optimizations and transforms to the graph.
                  ~@(mapv :func commands)
                  (pigpen.runtime/process->bind (pigpen.runtime/post-process ~platform ~last-field-type))])
 
-        projection (pigpen.extensions.test/debug
-                     (raw/projection-flat$ (mapv (comp symbol name) last-field)
-                       (raw/code$ :sequence first-args
-                         (raw/expr$ requires func))))
+        projection (raw/projection-flat$ (mapv (comp symbol name) last-field)
+                     (raw/code$ :sequence first-args
+                       (raw/expr$ requires func)))
 
         description (->> commands (map :description) (clojure.string/join))]
 
