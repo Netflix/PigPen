@@ -47,7 +47,6 @@ number of optimizations and transforms to the graph.
   "Updates a single field with an id mapping"
   [id-mapping field]
   {:pre [field ((some-fn map? fn?) id-mapping)]}
-  (prn field id-mapping)
   (let [r (symbol (namespace field))
         r' (id-mapping r r)]
     (symbol (name r') (name field))))
@@ -204,7 +203,6 @@ number of optimizations and transforms to the graph.
         last-field       (-> commands last :fields)
         last-field-type  (-> commands last :field-type-out)
         implicit-schema  (some (comp :implicit-schema :opts) commands)
-        _ (prn 'first-args first-args)
 
         requires (code/build-requires (mapcat :requires commands))
 
