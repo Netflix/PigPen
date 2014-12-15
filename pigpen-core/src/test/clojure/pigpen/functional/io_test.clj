@@ -49,7 +49,7 @@
         (set (pig/dump command))
         '#{["a\tb\tc"]
            ["1\t2\t3"]})))
-  
+
   (testing "Non-tsv with non-tab delimiter"
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv" #",")]
       (spit "build/functional/io-test/test-load-tsv" "a,b,c\n1,2,3\n")
@@ -57,6 +57,32 @@
         (set (pig/dump command))
         '#{["a" "b" "c"]
            ["1" "2" "3"]}))))
+
+(deftest test-load-csv
+
+  (testing "Normal csv with default separator and quotes"
+    (let [command (pig/load-csv "build/functional/io-test/test-load-csv")]
+      (spit "build/functional/io-test/test-load-csv" "\"a string\",123,5.0\n\"another string\",-532,23.7")
+      (test-diff
+        (set (pig/dump command))
+        '#{["a string" "123" "5.0"]
+           ["another string" "-532" "23.7"]})))
+
+  (testing "Normal csv with non-comma separator and different quoting"
+    (let [command (pig/load-csv "build/functional/io-test/test-load-csv" \; \')]
+      (spit "build/functional/io-test/test-load-csv" "\"a string\",123,5.0\n\"another string\",-532,23.7")
+      (test-diff
+        (set (pig/dump command))
+        '#{["\"a string\",123,5.0"]
+           ["\"another string\",-532,23.7"]})))
+
+  (testing "Non-csv with semicolon delimiter and single-quote quotor"
+    (let [command (pig/load-csv "build/functional/io-test/test-load-csv" \; \')]
+      (spit "build/functional/io-test/test-load-csv" "'a string';123;5.0\n'another string';-532;23.7")
+      (test-diff
+        (set (pig/dump command))
+        '#{["a string" "123" "5.0"]
+           ["another string" "-532" "23.7"]}))))
 
 (deftest test-load-clj
   (let [command (pig/load-clj "build/functional/io-test/test-load-clj")]

@@ -91,6 +91,33 @@
                      :opts {:type :load-opts
                             :cast "chararray"}}]})))
 
+(deftest test-load-csv
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (regex->string (io/load-csv "\"a string\",123,5.0,\"a \\\"complex\\\" string"))
+      '{:type :bind
+        :id bind2
+        :description nil
+        :func (pigpen.pig/map->bind (clojure.core/fn [s]  (if s (clojure.core/first (clojure.data.csv/read-csv s :separator \, :quote \")))))
+        :args [value]
+        :requires [clojure.data.csv]
+        :fields [value]
+        :field-type-in :native
+        :field-type-out :frozen
+        :opts {:type :bind-opts}
+        :ancestors [{:type :load
+                     :id load1
+                     :description "\"a string\",123,5.0,\"a \\\"complex\\\" string"
+                     :location "\"a string\",123,5.0,\"a \\\"complex\\\" string"
+                     :fields [value]
+                     :field-type :native
+                     :storage {:type :storage
+                               :references []
+                               :func "PigStorage"
+                               :args ["\\n"]}
+                     :opts {:type :load-opts
+                            :cast "chararray"}}]})))
+
 (deftest test-load-clj
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
