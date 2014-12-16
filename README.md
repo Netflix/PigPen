@@ -27,13 +27,13 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.11"]
+[com.netflix.pigpen/pigpen "0.2.12"]
 ```
 
 With Gradle:
 
 ``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.11"
+compile "com.netflix.pigpen:pigpen:0.2.12"
 ```
 
 With Maven:
@@ -42,7 +42,7 @@ With Maven:
 <dependency>
   <groupId>com.netflix.pigpen</groupId>
   <artifactId>pigpen</artifactId>
-  <version>0.2.11</version>
+  <version>0.2.12</version>
 </dependency>
 ```
 
@@ -53,15 +53,15 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 To use the parquet loader, add this to your dependencies:
 
 ``` clj
-[com.netflix.pigpen/pigpen-parquet "0.2.11"]
+[com.netflix.pigpen/pigpen-parquet "0.2.12"]
 ```
 
 And because of the weird way Pig handles dependencies, you'll also need to add antlr and log4j for local mode to work properly:
 
 ``` clj
 :dependencies [[org.clojure/clojure "1.6.0"]
-               [com.netflix.pigpen/pigpen "0.2.11"]
-               [com.netflix.pigpen/pigpen-parquet "0.2.11"]]
+               [com.netflix.pigpen/pigpen "0.2.12"]
+               [com.netflix.pigpen/pigpen-parquet "0.2.12"]]
 :profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
                                 [org.apache.hadoop/hadoop-core "1.1.2"]
                                 [org.antlr/antlr "3.5.2"]
@@ -70,6 +70,8 @@ And because of the weird way Pig handles dependencies, you'll also need to add a
 
 # Release Notes
 
+  * 0.2.12
+    * Added load-csv, which allows for quoting per RFC 4180
   * 0.2.11
     * Fixed a bug (feature?) introduced by new rx version. Also upgraded to rc7. This would have only affected local mode where the data being read was faster than the code consuming it.
   * 0.2.10
