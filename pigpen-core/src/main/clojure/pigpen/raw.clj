@@ -40,7 +40,7 @@ building blocks for more complex operations.")
   (symbol (name ns) (name sym)))
 
 (defn update-ns+ [ns sym]
-  (if (namespace sym)
+  (if (or (namespace sym) (nil? ns))
     sym
     (update-ns ns sym)))
 
@@ -161,6 +161,9 @@ building blocks for more complex operations.")
          :code code
          :alias alias})
 
+(defn ^:private update-alias-ns [id projection]
+  (update-in projection [:alias] (partial mapv (partial update-ns id))))
+
 (defn generate$*
   "Used to make a post-bake generate"
   [relation projections opts]
@@ -169,7 +172,7 @@ building blocks for more complex operations.")
          (not-empty projections)]}
   (let [{id :id, :as c} (command :generate opts)]
     (-> c
-      (assoc :projections (vec projections)
+      (assoc :projections (mapv (partial update-alias-ns id) projections)
              :ancestors [relation]
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))
 
@@ -180,7 +183,7 @@ building blocks for more complex operations.")
          (not-empty projections)]}
   (let [{id :id, :as c} (command :generate relation opts)]
     (-> c
-      (assoc :projections (vec projections)
+      (assoc :projections (mapv (partial update-alias-ns id) projections)
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))
 
 (defn bind$*
@@ -216,10 +219,11 @@ building blocks for more complex operations.")
 
 (defn order$
   [relation key comp opts]
-  (->
-    (command :order relation opts)
-    (assoc :key (update-ns+ (:id relation) key))
-    (assoc :comp comp)))
+  (let [{id :id, :as c} (command :order relation opts)]
+    (-> c
+      (assoc :key (update-ns+ (:id relation) key))
+      (assoc :comp comp)
+      (update-in [:fields] (partial remove #{(update-ns+ id key)})))))
 
 (defn rank$
   [relation opts]
@@ -277,37 +281,55 @@ building blocks for more complex operations.")
 
 (defn reduce$
   [relation opts]
-  (command :reduce relation opts))
+  {:pre [(= 1 (count (:fields relation)))]}
+  (->
+    (command :reduce relation opts)
+    (assoc :value (-> relation :fields first))))
+
+(defmulti ancestors->fields
+  "Get the set of fields from the ancestors"
+  (fn [type id ancestors]
+    type))
+
+(defmulti fields->keys
+  (fn [type fields]
+    type))
 
 (defn group$
-  [ancestors keys join-types opts]
+  [ancestors field-dispatch join-types opts]
   {:pre [(sequential? ancestors)
-         (sequential? keys)
          (sequential? join-types)
-         (= (count ancestors) (count keys) (count join-types))]}
-  (let [fields (mapcat :fields ancestors)
-        {id :id, :as c} (command :group ancestors fields opts)]
-    (->
-      c
-      (update-in [:fields] (partial cons (update-ns+ id 'group)))
-      (assoc :keys (vec keys)
+         (= (count ancestors) (count join-types))]}
+  (let [{id :id, :as c} (command :group ancestors [] opts)
+        fields (ancestors->fields field-dispatch id ancestors)]
+    (-> c
+      (assoc :field-dispatch field-dispatch
+             :fields fields
+             :keys (fields->keys field-dispatch fields)
              :join-types (vec join-types)))))
 
 (defn join$
-  [ancestors keys join-types opts]
+  [ancestors field-dispatch join-types opts]
   {:pre [(< 1 (count ancestors))
          (or (every? #{:required} join-types) (= 2 (count ancestors)))
          (sequential? ancestors)
-         (sequential? keys)
          (sequential? join-types)
-         (= (count ancestors) (count keys) (count join-types))]}
-  (let [fields (mapcat :fields ancestors)]
-    (->
-      (command :join ancestors fields opts)
-      (assoc :keys (vec keys)
+         (= (count ancestors) (count join-types))]}
+  (let [{id :id, :as c} (command :join ancestors [] opts)
+        fields (ancestors->fields field-dispatch nil ancestors)]
+    (-> c
+      (assoc :field-dispatch field-dispatch
+             :fields fields
+             :keys (fields->keys field-dispatch fields)
              :join-types (vec join-types)))))
 
 ;; ********** Script **********
+
+(defn noop$
+  [relation opts]
+  (->
+    (command :noop relation opts)
+    (assoc :args (:fields relation))))
 
 (defn script$
   [outputs]

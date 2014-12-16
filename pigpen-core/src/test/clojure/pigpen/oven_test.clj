@@ -296,7 +296,7 @@
                                                                                 (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :native))])}
                                              :udf :sequence
                                              :args [load1/value]}
-                                      :alias [value]}]
+                                      :alias [generate1/value]}]
                        :type :generate
                        :id generate1
                        :description "identity\n(constantly true)\nvector\n"
@@ -348,11 +348,12 @@
           command (pig-join/join [(data) (data)] vector)]
       (test-diff (->> (bake command :pig {} {})
                    (map #(select-keys % [:fields :ancestors :id :type])))
-                 '[{:type :return,   :id return1,   :ancestors [],                    :fields [return1/value]}
-                   {:type :generate, :id generate8, :ancestors [return1],             :fields [generate8/key generate8/value]}
-                   {:type :generate, :id generate9, :ancestors [return1],             :fields [generate9/key generate9/value]}
-                   {:type :join,     :id join4,     :ancestors [generate8 generate9], :fields [generate8/key generate8/value generate9/key generate9/value]}
-                   {:type :generate, :id generate7, :ancestors [join4],               :fields [generate7/value]}]))))
+                 '[{:type :return,   :id return1,   :ancestors [],            :fields [return1/value]}
+                   {:type :generate, :id generate6, :ancestors [return1],     :fields [generate6/key generate6/value]}
+                   {:type :noop,     :id noop8,     :ancestors [generate6],   :fields [noop8/key noop8/value]}
+                   {:type :noop,     :id noop9,     :ancestors [generate6],   :fields [noop9/key noop9/value]}
+                   {:type :join,     :id join4,     :ancestors [noop8 noop9], :fields [noop8/key noop8/value noop9/key noop9/value]}
+                   {:type :generate, :id generate7, :ancestors [join4],       :fields [generate7/value]}]))))
 
 (deftest test-bake
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]

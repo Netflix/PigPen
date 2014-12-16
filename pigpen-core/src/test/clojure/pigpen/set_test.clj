@@ -156,6 +156,7 @@
                        :description nil
                        :keys [r0/value r1/value]
                        :join-types [:optional :optional]
+                       :field-dispatch :set
                        :fields [group1/group r0/value r1/value]
                        :field-type :frozen
                        :ancestors [{:id r0, :type :load, :fields [r0/value]}

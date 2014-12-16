@@ -51,42 +51,45 @@ number of optimizations and transforms to the graph.
         r' (id-mapping r r)]
     (symbol (name r') (name field))))
 
-(defn ^:private update-projections
-  "Updates fields used in projections"
-  [{:keys [projections] :as command} update-fn]
-  (if-not projections
-    command
-    (let [projections' (vec
-                         (for [{:keys [type] :as p} projections]
-                           (case type
-                             (:projection-func :projection-flat)
-                             (update-if p [:code :args] (partial mapv update-fn))
+(defn update-command-fields
+  "Updates command-specific fields"
+  [command update-fn]
+  (case (:type command)
+    (:projection-func :projection-flat) (-> command
+                                          (update-in [:code :args] (partial mapv update-fn))
+                                          (update-in [:alias] (partial mapv update-fn)))
 
-                             :projection-field
-                             (update-if p [:field] update-fn))))]
-      (assoc command :projections projections'))))
+    :projection-field (-> command
+                        (update-in [:field] update-fn)
+                        (update-in [:alias] (partial mapv update-fn)))
+
+    :bind          (update-in command [:args] (partial mapv update-fn))
+    :generate      (update-in command [:projections] (partial mapv #(update-command-fields % update-fn)))
+    :order         (update-in command [:key] update-fn)
+    :reduce        (update-in command [:value] update-fn)
+    (:group :join) (update-in command [:keys] (partial mapv update-fn))
+    :noop          (update-in command [:args] (partial mapv update-fn))
+    command))
 
 (defn ^:private update-fields
-  "The default way to update ids in a command. This updates the field names in a
+  "The way to update ids in a command. This updates the field names in a
    command."
   [command id-mapping]
   {:pre [(map? command) ((some-fn map? fn?) id-mapping)]}
   (let [update-fn (partial update-field id-mapping)]
     (-> command
       (update-in [:fields] (partial mapv update-fn))
-      (update-if [:args] (partial mapv update-fn))
-      (update-if [:keys] (partial mapv update-fn))
-      (update-projections id-mapping))))
+      (update-command-fields update-fn))))
 
 (defn ^:private update-ids
-  "The default way to update ids in a command. This updates the id of the
+  "The way to update ids in a command. This updates the id of the
    command and any ancestors, along with the field names."
   [command id-mapping]
   {:pre [(map? command) ((some-fn map? fn?) id-mapping)]}
   (let [update-fn (partial update-field id-mapping)]
     (-> command
       (update-if [:id] (fn [id] (id-mapping id id)))
-      (update-in [:ancestors] #(mapv (fn [id] (id-mapping id id)) %))
+      (update-in [:ancestors] (partial mapv (fn [id] (id-mapping id id))))
       (update-fields id-mapping))))
 
 ;; **********
@@ -235,58 +238,53 @@ number of optimizations and transforms to the graph.
 
 ;; **********
 
-(defn ^:private make-join-fields
-  ;; TODO combine with the logic in pigpen.raw
-  ;; Can't use update-fields because of the dupes
-  "Create the fields for new join/cogroup commands"
-  [type ancestors fields]
-  (case type
-    :join (->> ancestors
-            (mapcat (fn [{id :id}] [(symbol (name id) "key")
-                                    (symbol (name id) "value")]))
-            vec)
-    :group (->> ancestors
-             (mapcat (fn [{id :id}] [(symbol (name id) "key")
-                                     (symbol (name id) "value")]))
-             (cons (first fields))
-             vec)))
-
 (defn ^:private alias-self-join
   "Creates new ids for key-selectors for a join or cogroup"
-  [command-lookup {:keys [ancestors type] :as join}]
-  ;; For each ancestor of a join, duplicate it with a new id
-  (let [ancestors' (vec
-                     (for [id ancestors]
-                       (let [ancestor (command-lookup id)
-                             id' (raw/pigsym (name (:type ancestor)))]
-                         (update-ids ancestor {id id'})
-                         #_(assoc ancestor :id id'))))
+  [command-lookup {:keys [type id ancestors field-dispatch] :as join}]
+  ;; For each ancestor of a join, create a no-op with a new id
+  (let [ancestors' (->> ancestors
+                     (mapv #(-> %
+                              command-lookup
+                              (raw/noop$ {})
+                              tree->command)))
+        ancestor-ids' (mapv :id ancestors')
+        fields' (raw/ancestors->fields field-dispatch id ancestors')
         ;; Create a new join with the new ids
         join' (-> join
-                (assoc :ancestors (mapv :id ancestors'))
-                (update-in [:fields] (partial make-join-fields type ancestors')))]
+                (assoc :ancestors ancestor-ids')
+                (assoc :fields fields')
+                (assoc :keys (raw/fields->keys field-dispatch fields')))]
     ;; Return both the id->id' mapping and the new commands
-    [(zipmap ancestors (map :id ancestors'))
-     (concat ancestors' [join'])]))
+    ;; This mapping will collapse, but that's ok because the values are identical
+    [(zipmap ancestors ancestor-ids')
+     (conj ancestors' join')]))
 
 (defn ^:private alias-self-joins
-  "Self-joins create ambiguous fields. This changes the alias of each
+  "Self-joins create ambiguous fields. This introduces a no-op for each
    key-selector so that they are unique."
   [commands _]
-  (let [command-lookup (->> commands (map (juxt :id identity)) (into {}))
-        id-map (atom {})]
-    (->> commands
-      (mapcat (fn [{:keys [type ancestors] :as command}]
-                ;; update only joins and cogroups
-                (if (and (type #{:join :group})
-                         (not= (count ancestors) (count (set ancestors))))
-                  (let [[id-map' commands'] (alias-self-join command-lookup command)]
-                    (swap! id-map merge id-map')
-                    commands')
-                  ;; any joins will exist before their consumers, so we just
-                  ;; update with id-map as we find them
-                  [(update-ids command @id-map)])))
-      vec)))
+  (let [command-lookup (->> commands
+                         (map (juxt :id identity))
+                         (into {}))]
+
+    (loop [[{:keys [type ancestors] :as command} & more] commands
+           id-map {} ;; keep a history of all ids we've changed
+           result []]
+
+      (if-not command
+        result
+
+        ;; update only joins and cogroups that have ambiguous ancestors
+        (if (and (type #{:join :group})
+                 (not= (count ancestors) (count (set ancestors))))
+
+          ;; create the new commands
+          (let [[id-map' commands'] (alias-self-join command-lookup command)]
+            (recur more (merge id-map id-map') (vec (concat result commands'))))
+
+          ;; any joins will exist before their consumers, so we just
+          ;; update with id-map as we find them
+          (recur more id-map (conj result (update-ids command id-map))))))))
 
 ;; **********
 

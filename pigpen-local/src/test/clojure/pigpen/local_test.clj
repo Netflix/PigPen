@@ -73,11 +73,6 @@
            {r1v1 3, r1v2 4, r2v2 6, r2v1 5}
            {r1v1 3, r1v2 4, r2v2 8, r2v1 7}}))))
 
-(deftest test-pig-compare
-  (is (= -1 (local/pigpen-compare ['key :asc] '{key 1} '{key 2})))
-  (is (= 1 (local/pigpen-compare ['key :desc] '{key 1} '{key 2})))
-  (is (= -1 (local/pigpen-compare ['key :desc 'value :asc] '{key 1 value 1} '{key 1 value 2}))))
-
 (defmethod local/load :bad-storage [command]
   (let [fail (get-in command [:opts :fail])]
     (reify PigPenLocalLoader

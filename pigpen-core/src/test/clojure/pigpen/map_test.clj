@@ -106,7 +106,7 @@
         '{:type :order
           :id order2
           :description nil
-          :fields [order2/key order2/value]
+          :fields [order2/value]
           :field-type :frozen
           :opts {:type :order-opts}
           :key bind1/key
@@ -132,7 +132,7 @@
         '{:type :order
           :id order2
           :description ":a\n"
-          :fields [order2/key order2/value]
+          :fields [order2/value]
           :field-type :frozen
           :opts {:type :order-opts}
           :key bind1/key

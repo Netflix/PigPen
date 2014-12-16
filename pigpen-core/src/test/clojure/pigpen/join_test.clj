@@ -66,9 +66,9 @@
                      :description nil
                      :projections [{:type :projection-field
                                     :field group2/group
-                                    :alias [value0]}
+                                    :alias [generate3/value0]}
                                    {:type :projection-func
-                                    :alias [value1]
+                                    :alias [generate3/value1]
                                     :code {:type :code
                                            :args [bind1/value]
                                            :udf :algebraic
@@ -81,6 +81,7 @@
                      :ancestors [{:type :group
                                   :id group2
                                   :description "(fn [v] (:foo v))\n"
+                                  :field-dispatch :group
                                   :fields [group2/group bind1/key bind1/value]
                                   :field-type :frozen
                                   :join-types [:optional]
@@ -119,6 +120,7 @@
         :ancestors [{:type :reduce
                      :id reduce1
                      :description "into []"
+                     :value r0/value
                      :fields [reduce1/value]
                      :field-type :frozen
                      :ancestors [{:fields [r0/value], :id r0}]
@@ -143,6 +145,7 @@
         :ancestors [{:type :reduce
                      :id reduce1
                      :description "conj\n"
+                     :value r0/value
                      :fields [reduce1/value]
                      :field-type :frozen
                      :ancestors [{:fields [r0/value], :id r0}]
@@ -159,7 +162,7 @@
         :field-type :frozen
         :opts {:type :generate-opts}
         :projections [{:type :projection-func
-                       :alias [value]
+                       :alias [generate2/value]
                        :code {:type :code
                              :args [reduce1/value]
                              :udf :algebraic
@@ -169,6 +172,7 @@
         :ancestors [{:type :reduce
                      :id reduce1
                      :description nil
+                     :value r0/value
                      :fields [reduce1/value]
                      :field-type :frozen
                      :opts {:type :reduce-opts}
@@ -202,9 +206,9 @@
                      :opts {:type :generate-opts}
                      :projections [{:type :projection-field
                                     :field group3/group
-                                    :alias [value0]}
+                                    :alias [generate4/value0]}
                                    {:type :projection-func
-                                    :alias [value1]
+                                    :alias [generate4/value1]
                                     :code {:type :code
                                            :udf :algebraic
                                            :args [bind1/value]
@@ -212,7 +216,7 @@
                                                   :func (pigpen.runtime/with-ns pigpen.join-test
                                                           (pig/fold-fn +))}}}
                                    {:type :projection-func
-                                    :alias [value2]
+                                    :alias [generate4/value2]
                                     :code {:type :code
                                            :udf :algebraic
                                            :args [bind2/value]
@@ -222,6 +226,7 @@
                      :ancestors [{:type :group
                                   :id group3
                                   :description "(fn [_ x y] (* x y))\n"
+                                  :field-dispatch :group
                                   :fields [group3/group bind1/key bind1/value bind2/key bind2/value]
                                   :field-type :frozen
                                   :join-types [:optional :required]
@@ -279,6 +284,7 @@
         :ancestors [{:type :join
                      :id join3
                      :description "(fn [x y] (merge x y))\n"
+                     :field-dispatch :join
                      :fields [bind1/key bind1/value bind2/key bind2/value]
                      :field-type :frozen
                      :join-types [:required :optional]
@@ -331,6 +337,7 @@
         :ancestors [{:type :join
                      :id join3
                      :description ":key\n"
+                     :field-dispatch :join
                      :fields [bind1/key bind1/value bind2/key bind2/value]
                      :field-type :frozen
                      :join-types [:required :required]
@@ -392,6 +399,7 @@
                      :ancestors [{:type :join
                                   :id join3
                                   :description ":key\n"
+                                  :field-dispatch :join
                                   :fields [bind1/key bind1/value bind2/key bind2/value]
                                   :field-type :frozen
                                   :join-types [:optional :required]

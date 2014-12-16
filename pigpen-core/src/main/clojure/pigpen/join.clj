@@ -71,14 +71,21 @@ coerced to ::nil so they can be differentiated from outer joins later."
   (fn [key & groups]
     (apply f key (map #(if (seq? %) (seq %) %) groups))))
 
+(defmethod raw/ancestors->fields :group
+  [_ id ancestors]
+  (vec (cons (symbol (name id) "group") (mapcat :fields ancestors))))
+
+(defmethod raw/fields->keys :group
+  [_ fields]
+  (filterv (comp '#{key} symbol name) fields))
+
 (defn group*
   "See pigpen.core/group-by, pigpen.core/cogroup"
   [selects f opts]
   (let [relations  (mapv (partial select->generate opts) selects)
         join-types (mapv #(get % :type :optional) selects)
         fields     (mapcat :fields relations)
-        keys       (filter (comp '#{key} symbol name) fields)
-        {:keys [fields], :as c} (raw/group$ relations keys join-types (dissoc opts :fold))
+        {:keys [fields], :as c} (raw/group$ relations :group join-types (dissoc opts :fold))
         values     (filter (comp '#{group value} symbol name) fields)
         folds      (mapv projection-fold
                          (cons nil (map :fold selects))
@@ -104,19 +111,26 @@ coerced to ::nil so they can be differentiated from outer joins later."
     (-> c
       (raw/generate$ [(projection-fold fold (first fields) '[value])] {}))))
 
+(defmethod raw/ancestors->fields :join
+  [_ id ancestors]
+  (vec (mapcat :fields ancestors)))
+
+(defmethod raw/fields->keys :join
+  [_ fields]
+  (filterv (comp '#{key} symbol name) fields))
+
 (defn join*
   "See pigpen.core/join"
   [selects f {:keys [all-args] :as opts}]
   (let [relations  (mapv (partial select->generate opts) selects)
         join-types (mapv #(get % :type :required) selects)
         fields     (mapcat :fields relations)
-        keys       (filter (comp '#{key} symbol name) fields)
         values     (if all-args
                      fields
                      (filter (comp '#{value} symbol name) fields))]
     (code/assert-arity f (count values))
     (-> relations
-      (raw/join$ keys join-types opts)
+      (raw/join$ :join join-types opts)
       (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args values}))))
 
 (defmacro group-by

@@ -19,6 +19,7 @@
 (ns pigpen.local
   (:refer-clojure :exclude [load load-reader read])
   (:require [pigpen.runtime]
+            [pigpen.raw :as raw]
             [pigpen.oven :as oven]
             [clojure.java.io :as io]
             [pigpen.extensions.io :refer [list-files]]
@@ -35,8 +36,17 @@
 (defn induce-sentinel-nil [value]
   (or value ::nil))
 
+(defn induce-sentinel-nil+ [value id]
+  ;; TODO use a better sentinel value here
+  (or value (keyword (name id) "nil")))
+
 (defn remove-sentinel-nil [value]
   (when-not (= value ::nil)
+    value))
+
+(defn remove-sentinel-nil+ [value]
+  (if (and (keyword? value) (= "nil" (name value)))
+    nil
     value))
 
 (defmethod pigpen.runtime/pre-process [:local :frozen]
@@ -47,10 +57,7 @@
 (defmethod pigpen.runtime/post-process [:local :frozen]
   [_ _]
   (fn [args]
-    (let [args (mapv induce-sentinel-nil args)]
-      (if (next args)
-        args
-        (first args)))))
+    (mapv induce-sentinel-nil args)))
 
 (defn cross-product [data]
   (if (empty? data) [{}]
@@ -60,22 +67,11 @@
           (for [value head]
             (merge child value)))))))
 
-(defn pigpen-compare [[key order & sort-keys] x y]
-  (let [r (compare (key x) (key y))]
-    (if (= r 0)
-      (if sort-keys
-        (recur sort-keys x y)
-        (int 0))
-      (case order
-        :asc r
-        :desc (int (- r))))))
-
-(defn pigpen-comparator [sort-keys]
-  (reify java.util.Comparator
-    (compare [this x y]
-      (pigpen-compare sort-keys x y))
-    (equals [this obj]
-      (= this obj))))
+(defn update-field-ids [id]
+  (fn [vs]
+    (->> vs
+      (map (fn [[f v]] [(raw/update-ns id f) v]))
+      (into {}))))
 
 (defmulti eval-func (fn [udf f args] udf))
 
@@ -91,25 +87,28 @@
     (split-at (/ (count values) 2))
     (map (partial reduce reducef (combinef)))
     (reduce combinef)
-    post))
+    post
+    vector))
 
 (defn eval-code [{:keys [udf expr args]} values]
   (let [{:keys [init func]} expr
         _ (eval init)
         f (eval func)
-        ;; TODO don't like - need to mediate on this one for a bit
+        ;; TODO don't like - need to meditate on this one for a bit
         arg-values (map #(if (string? %) % (get values %)) args)
         result (eval-func udf f arg-values)]
-    ;(prn 'eval-code udf func args arg-values result)
     result))
 
 (defmulti graph->local (fn [data command] (:type command)))
 
-(defn graph->local+ [data {:keys [id ancestors] :as command}]
+(defn graph->local+ [data {:keys [id ancestors fields] :as command}]
   ;(prn 'id id)
   (let [ancestor-data (mapv data ancestors)
         ;_ (prn 'ancestor-data ancestor-data)
         result (graph->local ancestor-data command)]
+    #_(when (first result)
+       (assert (= (set (keys (first result))) (set fields))
+               (str "Field difference. Expecting " fields " Actual " (keys (first result)))))
     ;(prn 'result result)
     (assoc data id result)))
 
@@ -149,7 +148,7 @@ sequence. This command is very useful for unit tests.
       (->> graph
         (reduce graph->local+ {})
         (last-command)
-        (map 'value)))))
+        (map (comp val first))))))
 
 ;; ********** IO **********
 
@@ -240,38 +239,32 @@ sequence. This command is very useful for unit tests.
               (close-reader local-loader reader))))))))
 
 (defmethod graph->local :store
-  [[data] command]
+  [[data] {:keys [id] :as command}]
   (let [local-storage (store command)
-        writer (init-writer local-storage)]
-    (doseq [value data]
+        writer (init-writer local-storage)
+        data' (mapv (update-field-ids id) data)]
+    (doseq [value data']
       (write local-storage writer value))
     (close-writer local-storage writer)
-    data))
+    data'))
 
 ;; ********** Map **********
 
 (defmethod graph->local :projection-field
   [values {:keys [field alias]}]
-  (cond
-    ; normal field names
-    (symbol? field) [{alias (values field)}]
-    ; compound field names (to be deprecated)
-    (vector? field) [{alias (values field)}]
-    ; used to select an index from a tuple output. Assumes a single field
-    (number? field) [{alias (nth (-> values vals first) field)}]
-    :else (throw (IllegalStateException. (str "Unknown field " field)))))
+  [{(first alias) (values field)}])
 
 (defmethod graph->local :projection-func
   [values {:keys [code alias]}]
-  [{alias (eval-code code values)}])
+  [(zipmap alias (eval-code code values))])
 
 (defmethod graph->local :projection-flat
   [values {:keys [code alias] :as command}]
   (for [value' (eval-code code values)]
-    {alias value'}))
+    (zipmap alias value')))
 
 (defmethod graph->local :generate
-  [[data] {:keys [projections]}]
+  [[data] {:keys [projections] :as c}]
   (mapcat
     (fn [values]
       (->> projections
@@ -280,134 +273,129 @@ sequence. This command is very useful for unit tests.
     data))
 
 (defmethod graph->local :rank
-  [[data] _]
-  (map-indexed
-    (fn [i v]
-      (assoc v '$0 i))
-    data))
+  [[data] {:keys [id]}]
+  (->> data
+    (map-indexed (fn [i v]
+                   (assoc v 'index i)))
+    (map (update-field-ids id))))
 
 (defmethod graph->local :order
-  [[data] {:keys [sort-keys]}]
-  (sort (pigpen-comparator sort-keys) data))
+  [[data] {:keys [id key comp]}]
+  (->> data
+    (sort-by key
+             (case comp
+               :asc compare
+               :desc (clojure.core/comp - compare)))
+    (map #(dissoc % key))
+    (map (update-field-ids id))))
 
 ;; ********** Filter **********
 
 (defmethod graph->local :limit
-  [[data] {:keys [n]}]
-  (take n data))
+  [[data] {:keys [id n]}]
+  (->> data
+    (take n)
+    (map (update-field-ids id))))
 
 (defmethod graph->local :sample
-  [[data] {:keys [p]}]
-  (filter (fn [_] (< (rand) p)) data))
+  [[data] {:keys [id p]}]
+  (->> data
+    (filter (fn [_] (< (rand) p)))
+    (map (update-field-ids id))))
 
 ;; ********** Join **********
 
-(defn graph->local-group
-  [data {:keys [ancestors keys join-types fields]}]
-  (->>
-    ;; map
-    (zipv [a ancestors
-           [k] keys
-           d data
-           j join-types]
-      (forcat [values d]
-        ;; This selects all of the fields that are produced by this relation
-        (for [[[r] v :as f] (next fields)
-              :when (= r a)]
-          {:field f
-           ;; This changes a nil values into a relation specific nil value
-           ;; TODO use a better sentinel value here
-           :key (or (values k) (keyword (name a) "nil"))
-           :values (values v)
-           :required (= j :required)})))
-    ;; shuffle
-    (apply concat)
-    ;; reduce
-    (group-by :key)
-    (map (fn [[key key-group]]
-           (->> key-group
-             (group-by :field)
-             (map (fn [[field field-group]]
-                    [field (map :values field-group)]))
-             (into
-               ;; Start with the group key. If it's a single value, flatten it.
-               ;; Keywords are the fake nils we put in earlier
-               {(first fields) (if (and (keyword? key) (= "nil" (name key))) nil key)}))))
-    ; remove rows that were required, but are not present (inner joins)
-    (filter (fn [value]
-              (every? identity
-                      (zipv [a ancestors
-                             [k] keys
-                             j join-types]
-                        (or (= j :optional)
-                            (contains? value [[a] k]))))))))
-
-(defn graph->local-group-all
-  [data {:keys [fields]}]
-  (->>
-    (zipv [[[r] v :as f] (next fields)
-           d data]
-      (for [values d]
-        {:field f
-         :values (v values)}))
-    (apply concat)
-    (group-by :field)
-    (map (fn [[field field-group]]
-           [field (map :values field-group)]))
-    (into {(first fields) nil})
-    (vector)
-    (filter next)))
+(defmethod graph->local :reduce
+  [[data] {:keys [fields value]}]
+  (when (seq data)
+    [{(first fields) (map value data)}]))
 
 (defmethod graph->local :group
-  [data {:keys [keys] :as command}]
-  (if (= keys [:pigpen.raw/group-all])
-    (graph->local-group-all data command)
-    (graph->local-group data command)))
+  [data {:keys [ancestors keys join-types fields]}]
+  (let [[group-field & data-fields] fields
+        join-types (zipmap keys join-types)]
+    (->>
+      ;; map
+      (zipv [d data
+             id ancestors
+             k keys]
+        (for [values d
+              :let [key (induce-sentinel-nil+ (values k) id)]
+              [f v] values]
+          {;; This changes a nil values into a relation specific nil value
+           :field f
+           :key key
+           :value v}))
+      ;; shuffle
+      (apply concat)
+      (group-by :key)
+      ;; reduce
+      (map (fn [[key key-group]]
+             (->> key-group
+               (group-by :field)
+               (map (fn [[field field-group]]
+                      [field (map :value field-group)]))
+               (into
+                 ;; Revert the fake nils we put in the key earlier
+                 {group-field (remove-sentinel-nil+ key)}))))
+      ; remove rows that were required, but are not present (inner joins)
+      (remove (fn [value]
+                (->> join-types
+                  (some (fn [[k j]]
+                          (and (= j :required)
+                               (not (contains? value k)))))))))))
 
 (defmethod graph->local :join
   [data {:keys [ancestors keys join-types fields]}]
-  (->>
-    (zipv [a ancestors
-           [k] keys
-           d data]
-      (for [values d]
-        ;; This selects all of the fields that are in this relation
-        {:values (into {} (for [[[r v] :as f] fields
-                                :when (= r a)]
-                            [f (values v)]))
-         ;; This is to emulate the way pig handles nils
-         ;; This changes a nil values into a relation specific nil value
-         :key (or (values k) (keyword (name a) "nil"))
-         :relation a}))
-    (apply concat)
-    (group-by :key)
-    (mapcat (fn [[_ key-group]]
-              (->> key-group
-                (group-by :relation)
-                (map (fn [[relation relation-grouping]]
-                       [relation (map :values relation-grouping)]))
-                (into  (->>
-                         ;; This seeds the inner/outer joins, by placing a
-                         ;; defualt empty value for inner joins
-                         (zipmap ancestors join-types)
-                         (filter (fn [[_ j]] (= j :required)))
-                         (map (fn [[a _]] [a []]))
-                         (into {})))
-                (vector)
-                (mapcat (fn [relation-grouping]
-                          (cross-product (vals relation-grouping)))))))))
+  (let [join-types (zipmap ancestors join-types)
+        ;; This seeds the inner/outer joins, by placing a
+        ;; defualt empty value for inner joins
+        seed-value (->> join-types
+                     (filter (fn [[_ j]] (= j :required)))
+                     (map (fn [[a _]] [a []]))
+                     (into {}))]
+    (->>
+      ;; map
+      (zipv [d data
+             id ancestors
+             k keys]
+        (for [values d]
+          {:relation id
+           ;; This changes a nil values into a relation specific nil value
+           :key (induce-sentinel-nil+ (values k) id)
+           :values values}))
+      ;; shuffle
+      (apply concat)
+      (group-by :key)
+      ;; reduce
+      (mapcat (fn [[_ key-group]]
+                (->> key-group
+                  (group-by :relation)
+                  (map (fn [[relation relation-grouping]]
+                         [relation (map :values relation-grouping)]))
+                  (into seed-value)
+                  vals
+                  cross-product))))))
 
 ;; ********** Set **********
 
 (defmethod graph->local :distinct
-  [[data] _]
-  (distinct data))
+  [[data] {:keys [id]}]
+  (->> data
+    (distinct)
+    (map (update-field-ids id))))
 
 (defmethod graph->local :union
-  [data _]
-  (apply concat data))
+  [data {:keys [id]}]
+  (->> data
+    (apply concat)
+    (map (update-field-ids id))))
 
 ;; ********** Script **********
+
+(defmethod graph->local :noop
+  [[data] {:keys [id]}]
+  (map (update-field-ids id) data))
 
 (defmethod graph->local :script
   [data _]

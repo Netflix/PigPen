@@ -128,7 +128,7 @@
         :field-type :frozen
         :projections [{:type :projection-field
                        :field r0/value
-                       :alias [value]}]
+                       :alias [generate0/value]}]
         :opts {:type :generate-opts}})))
 
 (deftest test-generate$
@@ -143,7 +143,7 @@
         :field-type :frozen
         :projections [{:type :projection-field
                        :field r0/value
-                       :alias [value]}]
+                       :alias [generate0/value]}]
         :opts {:type :generate-opts}})))
 
 (deftest test-bind$
@@ -187,7 +187,7 @@
         :id order0
         :description nil
         :ancestors [{:id r0, :fields [r0/key r0/value]}]
-        :fields [order0/key order0/value]
+        :fields [order0/value]
         :field-type :frozen
         :key r0/key
         :comp :asc
@@ -286,6 +286,7 @@
       '{:type :reduce
         :id reduce0
         :description nil
+        :value r0/value
         :fields [reduce0/value]
         :field-type :frozen
         :ancestors [{:fields [r0/value]}]
@@ -296,7 +297,7 @@
     (test-diff
       (group$ [{:id 'g1, :fields '[g1/key g1/value]}
                {:id 'g2, :fields '[g2/key g2/value]}]
-              '[g1/key g2/key]
+              :group
               [:optional :optional]
               {})
       '{:type :group
@@ -304,6 +305,7 @@
         :description nil
         :keys [g1/key g2/key]
         :join-types [:optional :optional]
+        :field-dispatch :group
         :fields [group0/group g1/key g1/value g2/key g2/value]
         :field-type :frozen
         :ancestors [{:id g1, :fields [g1/key g1/value]}
@@ -315,7 +317,7 @@
     (test-diff
       (join$ [{:id 'g1, :fields '[g1/key g1/value]}
               {:id 'g2, :fields '[g2/key g2/value]}]
-             '[g1/key g2/key]
+             :join
              [:required :required]
              {})
       '{:type :join
@@ -323,6 +325,7 @@
         :description nil
         :keys [g1/key g2/key]
         :join-types [:required :required]
+        :field-dispatch :join
         :fields [g1/key g1/value g2/key g2/value]
         :field-type :frozen
         :ancestors [{:id g1, :fields [g1/key g1/value]}
@@ -331,4 +334,25 @@
 
 ;; ********** Script **********
 
-;; TODO test-script$
+(deftest test-noop$
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (noop$ {:id 'r0, :fields '[r0/value]} {})
+      '{:type :noop
+        :id noop1
+        :description nil
+        :args [r0/value]
+        :fields [noop1/value]
+        :field-type :frozen
+        :ancestors [{:fields [r0/value], :id r0}]
+        :opts {:type :noop-opts}})))
+
+(deftest test-script$
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+    (test-diff
+      (script$ [{:id 'r0, :fields '[r0/value]}
+                {:id 'r1, :fields '[r1/value]}])
+      '{:type :script
+        :id script1
+        :ancestors [{:fields [r0/value], :id r0}
+                    {:fields [r1/value], :id r1}]})))

@@ -48,5 +48,5 @@ Useful for unit tests."
 
 (defmacro debug [body]
   `(let [x# ~body]
-     (println "debug:" '~body " => " x#)
+     (prn ~''debug '~body ~''=> x#)
      x#))
