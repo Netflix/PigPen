@@ -62,11 +62,11 @@
 
   (testing "Normal csv with default separator and quotes"
     (let [command (pig/load-csv "build/functional/io-test/test-load-csv")]
-      (spit "build/functional/io-test/test-load-csv" "\"a string\",123,5.0\n\"another string\",-532,23.7")
+      (spit "build/functional/io-test/test-load-csv" "\"a string\",123,5.0\n\"a \"\"complex\"\" string\",-532,23.7")
       (test-diff
         (set (pig/dump command))
         '#{["a string" "123" "5.0"]
-           ["another string" "-532" "23.7"]})))
+           ["a \"complex\" string" "-532" "23.7"]})))
 
   (testing "Normal csv with non-comma separator and different quoting"
     (let [command (pig/load-csv "build/functional/io-test/test-load-csv" \; \')]

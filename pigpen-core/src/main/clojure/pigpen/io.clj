@@ -74,7 +74,9 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
 
 (defn load-csv
   "Loads data from a csv file. Each line is returned as a vector of strings,
-split according to RFC4180. The default separator is \\, and quote is \\\".
+split according to RFC4180(*). The default separator is \\, and quote is \\\".
+
+*) new lines within cells are not supported due to line-based splitting of files.
 
   Example:
 
