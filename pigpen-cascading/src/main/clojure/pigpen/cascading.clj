@@ -99,8 +99,9 @@
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
 
 (defmethod command->flowdef :group
-  [{:keys [id keys fields join-types ancestors opts]} flowdef]
+  [{:keys [id keys fields join-types ancestors opts field-projections]} flowdef]
   {:pre [id keys fields join-types ancestors]}
+  (println "projections" field-projections)
   (let [is-group-all (= keys [:pigpen.raw/group-all])
         keys (if is-group-all [["group_all"]] keys)
         pipes (if is-group-all
@@ -156,15 +157,19 @@
 (defmethod command->flowdef :generate
   [{:keys [id ancestors projections field-projections opts]} flowdef]
   {:pre [id (= 1 (count ancestors)) (not-empty projections)]}
+
+  ;; TODO: this should never occur once everything is implemented.
+  (when-not (contains? (:pipes flowdef) (first ancestors))
+    (do
+      (println "flowdef" flowdef)
+      (println "id" id)
+      (println "ancestors" ancestors)
+      (throw (Exception. "not implemented"))))
+
   (let [ancestor (first ancestors)
         pipe ((:pipes flowdef) ancestor)
         flat-projections (filter #(= :projection-flat (:type %)) projections)
-        flowdef (cond (contains? (:pipes flowdef) ancestor) (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
-                      :else (do
-                              (println "flowdef" flowdef)
-                              (println "id" id)
-                              (println "ancestors" ancestors)
-                              (throw (Exception. "not implemented"))))
+        flowdef (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
         flowdef (let [pipe-opts (get-in flowdef [:cogroup-opts ancestor])]
                   (if pipe-opts
                     (add-val flowdef [:cogroup-opts] id pipe-opts)
@@ -205,6 +210,7 @@
   (throw (Exception. (str "Command " (:type command) " not implemented yet for Cascading!"))))
 
 (defn preprocess-commands [commands]
+  ;(let [is-field-projection (fn [c] (every? #(= :projection-field (:type %)) (if-let [p (:projections c)] p [1])))
   (let [is-field-projection #(= :projection-field (get-in % [:projections 0 :type]))
         fp-by-key (fn [key-fn] (->> commands
                                     (filter is-field-projection)
