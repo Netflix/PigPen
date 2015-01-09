@@ -119,7 +119,8 @@
                                        (into-array (map cfields keys))
                                        Fields/NONE
                                        (BufferJoin.)))
-        (add-val [:cogroup-opts] id {:group-type        :group
+        (add-val [:cogroup-opts] id {:group-id          id
+                                     :group-type        :group
                                      :join-nils         (true? (:join-nils opts))
                                      :group-all         is-group-all
                                      :num-streams       (count pipes)
@@ -144,14 +145,15 @@
                                        (group-key-cfields keys join-nils)
                                        (cfields fields)
                                        joiner))
-        (add-val [:cogroup-opts] id {:group-type :join
+        (add-val [:cogroup-opts] id {:group-id   id
+                                     :group-type :join
                                      :all-args   (true? (:all-args opts))}))))
 
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
   {:pre [code alias]}
   (command->flowdef (assoc code :pipe pipe
-                           :field-projections (or field-projections [{:alias alias}])) flowdef))
+                                :field-projections (or field-projections [{:alias alias}])) flowdef))
 
 (defmethod command->flowdef :generate
   [{:keys [id ancestors projections field-projections opts]} flowdef]
@@ -166,12 +168,12 @@
                               (println "ancestors" ancestors)
                               (throw (Exception. "not implemented"))))
         flowdef (let [pipe-opts (get-in flowdef [:cogroup-opts ancestor])]
-                  (if pipe-opts
+                  (if (= (:group-id pipe-opts) ancestor)
                     (add-val flowdef [:cogroup-opts] id pipe-opts)
                     flowdef))
         flowdef (reduce (fn [def cmd] (command->flowdef
                                         (assoc cmd :pipe id
-                                               :field-projections field-projections)
+                                                   :field-projections field-projections)
                                         def))
                         flowdef
                         flat-projections)]
