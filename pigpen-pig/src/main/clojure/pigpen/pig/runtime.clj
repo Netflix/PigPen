@@ -394,7 +394,7 @@ containing the singe value of the result."
     ;; Make new lazy bags & create a result channel
     (let [[args* input-bags] (lazy-bag-args args)
           ;; Start result evaluation asynchronously, it will block on lazy bags
-          result (ae/safe-go (func args*))]      
+          result (ae/safe-go (func args*))]
       [input-bags result])))
 
 (defn udf-accumulate
@@ -540,13 +540,13 @@ initial reduce, a combiner, and a final stage."
       (case type
         :initial
         (exec-initial pre (combinef) reducef args)
-          
+
         :intermed
         (exec-intermed combinef args)
-          
+
         :final
         (exec-final combinef post args)
-          
+
         ;; This is only used locally, so we split the input bag to test combinef
         ;; TODO I was wrong, this will be used on the cluster.
         ;; Need a better fix for using folds in a cogroup
@@ -561,7 +561,7 @@ initial reduce, a combiner, and a final stage."
           bag
           vector
           (exec-final combinef post))))
-    
+
     (catch Throwable z (throw (PigPenException. z)))))
 
 (defn pre-process*

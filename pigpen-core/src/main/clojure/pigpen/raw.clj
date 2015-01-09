@@ -166,6 +166,22 @@ building blocks for more complex operations.")
     (assoc :projections (vec projections)
            :fields (mapv :alias projections))))
 
+(defn bind$*
+  "Used to make a post-bake bind"
+  ([relation func opts] (bind$* relation [] func opts))
+  ([relation requires func opts]
+    {:pre [func]}
+    (->
+      (command :bind (dissoc opts :args :requires :alias :field-type-in :field-type-out))
+      (dissoc :field-type)
+      (assoc :ancestors [relation]
+             :func func
+             :args (vec (get opts :args ['value]))
+             :requires (vec (concat requires (:requires opts)))
+             :fields [(get opts :alias 'value)]
+             :field-type-in (get opts :field-type-in :frozen)
+             :field-type-out (get opts :field-type-out :frozen)))))
+
 (defn bind$
   ([relation func opts] (bind$ relation [] func opts))
   ([relation requires func opts]
@@ -231,7 +247,7 @@ building blocks for more complex operations.")
   (->
     (command :limit relation opts)
     (assoc :n n)))
-   
+
 (defn sample$
   [relation p opts]
   {:pre [(float? p) (<= 0.0 p 1.0)]}

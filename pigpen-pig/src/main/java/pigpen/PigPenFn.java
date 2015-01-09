@@ -20,7 +20,6 @@ package pigpen;
 
 import java.io.IOException;
 
-import org.apache.pig.Accumulator;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 
@@ -37,7 +36,7 @@ import clojure.lang.Var;
  * @author mbossenbroek
  *
  */
-public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
+public class PigPenFn<T> extends EvalFunc<T> {
 
     protected static final IFn EVAL_STRING, EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
 
@@ -63,23 +62,5 @@ public class PigPenFn<T> extends EvalFunc<T> implements Accumulator<T> {
     @Override
     public T exec(Tuple input) throws IOException {
         return (T) EVAL.invoke(func, input);
-    }
-
-    private Object state = null;
-
-    @Override
-    public void accumulate(Tuple input) throws IOException {
-        state = ACCUMULATE.invoke(func, state, input);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public T getValue() {
-        return (T) GET_VALUE.invoke(state);
-    }
-
-    @Override
-    public void cleanup() {
-        state = CLEANUP.invoke(state);
     }
 }

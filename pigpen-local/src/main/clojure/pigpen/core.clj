@@ -24,7 +24,9 @@
             [pigpen.map]
             [pigpen.filter]
             [pigpen.set]
-            [pigpen.join]))
+            [pigpen.join]
+            [pigpen.query]
+            [pigpen.local]))
 
 (set! *warn-on-reflection* true)
 
@@ -81,19 +83,5 @@
 
 ;; ********** Script **********
 
-(defn script
-  "Combines multiple store commands into a single script. This is not required
-if you have a single output.
-
-  Example:
-
-    (pig/script
-      (pig/store-tsv \"foo.tsv\" foo)
-      (pig/store-clj \"bar.clj\" bar))
-
-  Note: When run locally, this will merge the results of any source relations.
-"
-  {:arglists '([outputs+])
-   :added "0.1.0"}
-  [& outputs]
-  (raw/script$ outputs))
+(intern *ns* (with-meta 'script (meta #'pigpen.query/script)) @#'pigpen.query/script)
+(intern *ns* (with-meta 'dump (meta #'pigpen.local/dump)) @#'pigpen.local/dump)

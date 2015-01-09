@@ -117,5 +117,3 @@
                  (pigpen/store-clj output1))]
     (.complete (cascading/generate-flow cmd))
     (is (= #{1 2 4 3 6} (into #{} (read-output output1))))))
-
-(run-tests 'pigpen.cascading-test)
