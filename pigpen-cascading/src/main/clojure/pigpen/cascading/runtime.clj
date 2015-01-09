@@ -16,9 +16,17 @@
 
 (defn emit-group-buffer-tuples
   "Emit the results from a GroupBuffer."
-  [f key iterators ^TupleEntryCollector collector group-all]
-  (let [result (if group-all (f [(iterator-seq (first iterators))])
-                             (f (concat [key] (map iterator-seq iterators))))]
+  [f key iterators ^TupleEntryCollector collector group-all udf-type]
+  ; TODO: handle :combinef
+  (println "key" key)
+  (let [normal-fn #(if group-all (f [(iterator-seq (first iterators))])
+                                 (f (concat [key] (map iterator-seq iterators))))
+        algebraic-fn (fn [] (let [{:keys [combinef reducef]} f]
+                              [[(reduce reducef (combinef) (iterator-seq (first iterators)))]]))
+        result (if (= :algebraic udf-type)
+                 (algebraic-fn)
+                 (normal-fn))]
+    (println "result" result)
     (emit-tuples result collector)))
 
 (defn emit-join-buffer-tuples

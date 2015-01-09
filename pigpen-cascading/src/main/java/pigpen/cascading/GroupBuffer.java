@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import clojure.lang.IFn;
+import clojure.lang.Keyword;
 import clojure.lang.RT;
 import clojure.lang.Var;
 
@@ -53,8 +54,9 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   private final boolean joinNils;
   private final boolean isFullOuter;
   private final List<Boolean> groupRequirements;
+  private final Keyword udfType;
 
-  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements) {
+  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements, Keyword udfType) {
     super(fields);
     this.init = init;
     this.func = func;
@@ -62,6 +64,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     this.groupAll = groupAll;
     this.joinNils = joinNils;
     this.groupRequirements = groupRequirements;
+    this.udfType = udfType;
     boolean fullOuter = true;
     for (Boolean isRequired : groupRequirements) {
       if (isRequired) {
@@ -90,7 +93,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
       Object key = keys.get(i);
       if (requiredGroupsPresent(iterators)) {
         Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
-        emitFn.invoke(fn, key, iterators, bufferCall.getOutputCollector(), groupAll);
+        emitFn.invoke(fn, key, iterators, bufferCall.getOutputCollector(), groupAll, udfType);
       }
     }
   }

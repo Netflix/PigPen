@@ -84,24 +84,23 @@
       (add-val [:sinks] id ((get-tap-fn storage) location opts))))
 
 (defmethod command->flowdef :code
-  [{:keys [expr args pipe field-projections]} flowdef]
+  [{:keys [expr args pipe field-projections udf]} flowdef]
   {:pre [expr args]}
   (let [{:keys [init func]} expr
         fields (if field-projections
                  (cfields (map #(cascading-field (:alias %)) field-projections))
                  Fields/UNKNOWN)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
-    (if-not (nil? cogroup-opts)
+    (if-not (or (nil? cogroup-opts) (= (symbol "generate56") pipe))
       (let [buffer (case (:group-type cogroup-opts)
-                     :group (GroupBuffer. (str init) (str func) fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts))
+                     :group (GroupBuffer. (str init) (str func) fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts) udf)
                      :join (JoinBuffer. (str init) (str func) fields (:all-args cogroup-opts)))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
 
 (defmethod command->flowdef :group
-  [{:keys [id keys fields join-types ancestors opts field-projections]} flowdef]
+  [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
-  (println "projections" field-projections)
   (let [is-group-all (= keys [:pigpen.raw/group-all])
         keys (if is-group-all [["group_all"]] keys)
         pipes (if is-group-all
@@ -152,7 +151,13 @@
   [{:keys [code alias pipe field-projections]} flowdef]
   {:pre [code alias]}
   (command->flowdef (assoc code :pipe pipe
-                           :field-projections (or field-projections [{:alias alias}])) flowdef))
+                                :field-projections (or field-projections [{:alias alias}])) flowdef))
+
+(defmethod command->flowdef :projection-func
+  [{:keys [code alias pipe field-projections]} flowdef]
+  {:pre [code alias]}
+  (command->flowdef (assoc code :pipe pipe
+                                :field-projections (or field-projections [{:alias alias}])) flowdef))
 
 (defmethod command->flowdef :generate
   [{:keys [id ancestors projections field-projections opts]} flowdef]
@@ -168,7 +173,8 @@
 
   (let [ancestor (first ancestors)
         pipe ((:pipes flowdef) ancestor)
-        flat-projections (filter #(= :projection-flat (:type %)) projections)
+        flat-projections (filter #(let [t (:type %)]
+                                   (or (= :projection-flat t) (= :projection-func t))) projections)
         flowdef (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
         flowdef (let [pipe-opts (get-in flowdef [:cogroup-opts ancestor])]
                   (if pipe-opts
@@ -176,7 +182,7 @@
                     flowdef))
         flowdef (reduce (fn [def cmd] (command->flowdef
                                         (assoc cmd :pipe id
-                                               :field-projections field-projections)
+                                                   :field-projections field-projections)
                                         def))
                         flowdef
                         flat-projections)]
@@ -209,9 +215,9 @@
   [command _]
   (throw (Exception. (str "Command " (:type command) " not implemented yet for Cascading!"))))
 
-(defn preprocess-commands [commands]
-  ;(let [is-field-projection (fn [c] (every? #(= :projection-field (:type %)) (if-let [p (:projections c)] p [1])))
-  (let [is-field-projection #(= :projection-field (get-in % [:projections 0 :type]))
+(defn- collapse-field-projections [commands]
+  (let [is-field-projection (fn [c] (every? #(= :projection-field (:type %)) (if-let [p (:projections c)] p [0])))
+        ;(let [is-field-projection #(= :projection-field (get-in % [:projections 0 :type]))
         fp-by-key (fn [key-fn] (->> commands
                                     (filter is-field-projection)
                                     (map (fn [c] [(key-fn c) c]))
@@ -228,6 +234,32 @@
                                                            (first (:ancestors (fp-by-id %)))
                                                            %) a))))))
          (remove is-field-projection))))
+
+; TODO: lots of code duplication here
+(defn- collapse-func-projections [commands]
+  (let [is-func-projection (fn [c] (some #(= :projection-func (:type %)) (if-let [p (:projections c)] p [0])))
+        successors (zipmap (map #(first (:ancestors %)) commands) (map :id commands))
+        fp-by-key (fn [key-fn] (->> commands
+                                    (filter is-func-projection)
+                                    (map (fn [c] [(key-fn c) c]))
+                                    (into {})))
+        fp-by-successor (fp-by-key #(successors (:id %)))
+        fp-by-id (fp-by-key :id)]
+    (->> commands
+         (map (fn [c]
+                (let [fp (fp-by-successor (:id c))
+                      c (if fp
+                          (assoc c :func-projections (:projections fp))
+                          c)]
+                  (update-in c [:ancestors] (fn [a] (map #(if (fp-by-id %)
+                                                           (first (:ancestors (fp-by-id %)))
+                                                           %) a))))))
+         (remove is-func-projection))))
+
+(defn preprocess-commands [commands]
+  (-> commands
+      collapse-field-projections
+      collapse-func-projections))
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
