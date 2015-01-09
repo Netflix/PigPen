@@ -9,7 +9,8 @@
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
            (cascading.pipe.assembly Unique)
            (cascading.operation.filter Limit Sample FilterNull)
-           (cascading.util NullNotEquivalentComparator))
+           (cascading.util NullNotEquivalentComparator)
+           (cascading.flow FlowConnector))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -227,19 +228,19 @@
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
-  [commands]
+  [commands ^FlowConnector connector]
   (clojure.pprint/pprint (preprocess-commands commands))
   (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} (preprocess-commands commands))
         {:keys [sources pipe-to-sink sinks pipes]} flowdef
         sources-map (into {} (map (fn [s] [(str s) (sources s)]) (keys sources)))
         sinks-map (into {} (map (fn [[p s]] [(str p) (sinks s)]) pipe-to-sink))
         tail-pipes (into-array Pipe (map #(pipes %) (keys pipe-to-sink)))]
-    (.connect (HadoopFlowConnector.) sources-map sinks-map tail-pipes)))
+    (.connect connector sources-map sinks-map tail-pipes)))
 
 (defn generate-flow
   "Transforms the relation specified into a Cascading flow that is ready to be executed."
-  ([query] (generate-flow {} query))
-  ([opts query]
+  ([query] (generate-flow (HadoopFlowConnector.) query))
+  ([connector query]
     (-> query
-        (oven/bake :cascading {} opts)
-        commands->flow)))
+        (oven/bake :cascading {} {})
+        (commands->flow connector))))
