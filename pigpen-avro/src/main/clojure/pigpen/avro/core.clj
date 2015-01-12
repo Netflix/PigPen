@@ -21,11 +21,14 @@
             [pigpen.raw :as raw]
             [pigpen.core :as pig])
   (:import [org.apache.avro
+            Schema
+            Schema$Field
             Schema$Type
             Schema$Parser
             SchemaNormalization]
            [org.apache.avro.file DataFileReader]
            [org.apache.avro.specific SpecificDatumReader]
+           [org.apache.avro.generic GenericData$Record]
            [pigpen.local PigPenLocalLoader]))
 
 (set! *warn-on-reflection* true)
@@ -35,15 +38,15 @@
   (for [subfield (field-names record-schema)]
     (str prefix "." subfield)))
 
-(defn field-names [parsed-schema]
+(defn field-names [^Schema parsed-schema]
  (->> (.getFields parsed-schema)
-       (map (fn [field]
-              (let [type (.getType (.schema field))]
+       (map (fn [^Schema$Field field]
+              (let [type (.getType ^{:tag Schema} (.schema field))]
                 (cond
                  (= type Schema$Type/RECORD) (prefixed-names (.schema field) (.name field))
                  ;; pig only supports union of null, <type>.
                  (= type Schema$Type/UNION)  (let [record-fields (->> (.getTypes (.schema field))
-                                                                      (filter #(= (.getType %) Schema$Type/RECORD))
+                                                                      (filter #(= (.getType ^{:tag Schema} %) Schema$Type/RECORD))
                                                                       (map (fn [rec] (prefixed-names rec (.name field)))))]
                                                (if (empty? record-fields) [(.name field)]
                                                    record-fields))
@@ -51,7 +54,8 @@
        flatten
        vec))
 
-(defn parse-schema [s] (.parse (Schema$Parser.) s))
+(defn parse-schema [^String s] (let [parser ^Schema$Parser (Schema$Parser.)]
+                         (.parse parser s)))
 
 (defmethod pigpen.pig/native->clojure org.apache.avro.util.Utf8 [value]
   (str value))
@@ -82,7 +86,7 @@
 
 "
   ([location schema]
-     (let [parsed-schema (parse-schema schema)
+     (let [^Schema parsed-schema (parse-schema schema)
            storage (raw/storage$
                     ["piggybank.jar"]
                     "org.apache.pig.piggybank.storage.avro.AvroStorage"
@@ -98,19 +102,19 @@
          {:args (clojure.core/mapcat (juxt str identity) field-symbols)
           :field-type-in :native })))))
 
-(defn attrs-lookup [record attr-names]
+(defn attrs-lookup [^GenericData$Record record attr-names]
   (cond
    (nil? record) nil
    (empty? attr-names) record
-   :else (attrs-lookup (.get record (first attr-names)) (rest attr-names))))
+   :else (attrs-lookup (.get record ^{:tag java.lang.String} (first attr-names)) (rest attr-names))))
 
 (defmethod pigpen.local/load "org.apache.pig.piggybank.storage.avro.AvroStorage"
   [{:keys [location fields] }]
   (reify PigPenLocalLoader
     (locations [_] (pigpen.local/load-list location))
     (init-reader [_ filename]
-      (-> filename (java.io.File.) (DataFileReader. (SpecificDatumReader.))))
+      (-> ^java.lang.String filename (java.io.File.) (DataFileReader. (SpecificDatumReader.))))
     (read [_ reader]
-      (for [datum reader]
+      (for [datum ^SpecificDatumReader reader]
         (zipmap fields (map #(attrs-lookup datum (str/split (name %) #"\.")) fields))))
-    (close-reader [_ reader] (.close reader))))
+    (close-reader [_ reader] (.close ^{:tag java.io.Closeable} reader))))
