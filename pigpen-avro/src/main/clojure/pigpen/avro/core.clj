@@ -28,6 +28,8 @@
            [org.apache.avro.specific SpecificDatumReader]
            [pigpen.local PigPenLocalLoader]))
 
+(set! *warn-on-reflection* true)
+
 (declare field-names)
 (defn prefixed-names [record-schema prefix]
   (for [subfield (field-names record-schema)]
@@ -71,23 +73,19 @@
   Example:
 
     ;; avro schemas are defined [on the project's website](http://avro.apache.org/docs/1.7.7/spec.html#schemas)
+    ;; load-avro takes the schema as a string.
     (pig-avro/load-avro \"input.avro\" (slurp \"schemafile.json\"))
 
     (pig-avro/load-avro \"input.avro\"
-       {\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"foo\",
-                       \"fields\": [{\"name\": \"wurdz\", \"type\": \"string\"}, {\"name\": \"bar\", \"type\": \"int\"}] })
+       \"{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"foo\",
+                       \"fields\": [{\"name\": \"wurdz\", \"type\": \"string\"}, {\"name\": \"bar\", \"type\": \"int\"}] }\")
 
 "
   ([location schema]
      (let [parsed-schema (parse-schema schema)
-           storage (raw/storage$ ;; this creates a new storage definition
-                    ;; add these jars to $PIG_CLASSPATH (most likely /home/hadoop/pig/lib)
-                    ["json-simple-1.1.1.jar"
-                     "piggybank.jar"
-                     "avro-1.7.4.jar"
-                     "snappy-java-1.0.4.1.jar"
-                     ]
-                    "org.apache.pig.piggybank.storage.avro.AvroStorage" ;; your loader class
+           storage (raw/storage$
+                    ["piggybank.jar"]
+                    "org.apache.pig.piggybank.storage.avro.AvroStorage"
                     ["schema" (SchemaNormalization/toParsingForm parsed-schema)])
            field-symbols (map symbol (field-names parsed-schema))]
        (->
@@ -97,7 +95,7 @@
          '(pigpen.pig/map->bind (comp
                                  pigpen.avro.core/dotted-keys->nested-map
                                  (pigpen.pig/args->map pigpen.pig/native->clojure)))
-         {:args (clojure.core/mapcat (juxt str identity) field-symbols)   ;; tell it what input fields to use
+         {:args (clojure.core/mapcat (juxt str identity) field-symbols)
           :field-type-in :native })))))
 
 (defn attrs-lookup [record attr-names]

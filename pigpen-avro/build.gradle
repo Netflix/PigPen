@@ -4,6 +4,9 @@ dependencies {
   provided 'org.clojure:clojure:1.6.0'
 
   compile 'org.apache.avro:avro:1.7.7'
+  compile 'com.googlecode.json-simple:json-simple:1.1.1'
+  compile 'org.xerial.snappy:snappy-java:1.0.4.1'
+
 
   provided 'org.apache.pig:pig:0.11.1'
   provided 'org.apache.hadoop:hadoop-core:1.1.2'
