@@ -1,3 +1,21 @@
+;;
+;;
+;;  Copyright 2013 Netflix, Inc.
+;;
+;;     Licensed under the Apache License, Version 2.0 (the "License");
+;;     you may not use this file except in compliance with the License.
+;;     You may obtain a copy of the License at
+;;
+;;         http://www.apache.org/licenses/LICENSE-2.0
+;;
+;;     Unless required by applicable law or agreed to in writing, software
+;;     distributed under the License is distributed on an "AS IS" BASIS,
+;;     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;;     See the License for the specific language governing permissions and
+;;     limitations under the License.
+;;
+;;
+
 (ns pigpen.avro.core
   (:require [clojure.string :as str]
             [pigpen.raw :as raw]
@@ -44,21 +62,24 @@
               (if v (assoc-in acc (map keyword ks) v) acc)
               (catch Exception e (throw (Exception. (str "can't assoc-in record: " acc "\nkeys: " ks "\nvalue: " v "\nkvs: " kvs)))))) {})))
 
-;; AWS EMR usage:
-;; =============================================================================
-;; run on master node of cluster:
-;; -----------------------------------------------------------------------------
-;; curl https://json-simple.googlecode.com/files/json-simple-1.1.1.jar > $PIG_CLASSPATH/json-simple-1.1.1.jar
-;; cp /home/hadoop/.versions/2.4.0/share/hadoop/common/lib/avro-1.7.4.jar $PIG_CLASSPATH/
-;; cp /home/hadoop/.versions/2.4.0/share/hadoop/common/lib/snappy-java-1.0.4.1.jar $PIG_CLASSPATH/
 
-;; run locally in load-avro directory
-;; -----------------------------------------------------------------------------
-;; scp -i ~/schwartz-ci.pem ./target/load-avro-0.1.0-SNAPSHOT-standalone.jar hadoop@ec2-54-187-84-180.us-west-2.compute.amazonaws.com:$(ssh -i ~/schwartz-ci.pem hadoop@ec2-54-187-84-180.us-west-2.compute.amazonaws.com 'echo $PIG_CLASSPATH')/pigpen.jar
 (defn load-avro
-  ([location] (load-avro location {}))
-  ([location opts] ;; you can add any other params here, like the args or field list
-     (let [parsed-schema (parse-schema (:schema opts))
+  "*** ALPHA - Subject to change ***
+
+  Loads data from an avro file. Returns data as maps with keyword keys corresponding to avro field names. Fields with avro type \"map\" will be maps with string keys.
+
+  Example:
+
+    ;; avro schemas are defined [on the project's website](http://avro.apache.org/docs/1.7.7/spec.html#schemas)
+    (pig-avro/load-avro \"input.avro\" (slurp \"schemafile.json\"))
+
+    (pig-avro/load-avro \"input.avro\"
+       {\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"foo\",
+                       \"fields\": [{\"name\": \"wurdz\", \"type\": \"string\"}, {\"name\": \"bar\", \"type\": \"int\"}] })
+
+"
+  ([location schema]
+     (let [parsed-schema (parse-schema schema)
            storage (raw/storage$ ;; this creates a new storage definition
                     ;; add these jars to $PIG_CLASSPATH (most likely /home/hadoop/pig/lib)
                     ["json-simple-1.1.1.jar"
@@ -70,11 +91,7 @@
                     ["schema" (SchemaNormalization/toParsingForm parsed-schema)])
            field-symbols (map symbol (field-names parsed-schema))]
        (->
-        (raw/load$             ;; this is a raw pig load command
-         location              ;; the location of the data - this should be a string
-         field-symbols
-         storage               ;; this is the storage we created earlier
-         opts)                 ;; just pass the opts through
+        (raw/load$ location field-symbols storage {:implicit-schema true})
         (raw/bind$
          '[pigpen.avro.core]
          '(pigpen.pig/map->bind (comp
@@ -89,10 +106,13 @@
    (empty? attr-names) record
    :else (attrs-lookup (.get record (first attr-names)) (rest attr-names))))
 
-(defmethod pigpen.local/load "org.apache.pig.piggybank.storage.avro.AvroStorage" [{:keys [location fields] }]
+(defmethod pigpen.local/load "org.apache.pig.piggybank.storage.avro.AvroStorage"
+  [{:keys [location fields] }]
   (reify PigPenLocalLoader
     (locations [_] (pigpen.local/load-list location))
     (init-reader [_ filename]
       (-> filename (java.io.File.) (DataFileReader. (SpecificDatumReader.))))
-    (read [_ reader] (for [datum reader] (zipmap fields (map #(attrs-lookup datum (str/split (name %) #"\.")) fields))))
+    (read [_ reader]
+      (for [datum reader]
+        (zipmap fields (map #(attrs-lookup datum (str/split (name %) #"\.")) fields))))
     (close-reader [_ reader] (.close reader))))

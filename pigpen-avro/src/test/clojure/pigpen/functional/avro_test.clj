@@ -63,18 +63,14 @@
      :panel {:defOid 29991883477}}])
 
 (deftest test-avro
-  (let [
-        query (pig-avro/load-avro "resources/example_data.avro"
-                                  {:schema (slurp "resources/example_schema.avsc")
-                                   :implicit-schema true})]
+  (let [query (pig-avro/load-avro
+               "resources/example_data.avro" (slurp "resources/example_schema.avsc"))]
     (is (= (pig/dump query) clj-data))))
 
 (deftest test-fold
-  (let [
-        query (->>
-               (pig-avro/load-avro "resources/example_data.avro"
-                                   {:schema (slurp "resources/example_schema.avsc")
-                                    :implicit-schema true})
+  (let [query (->>
+               (pig-avro/load-avro
+                "resources/example_data.avro" (slurp "resources/example_schema.avsc"))
                             (pig/map #(get % :browserTimestamp 0))
                             (pig/fold (fold/sum)))]
     (is (= (pig/dump query) [4253992129199]))))
