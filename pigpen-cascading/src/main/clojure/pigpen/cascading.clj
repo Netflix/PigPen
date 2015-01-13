@@ -93,7 +93,7 @@
         udf (first (map :udf code-defs))
         fields (if field-projections
                  (cfields (map #(cascading-field (:alias %)) field-projections))
-                 Fields/UNKNOWN)
+                 (cfields ["value"]))
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
       (let [buffer (case (:group-type cogroup-opts)
