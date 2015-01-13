@@ -85,20 +85,22 @@
       (add-val [:pipe-to-sink] (first ancestors) id)
       (add-val [:sinks] id ((get-tap-fn storage) location opts))))
 
-(defmethod command->flowdef :code
-  [{:keys [expr args pipe field-projections udf]} flowdef]
-  {:pre [expr args]}
-  (let [{:keys [init func]} expr
+(defmethod command->flowdef :code-def
+  [{:keys [code-defs pipe field-projections]} flowdef]
+  {:pre [code-defs (= (count (distinct (map :udf code-defs))) 1)]}
+  (let [inits (map #(str (get-in % [:expr :init])) code-defs)
+        funcs (map #(str (get-in % [:expr :func])) code-defs)
+        udf (first (map :udf code-defs))
         fields (if field-projections
                  (cfields (map #(cascading-field (:alias %)) field-projections))
                  Fields/UNKNOWN)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
       (let [buffer (case (:group-type cogroup-opts)
-                     :group (GroupBuffer. (str init) (str func) fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts) udf)
-                     :join (JoinBuffer. (str init) (str func) fields (:all-args cogroup-opts)))]
+                     :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts) udf)
+                     :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
-      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
+      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS)))))
 
 (defmethod command->flowdef :group
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
@@ -177,8 +179,8 @@
 
   (let [ancestor (first ancestors)
         pipe ((:pipes flowdef) ancestor)
-        flat-projections (filter #(let [t (:type %)]
-                                   (or (= :projection-flat t) (= :projection-func t))) projections)
+        code-defs (map :code (filter #(let [t (:type %)]
+                                       (or (= :projection-flat t) (= :projection-func t))) projections))
         field-projections (if (some #(let [t (:type %)] (= :projection-field t)) projections)
                             projections
                             field-projections)
@@ -187,12 +189,11 @@
                   (if (= (:group-id pipe-opts) ancestor)
                     (add-val flowdef [:cogroup-opts] id pipe-opts)
                     flowdef))
-        flowdef (reduce (fn [def cmd] (command->flowdef
-                                        (assoc cmd :pipe id
-                                                   :field-projections field-projections)
-                                        def))
-                        flowdef
-                        flat-projections)]
+        flowdef (command->flowdef {:type              :code-def
+                                   :pipe              id
+                                   :field-projections field-projections
+                                   :code-defs         code-defs}
+                                  flowdef)]
     flowdef))
 
 (defmethod command->flowdef :distinct

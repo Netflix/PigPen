@@ -47,8 +47,8 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     }
   }
 
-  private final String init;
-  private final String func;
+  private final List<String> inits;
+  private final List<String> funcs;
   private final int numIterators;
   private final boolean groupAll;
   private final boolean joinNils;
@@ -56,10 +56,10 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   private final List<Boolean> groupRequirements;
   private final Keyword udfType;
 
-  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements, Keyword udfType) {
+  public GroupBuffer(List<String> inits, List<String> funcs, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements, Keyword udfType) {
     super(fields);
-    this.init = init;
-    this.func = func;
+    this.inits = inits;
+    this.funcs = funcs;
     this.numIterators = numIterators;
     this.groupAll = groupAll;
     this.joinNils = joinNils;
@@ -77,14 +77,19 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
     super.prepare(flowProcess, operationCall);
-    OperationUtil.init(init);
-    IFn fn = OperationUtil.getFn(func);
-    operationCall.setContext(fn);
+    for (String init : inits) {
+      OperationUtil.init(init);
+    }
+    List<IFn> fns = new ArrayList<IFn>();
+    for (String func : funcs) {
+      fns.add(OperationUtil.getFn(func));
+    }
+    operationCall.setContext(fns);
   }
 
   @Override
   public void operate(FlowProcess flowProcess, BufferCall bufferCall) {
-    IFn fn = (IFn)bufferCall.getContext();
+    List<IFn> fns = (List<IFn>)bufferCall.getContext();
     boolean allKeysNull = allKeysNull(bufferCall.getGroup());
     List<Object> keys = getKeys(bufferCall.getGroup(), allKeysNull);
     List<List<Iterator>> iteratorsList = getIterators(bufferCall.getJoinerClosure(), bufferCall.getGroup(), allKeysNull);
@@ -93,7 +98,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
       Object key = keys.get(i);
       if (requiredGroupsPresent(iterators)) {
         Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
-        emitFn.invoke(fn, key, iterators, bufferCall.getOutputCollector(), groupAll, udfType);
+        emitFn.invoke(fns, key, iterators, bufferCall.getOutputCollector(), groupAll, udfType);
       }
     }
   }
