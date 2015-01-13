@@ -1,6 +1,6 @@
 (ns pigpen.cascading.runtime
   (:import (org.apache.hadoop.io BytesWritable)
-           (pigpen.cascading OperationUtil)
+           (pigpen.cascading OperationUtil SingleIterationSeq)
            (clojure.lang ISeq IPersistentVector Keyword)
            (cascading.tuple TupleEntryCollector Tuple TupleEntry)
            (java.util Set Map))
@@ -81,6 +81,9 @@
   (fn [[key value]]
     [key (cs-freeze value)]))
 
+(defn- wrap-iterator [it]
+  (SingleIterationSeq/create it))
+
 (defn emit-tuples
   "Given a seq containing the results of an operation, emit the corresponding cascading tuples."
   [seq ^TupleEntryCollector collector]
@@ -92,10 +95,10 @@
   ; TODO: handle :combinef
   (let [normal-fn #(let [f (first funcs)]
                     (if group-all
-                      (f [(iterator-seq (first iterators))])
-                      (f (concat [key] (map iterator-seq iterators)))))
+                      (f [(wrap-iterator (first iterators))])
+                      (f (concat [key] (map wrap-iterator iterators)))))
         algebraic-fn #(let [vals (map (fn [{:keys [pre combinef reducef post]} it]
-                                        (->> (iterator-seq it)
+                                        (->> (wrap-iterator it)
                                              (map hybrid->clojure)
                                              pre
                                              (reduce reducef (combinef))
@@ -112,7 +115,7 @@
 (defn emit-join-buffer-tuples
   "Emit the results from a JoinBuffer."
   [f iterator ^TupleEntryCollector collector all-args]
-  (doseq [^TupleEntry t (iterator-seq iterator)]
+  (doseq [^TupleEntry t (wrap-iterator iterator)]
     ; The incoming tuple contains <key1, value1, key2, value2>. Unless all-args is true, the function only
     ; cares about the values, hence the indices are 1 and 3
     (let [result (f (if all-args (.getTuple t)
