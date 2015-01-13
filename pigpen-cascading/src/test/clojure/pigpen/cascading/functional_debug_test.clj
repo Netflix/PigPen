@@ -121,19 +121,14 @@
     pigpen.functional.join-test/test-fold-all-sum
     pigpen.functional.join-test/test-fold-all-count
     pigpen.functional.join-test/test-fold-all-empty
-
-    ;; In progress
-    ;pigpen.functional.code-test/test-for
-
-    ;; Not working
     pigpen.functional.fold-test/test-vec
     pigpen.functional.fold-test/test-map
     pigpen.functional.fold-test/test-mapcat
     pigpen.functional.fold-test/test-filter
     pigpen.functional.fold-test/test-remove
     pigpen.functional.fold-test/test-keep
-    pigpen.functional.fold-test/test-distinct
     pigpen.functional.fold-test/test-take
+    pigpen.functional.fold-test/test-distinct
     pigpen.functional.fold-test/test-first
     pigpen.functional.fold-test/test-last
     pigpen.functional.fold-test/test-sort
@@ -155,6 +150,11 @@
     pigpen.functional.fold-test/test-min-key
     pigpen.functional.fold-test/test-max
     pigpen.functional.fold-test/test-max-key
+
+    ;; In progress
+
+    ;; Not working
+    pigpen.functional.code-test/test-for
     pigpen.functional.io-test/test-load-string
     pigpen.functional.io-test/test-load-tsv
     pigpen.functional.io-test/test-load-tsv-non-tab

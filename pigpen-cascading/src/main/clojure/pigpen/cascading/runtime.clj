@@ -1,8 +1,9 @@
 (ns pigpen.cascading.runtime
   (:import (org.apache.hadoop.io BytesWritable)
            (pigpen.cascading OperationUtil)
-           (clojure.lang ISeq)
-           (cascading.tuple TupleEntryCollector Tuple TupleEntry))
+           (clojure.lang ISeq IPersistentVector Keyword)
+           (cascading.tuple TupleEntryCollector Tuple TupleEntry)
+           (java.util Set Map))
   (:require [pigpen.runtime :as rt]
             [pigpen.raw :as raw]
             [pigpen.oven :as oven]
@@ -31,8 +32,23 @@
 (defmethod hybrid->clojure BytesWritable [^BytesWritable value]
   (-> value (OperationUtil/getBytes) thaw))
 
+(defmethod hybrid->clojure IPersistentVector [^IPersistentVector value]
+  (map hybrid->clojure value))
+
+(defmethod hybrid->clojure Set [^Set value]
+  (into #{} (map hybrid->clojure value)))
+
+(defmethod hybrid->clojure Map [^Map value]
+  (zipmap (map hybrid->clojure (keys value)) (map hybrid->clojure (vals value))))
+
 (defmethod hybrid->clojure ISeq [^ISeq value]
   (map hybrid->clojure value))
+
+(defmethod hybrid->clojure Keyword [^Keyword value]
+  value)
+
+(defmethod hybrid->clojure String [^String value]
+  value)
 
 ;; ******* Serialization ********
 (defn ^:private cs-freeze [value]
@@ -78,8 +94,12 @@
                     (if group-all
                       (f [(iterator-seq (first iterators))])
                       (f (concat [key] (map iterator-seq iterators)))))
-        algebraic-fn #(let [vals (map (fn [{:keys [pre combinef reducef]} it]
-                                        (reduce reducef (combinef) (pre (map hybrid->clojure (iterator-seq it)))))
+        algebraic-fn #(let [vals (map (fn [{:keys [pre combinef reducef post]} it]
+                                        (->> (iterator-seq it)
+                                             (map hybrid->clojure)
+                                             pre
+                                             (reduce reducef (combinef))
+                                             post))
                                       funcs iterators)]
                        (if group-all
                          [vals]
