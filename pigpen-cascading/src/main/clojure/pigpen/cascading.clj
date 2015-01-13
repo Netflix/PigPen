@@ -22,6 +22,7 @@
   (update-in flowdef path (partial merge {id val})))
 
 (defn- cfields [fields]
+  {:pre [(not-empty fields)]}
   (Fields. (into-array (map str fields))))
 
 (defn- cascading-field [name-or-number]
@@ -178,6 +179,9 @@
         pipe ((:pipes flowdef) ancestor)
         flat-projections (filter #(let [t (:type %)]
                                    (or (= :projection-flat t) (= :projection-func t))) projections)
+        field-projections (if (some #(let [t (:type %)] (= :projection-field t)) projections)
+                            projections
+                            field-projections)
         flowdef (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
         flowdef (let [pipe-opts (get-in flowdef [:cogroup-opts ancestor])]
                   (if (= (:group-id pipe-opts) ancestor)
@@ -262,7 +266,8 @@
 (defn preprocess-commands [commands]
   (-> commands
       collapse-field-projections
-      collapse-func-projections))
+      ;collapse-func-projections
+      ))
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"

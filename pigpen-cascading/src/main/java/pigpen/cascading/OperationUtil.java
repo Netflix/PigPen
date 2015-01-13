@@ -23,12 +23,6 @@ public class OperationUtil {
     EVAL_STRING.invoke(initCode);
   }
 
-  public static void emitOutputTuples(TupleEntryCollector collector, LazySeq outputSeq) {
-    for (Object obj : outputSeq) {
-      collector.add(new Tuple(((PersistentVector)obj).toArray()));
-    }
-  }
-
   public static IFn getFn(String funcCode) {
     return (IFn)EVAL_STRING.invoke(funcCode);
   }

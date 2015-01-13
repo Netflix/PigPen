@@ -1,7 +1,6 @@
 (ns pigpen.cascading.runtime
   (:import (org.apache.hadoop.io BytesWritable)
            (pigpen.cascading OperationUtil)
-           (java.util ArrayList)
            (clojure.lang ISeq)
            (cascading.tuple TupleEntryCollector Tuple TupleEntry))
   (:require [pigpen.runtime :as rt]
@@ -18,15 +17,13 @@
   "Emit the results from a GroupBuffer."
   [f key iterators ^TupleEntryCollector collector group-all udf-type]
   ; TODO: handle :combinef
-  (println "key" key)
   (let [normal-fn #(if group-all (f [(iterator-seq (first iterators))])
                                  (f (concat [key] (map iterator-seq iterators))))
         algebraic-fn (fn [] (let [{:keys [combinef reducef]} f]
-                              [[(reduce reducef (combinef) (iterator-seq (first iterators)))]]))
+                              [[key (reduce reducef (combinef) (iterator-seq (first iterators)))]]))
         result (if (= :algebraic udf-type)
                  (algebraic-fn)
                  (normal-fn))]
-    (println "result" result)
     (emit-tuples result collector)))
 
 (defn emit-join-buffer-tuples
