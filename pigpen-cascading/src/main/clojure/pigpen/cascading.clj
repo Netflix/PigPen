@@ -93,7 +93,7 @@
                  (cfields (map #(cascading-field (:alias %)) field-projections))
                  Fields/UNKNOWN)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
-    (if-not (or (nil? cogroup-opts) (= (symbol "generate56") pipe))
+    (if-not (nil? cogroup-opts)
       (let [buffer (case (:group-type cogroup-opts)
                      :group (GroupBuffer. (str init) (str func) fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts) udf)
                      :join (JoinBuffer. (str init) (str func) fields (:all-args cogroup-opts)))]
@@ -242,32 +242,10 @@
                                                            %) a))))))
          (remove is-field-projection))))
 
-; TODO: lots of code duplication here
-(defn- collapse-func-projections [commands]
-  (let [is-func-projection (fn [c] (some #(= :projection-func (:type %)) (if-let [p (:projections c)] p [0])))
-        successors (zipmap (map #(first (:ancestors %)) commands) (map :id commands))
-        fp-by-key (fn [key-fn] (->> commands
-                                    (filter is-func-projection)
-                                    (map (fn [c] [(key-fn c) c]))
-                                    (into {})))
-        fp-by-successor (fp-by-key #(successors (:id %)))
-        fp-by-id (fp-by-key :id)]
-    (->> commands
-         (map (fn [c]
-                (let [fp (fp-by-successor (:id c))
-                      c (if fp
-                          (assoc c :func-projections (:projections fp))
-                          c)]
-                  (update-in c [:ancestors] (fn [a] (map #(if (fp-by-id %)
-                                                           (first (:ancestors (fp-by-id %)))
-                                                           %) a))))))
-         (remove is-func-projection))))
 
 (defn preprocess-commands [commands]
   (-> commands
-      collapse-field-projections
-      ;collapse-func-projections
-      ))
+      collapse-field-projections))
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
