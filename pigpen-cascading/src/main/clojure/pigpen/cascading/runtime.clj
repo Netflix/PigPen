@@ -77,8 +77,8 @@
   (let [normal-fn #(let [f (first funcs)] (if group-all
                                             (f [(iterator-seq (first iterators))])
                                             (f (concat [key] (map iterator-seq iterators)))))
-        algebraic-fn (fn [] [(vec (cons key (map (fn [{:keys [combinef reducef]} it]
-                                                   (reduce reducef (combinef) (map hybrid->clojure (iterator-seq it))))
+        algebraic-fn (fn [] [(vec (cons key (map (fn [{:keys [pre combinef reducef]} it]
+                                                   (reduce reducef (combinef) (pre (map hybrid->clojure (iterator-seq it)))))
                                                  funcs iterators)))])
         result (if (= :algebraic udf-type)
                  (algebraic-fn)
