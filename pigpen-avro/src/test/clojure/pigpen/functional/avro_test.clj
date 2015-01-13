@@ -62,6 +62,10 @@
       "sId" "12850"}
      :panel {:defOid 29991883477}}])
 
+
+;; Example data was generated like,
+;; $ java -jar ~/avro-tools-1.7.7.jar fromjson --codec snappy \
+;;     --schema-file example_schema.avsc example_data.json
 (deftest test-avro
   (let [query (pig-avro/load-avro
                "resources/example_data.avro" (slurp "resources/example_schema.avsc"))]

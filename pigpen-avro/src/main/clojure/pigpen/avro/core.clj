@@ -34,11 +34,11 @@
 (set! *warn-on-reflection* true)
 
 (declare field-names)
-(defn prefixed-names [record-schema prefix]
+(defn- prefixed-names [record-schema prefix]
   (for [subfield (field-names record-schema)]
     (str prefix "." subfield)))
 
-(defn field-names [^Schema parsed-schema]
+(defn- field-names [^Schema parsed-schema]
  (->> (.getFields parsed-schema)
        (map (fn [^Schema$Field field]
               (let [type (.getType ^{:tag Schema} (.schema field))]
@@ -54,8 +54,8 @@
        flatten
        vec))
 
-(defn parse-schema [^String s] (let [parser ^Schema$Parser (Schema$Parser.)]
-                         (.parse parser s)))
+(defn- parse-schema [^String s]
+  (.parse ^{:tag Schema$Parser} (Schema$Parser.) s))
 
 (defmethod pigpen.pig/native->clojure org.apache.avro.util.Utf8 [value]
   (str value))
@@ -66,8 +66,10 @@
    (reduce (fn [acc [ks v]]
              (try
               (if v (assoc-in acc (map keyword ks) v) acc)
-              (catch Exception e (throw (Exception. (str "can't assoc-in record: " acc "\nkeys: " ks "\nvalue: " v "\nkvs: " kvs)))))) {})))
-
+              (catch Exception e
+                (throw (Exception.
+                        (str "can't assoc-in record: " acc "\nkeys: "
+                             ks "\nvalue: " v "\nkvs: " kvs)))))) {})))
 
 (defn load-avro
   "*** ALPHA - Subject to change ***
@@ -82,8 +84,14 @@
 
     (pig-avro/load-avro \"input.avro\"
        \"{\"namespace\": \"example.avro\", \"type\": \"record\", \"name\": \"foo\",
-                       \"fields\": [{\"name\": \"wurdz\", \"type\": \"string\"}, {\"name\": \"bar\", \"type\": \"int\"}] }\")
+  \"fields\": [{\"name\": \"wurdz\", \"type\": \"string\"}, {\"name\": \"bar\", \"type\": \"int\"}] }\")
 
+  Make sure a
+  [piggybank.jar](http://mvnrepository.com/artifact/org.apache.pig/piggybank/0.14.0)
+  compatible with your version of hadoop is on $PIG_CLASSPATH. For
+  hadoop v2, see http://stackoverflow.com/a/21753749. Amazon's elastic
+  mapreduce comes with a compatible piggybank.jar already on the
+  classpath.
 "
   ([location schema]
      (let [^Schema parsed-schema (parse-schema schema)
@@ -102,7 +110,7 @@
          {:args (clojure.core/mapcat (juxt str identity) field-symbols)
           :field-type-in :native })))))
 
-(defn attrs-lookup [^GenericData$Record record attr-names]
+(defn- attrs-lookup [^GenericData$Record record attr-names]
   (cond
    (nil? record) nil
    (empty? attr-names) record
