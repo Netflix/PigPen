@@ -74,12 +74,16 @@
   "Emit the results from a GroupBuffer."
   [funcs key iterators ^TupleEntryCollector collector group-all udf-type]
   ; TODO: handle :combinef
-  (let [normal-fn #(let [f (first funcs)] (if group-all
-                                            (f [(iterator-seq (first iterators))])
-                                            (f (concat [key] (map iterator-seq iterators)))))
-        algebraic-fn (fn [] [(vec (cons key (map (fn [{:keys [pre combinef reducef]} it]
-                                                   (reduce reducef (combinef) (pre (map hybrid->clojure (iterator-seq it)))))
-                                                 funcs iterators)))])
+  (let [normal-fn #(let [f (first funcs)]
+                    (if group-all
+                      (f [(iterator-seq (first iterators))])
+                      (f (concat [key] (map iterator-seq iterators)))))
+        algebraic-fn #(let [vals (map (fn [{:keys [pre combinef reducef]} it]
+                                        (reduce reducef (combinef) (pre (map hybrid->clojure (iterator-seq it)))))
+                                      funcs iterators)]
+                       (if group-all
+                         [vals]
+                         [(cons key vals)]))
         result (if (= :algebraic udf-type)
                  (algebraic-fn)
                  (normal-fn))]

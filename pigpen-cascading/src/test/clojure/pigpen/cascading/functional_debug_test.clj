@@ -118,14 +118,14 @@
     pigpen.functional.join-test/test-fold-inline-sum
     pigpen.functional.join-test/test-fold-inline-count
     pigpen.functional.join-test/test-fold-cogroup-dual
-
-    ;; In progress
-    ;pigpen.functional.join-test/test-fold-all-sum
-
-    ;; Not working
+    pigpen.functional.join-test/test-fold-all-sum
     pigpen.functional.join-test/test-fold-all-count
     pigpen.functional.join-test/test-fold-all-empty
-    pigpen.functional.code-test/test-for
+
+    ;; In progress
+    ;pigpen.functional.code-test/test-for
+
+    ;; Not working
     pigpen.functional.fold-test/test-vec
     pigpen.functional.fold-test/test-map
     pigpen.functional.fold-test/test-mapcat
