@@ -53,7 +53,7 @@
         (cascading/load-clj input-file)))
     (dump [this command]
       (if (-> command :type #{:store :script})
-        (run-flow this command)
+        (run-flow command)
         (run-flow->output this command)))
     (file [this]
       (str prefix (gensym)))

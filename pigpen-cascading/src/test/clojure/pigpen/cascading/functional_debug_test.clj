@@ -56,7 +56,7 @@
         (cascading/load-clj input-file)))
     (dump [this command]
       (if (-> command :type #{:store :script})
-        (run-flow this command)
+        (run-flow command)
         (run-flow->output this command)))
     (file [this]
       (str prefix (gensym)))
@@ -150,6 +150,10 @@
     pigpen.functional.fold-test/test-min-key
     pigpen.functional.fold-test/test-max
     pigpen.functional.fold-test/test-max-key
+    pigpen.functional.io-test/test-store-string
+    pigpen.functional.io-test/test-store-tsv
+    pigpen.functional.io-test/test-store-clj
+    pigpen.functional.io-test/test-store-json
 
     ;; In progress
 
@@ -164,10 +168,6 @@
     pigpen.functional.io-test/test-load-json-no-options
     pigpen.functional.io-test/test-load-json-two-options
     pigpen.functional.io-test/test-load-lazy
-    pigpen.functional.io-test/test-store-string
-    pigpen.functional.io-test/test-store-tsv
-    pigpen.functional.io-test/test-store-clj
-    pigpen.functional.io-test/test-store-json
     pigpen.functional.map-test/test-map-indexed
     pigpen.functional.map-test/test-map-indexed+sort
     pigpen.functional.map-test/test-sort
