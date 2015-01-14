@@ -15,7 +15,7 @@ buildscript {
 allprojects {
     repositories {
         mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
-	    maven { url 'http://clojars.org/repo' }
+        maven { url 'http://clojars.org/repo' }
     }
 }
 
@@ -27,54 +27,54 @@ apply from: file('gradle/release.gradle')
 
 subprojects {
 
-	group = 'com.netflix.pigpen'
+    group = 'com.netflix.pigpen'
 
-	license {
-	    mapping('clj', 'SEMICOLON_STYLE')
-	}
+    license {
+        mapping('clj', 'SEMICOLON_STYLE')
+    }
 
-	apply plugin: 'clojure'
-	tasks.uberjar.enabled=true
-	clojure.aotCompile = true
+    apply plugin: 'clojure'
+    tasks.uberjar.enabled=true
+    clojure.aotCompile = true
 
-	compileClojure {
-	    classpath = project.files(
-	        project.compileJava.outputs,
-	        classpath
-	    )
-	}
+    compileClojure {
+        classpath = project.files(
+            project.compileJava.outputs,
+            classpath
+        )
+    }
 
-	clojureTest {
-	    // this is here because pig and hadoop are provided dependencies
-	    // without this, clojureTest doesn't work
-	    classpath = sourceSets.test.runtimeClasspath
-	}
+    clojureTest {
+        // this is here because pig and hadoop are provided dependencies
+        // without this, clojureTest doesn't work
+        classpath = sourceSets.test.runtimeClasspath
+    }
 
-	clojuredoc {
-	    includeNamespace 'pigpen.core'
-	    includeNamespace 'pigpen.fold'
-	    codox = [
-	        srcDirUri: 'https://github.com/Netflix/PigPen/blob/master/',
-	        srcLinenumAnchorPrefix: 'L'
-	    ]
-	}
+    clojuredoc {
+        includeNamespace 'pigpen.core'
+        includeNamespace 'pigpen.fold'
+        codox = [
+            srcDirUri: 'https://github.com/Netflix/PigPen/blob/master/',
+            srcLinenumAnchorPrefix: 'L'
+        ]
+    }
 
-	javadoc {
-	    // this is here because pig and hadoop are provided dependencies
-	    // without this, javadoc doesn't work
-	    classpath = sourceSets.test.runtimeClasspath
-	}
+    javadoc {
+        // this is here because pig and hadoop are provided dependencies
+        // without this, javadoc doesn't work
+        classpath = sourceSets.test.runtimeClasspath
+    }
 
-	apply plugin: 'eclipse'
-	eclipse {
-	    // this is here because pig and hadoop are provided dependencies
-	    // without this, counterclockwise doesn't work
-	    classpath {
-	    	plusConfigurations += configurations.provided
-	    }
-	}
+    apply plugin: 'eclipse'
+    eclipse {
+        // this is here because pig and hadoop are provided dependencies
+        // without this, counterclockwise doesn't work
+        classpath {
+            plusConfigurations += configurations.provided
+        }
+    }
 
-	dependencies {
+    dependencies {
         development 'org.clojure:tools.nrepl:0.2.3'
     }
 
