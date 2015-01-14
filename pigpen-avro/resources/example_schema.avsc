@@ -1,0 +1,114 @@
+{
+  "type": "record",
+  "name": "ExampleRecord",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "browserTimestamp",
+      "type": "long"
+    },
+    {
+      "name": "rawHash",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "record",
+        "name": "SharedRecordSchema",
+        "namespace": "com.example",
+        "fields": [
+          {
+            "name": "schema_id",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "requestSpan",
+      "type": {
+        "type": "record",
+        "name": "ExampleNestedRecord",
+        "fields": [
+          {
+            "name": "metadata",
+            "type": "com.example.SharedRecordSchema"
+          },
+          {
+            "name": "spanId",
+            "type": "string"
+          },
+          {
+            "name": "parentSpanId",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          {
+            "name": "unhandledException",
+            "type": [
+              "null",
+              {
+                "type": "record",
+                "name": "Exception",
+                "fields": [
+                  {
+                    "name": "exceptionClass",
+                    "type": "string"
+                  },
+                  {
+                    "name": "exceptionMessage",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "exceptionStack",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "handledExceptions",
+            "type": [
+              "null",
+              {
+                "type": "array",
+                "items": "Exception"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "panel",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "PanelInfo",
+          "fields": [
+            {
+              "name": "defOid",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
