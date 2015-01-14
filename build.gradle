@@ -9,11 +9,11 @@ buildscript {
     dependencies {
         classpath 'clojuresque:clojuresque:1.7.0'
     }
-    apply from: file('gradle/buildscript.gradle'), to: buildscript 
+    apply from: file('gradle/buildscript.gradle'), to: buildscript
 }
 
 allprojects {
-    repositories { 
+    repositories {
         mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
 	    maven { url 'http://clojars.org/repo' }
     }
@@ -28,15 +28,15 @@ apply from: file('gradle/release.gradle')
 subprojects {
 
 	group = 'com.netflix.pigpen'
-	
+
 	license {
 	    mapping('clj', 'SEMICOLON_STYLE')
 	}
-	
+
 	apply plugin: 'clojure'
 	tasks.uberjar.enabled=true
 	clojure.aotCompile = true
-	
+
 	compileClojure {
 	    classpath = project.files(
 	        project.compileJava.outputs,
@@ -49,7 +49,7 @@ subprojects {
 	    // without this, clojureTest doesn't work
 	    classpath = sourceSets.test.runtimeClasspath
 	}
-	
+
 	clojuredoc {
 	    includeNamespace 'pigpen.core'
 	    includeNamespace 'pigpen.fold'
@@ -58,13 +58,13 @@ subprojects {
 	        srcLinenumAnchorPrefix: 'L'
 	    ]
 	}
-	
+
 	javadoc {
 	    // this is here because pig and hadoop are provided dependencies
 	    // without this, javadoc doesn't work
 	    classpath = sourceSets.test.runtimeClasspath
 	}
-	
+
 	apply plugin: 'eclipse'
 	eclipse {
 	    // this is here because pig and hadoop are provided dependencies
@@ -73,5 +73,12 @@ subprojects {
 	    	plusConfigurations += configurations.provided
 	    }
 	}
-}
 
+	dependencies {
+        development 'org.clojure:tools.nrepl:0.2.3'
+    }
+
+    clojureRepl {
+        port = "9999"
+    }
+}
