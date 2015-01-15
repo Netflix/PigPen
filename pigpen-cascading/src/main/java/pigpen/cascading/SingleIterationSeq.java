@@ -13,10 +13,10 @@ import clojure.lang.ISeq;
  * memory problems resulting from holding onto the head.
  */
 public class SingleIterationSeq extends ASeq {
-  final Iterator iter;
-  final State state;
+  private final Iterator iter;
+  private final State state;
 
-  static class State {
+  private static class State {
     volatile Object val;
     volatile boolean isRealized;
   }
@@ -28,14 +28,14 @@ public class SingleIterationSeq extends ASeq {
     return null;
   }
 
-  SingleIterationSeq(Iterator iter) {
+  private SingleIterationSeq(Iterator iter) {
     this.iter = iter;
     state = new State();
     this.state.val = state;
     this.state.isRealized = false;
   }
 
-  SingleIterationSeq(IPersistentMap meta, Iterator iter, State state) {
+  private SingleIterationSeq(IPersistentMap meta, Iterator iter, State state) {
     super(meta);
     this.iter = iter;
     this.state = state;
