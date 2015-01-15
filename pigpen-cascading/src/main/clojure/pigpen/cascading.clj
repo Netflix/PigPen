@@ -9,7 +9,8 @@
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
            (cascading.pipe.assembly Unique)
            (cascading.operation.filter Limit Sample FilterNull)
-           (cascading.util NullNotEquivalentComparator))
+           (cascading.util NullNotEquivalentComparator)
+           (cascading.flow FlowConnector))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -21,6 +22,7 @@
   (update-in flowdef path (partial merge {id val})))
 
 (defn- cfields [fields]
+  {:pre [(not-empty fields)]}
   (Fields. (into-array (map str fields))))
 
 (defn- cascading-field [name-or-number]
@@ -83,20 +85,22 @@
       (add-val [:pipe-to-sink] (first ancestors) id)
       (add-val [:sinks] id ((get-tap-fn storage) location opts))))
 
-(defmethod command->flowdef :code
-  [{:keys [expr args pipe field-projections]} flowdef]
-  {:pre [expr args]}
-  (let [{:keys [init func]} expr
+(defmethod command->flowdef :code-def
+  [{:keys [code-defs pipe field-projections]} flowdef]
+  {:pre [code-defs (= (count (distinct (map :udf code-defs))) 1)]}
+  (let [inits (mapv #(str (get-in % [:expr :init])) code-defs)
+        funcs (mapv #(str (get-in % [:expr :func])) code-defs)
+        udf (first (map :udf code-defs))
         fields (if field-projections
                  (cfields (map #(cascading-field (:alias %)) field-projections))
-                 Fields/UNKNOWN)
+                 (cfields ["value"]))
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
       (let [buffer (case (:group-type cogroup-opts)
-                     :group (GroupBuffer. (str init) (str func) fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts))
-                     :join (JoinBuffer. (str init) (str func) fields (:all-args cogroup-opts)))]
+                     :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts) udf)
+                     :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
-      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (str init) (str func) fields) Fields/RESULTS)))))
+      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS)))))
 
 (defmethod command->flowdef :group
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
@@ -108,7 +112,7 @@
                         (Insert. (cfields ["group_all"]) (into-array [1]))
                         (cfields ["group_all" "value"]))]
                 (map (:pipes flowdef) ancestors))
-        is-inner (= #{:required} (into #{} join-types))
+        is-inner (every? #{:required} join-types)
         pipes (map (fn [p k] (if is-inner
                                (Each. p (cfields k) (FilterNull.))
                                p))
@@ -119,7 +123,8 @@
                                        (into-array (map cfields keys))
                                        Fields/NONE
                                        (BufferJoin.)))
-        (add-val [:cogroup-opts] id {:group-type        :group
+        (add-val [:cogroup-opts] id {:group-id          id
+                                     :group-type        :group
                                      :join-nils         (true? (:join-nils opts))
                                      :group-all         is-group-all
                                      :num-streams       (count pipes)
@@ -144,37 +149,51 @@
                                        (group-key-cfields keys join-nils)
                                        (cfields fields)
                                        joiner))
-        (add-val [:cogroup-opts] id {:group-type :join
+        (add-val [:cogroup-opts] id {:group-id   id
+                                     :group-type :join
                                      :all-args   (true? (:all-args opts))}))))
 
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
   {:pre [code alias]}
   (command->flowdef (assoc code :pipe pipe
-                           :field-projections (or field-projections [{:alias alias}])) flowdef))
+                                :field-projections (or field-projections [{:alias alias}])) flowdef))
+
+(defmethod command->flowdef :projection-func
+  [{:keys [code alias pipe field-projections]} flowdef]
+  {:pre [code alias]}
+  (command->flowdef (assoc code :pipe pipe
+                                :field-projections (or field-projections [{:alias alias}])) flowdef))
 
 (defmethod command->flowdef :generate
   [{:keys [id ancestors projections field-projections opts]} flowdef]
   {:pre [id (= 1 (count ancestors)) (not-empty projections)]}
+
+  ;; TODO: this should never occur once everything is implemented.
+  (when-not (contains? (:pipes flowdef) (first ancestors))
+    (do
+      (println "flowdef" flowdef)
+      (println "id" id)
+      (println "ancestors" ancestors)
+      (throw (Exception. "not implemented"))))
+
   (let [ancestor (first ancestors)
         pipe ((:pipes flowdef) ancestor)
-        flat-projections (filter #(= :projection-flat (:type %)) projections)
-        flowdef (cond (contains? (:pipes flowdef) ancestor) (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
-                      :else (do
-                              (println "flowdef" flowdef)
-                              (println "id" id)
-                              (println "ancestors" ancestors)
-                              (throw (Exception. "not implemented"))))
+        code-defs (map :code (filter #(let [t (:type %)]
+                                       (or (= :projection-flat t) (= :projection-func t))) projections))
+        field-projections (if (some #(let [t (:type %)] (= :projection-field t)) projections)
+                            projections
+                            field-projections)
+        flowdef (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
         flowdef (let [pipe-opts (get-in flowdef [:cogroup-opts ancestor])]
-                  (if pipe-opts
+                  (if (= (:group-id pipe-opts) ancestor)
                     (add-val flowdef [:cogroup-opts] id pipe-opts)
                     flowdef))
-        flowdef (reduce (fn [def cmd] (command->flowdef
-                                        (assoc cmd :pipe id
-                                               :field-projections field-projections)
-                                        def))
-                        flowdef
-                        flat-projections)]
+        flowdef (command->flowdef {:type              :code-def
+                                   :pipe              id
+                                   :field-projections field-projections
+                                   :code-defs         code-defs}
+                                  flowdef)]
     flowdef))
 
 (defmethod command->flowdef :distinct
@@ -204,8 +223,9 @@
   [command _]
   (throw (Exception. (str "Command " (:type command) " not implemented yet for Cascading!"))))
 
-(defn preprocess-commands [commands]
-  (let [is-field-projection #(= :projection-field (get-in % [:projections 0 :type]))
+(defn- collapse-field-projections [commands]
+  (let [is-field-projection (fn [c] (every? #(= :projection-field (:type %)) (if-let [p (:projections c)] p [0])))
+        ;(let [is-field-projection #(= :projection-field (get-in % [:projections 0 :type]))
         fp-by-key (fn [key-fn] (->> commands
                                     (filter is-field-projection)
                                     (map (fn [c] [(key-fn c) c]))
@@ -223,21 +243,26 @@
                                                            %) a))))))
          (remove is-field-projection))))
 
+
+(defn preprocess-commands [commands]
+  (-> commands
+      collapse-field-projections))
+
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
-  [commands]
+  [commands ^FlowConnector connector]
   (clojure.pprint/pprint (preprocess-commands commands))
   (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} (preprocess-commands commands))
         {:keys [sources pipe-to-sink sinks pipes]} flowdef
         sources-map (into {} (map (fn [s] [(str s) (sources s)]) (keys sources)))
         sinks-map (into {} (map (fn [[p s]] [(str p) (sinks s)]) pipe-to-sink))
         tail-pipes (into-array Pipe (map #(pipes %) (keys pipe-to-sink)))]
-    (.connect (HadoopFlowConnector.) sources-map sinks-map tail-pipes)))
+    (.connect connector sources-map sinks-map tail-pipes)))
 
 (defn generate-flow
   "Transforms the relation specified into a Cascading flow that is ready to be executed."
-  ([query] (generate-flow {} query))
-  ([opts query]
+  ([query] (generate-flow (HadoopFlowConnector.) query))
+  ([connector query]
     (-> query
-        (oven/bake :cascading {} opts)
-        commands->flow)))
+        (oven/bake :cascading {} {})
+        (commands->flow connector))))

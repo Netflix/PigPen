@@ -1,40 +1,13 @@
 (ns pigpen.cascading.runtime
   (:import (org.apache.hadoop.io BytesWritable)
-           (pigpen.cascading OperationUtil)
-           (java.util ArrayList)
-           (clojure.lang ISeq)
-           (cascading.tuple TupleEntryCollector Tuple TupleEntry))
+           (pigpen.cascading OperationUtil SingleIterationSeq)
+           (clojure.lang ISeq IPersistentVector Keyword)
+           (cascading.tuple TupleEntryCollector Tuple TupleEntry)
+           (java.util Set Map))
   (:require [pigpen.runtime :as rt]
             [pigpen.raw :as raw]
             [pigpen.oven :as oven]
             [taoensso.nippy :refer [freeze thaw]]))
-
-(defn emit-tuples
-  "Given a seq containing the results of an operation, emit the corresponding cascading tuples."
-  [seq ^TupleEntryCollector collector]
-  (doseq [r seq] (.add collector (Tuple. (.toArray r)))))
-
-(defn emit-group-buffer-tuples
-  "Emit the results from a GroupBuffer."
-  [f key iterators ^TupleEntryCollector collector group-all]
-  (let [result (if group-all (f [(iterator-seq (first iterators))])
-                             (f (concat [key] (map iterator-seq iterators))))]
-    (emit-tuples result collector)))
-
-(defn emit-join-buffer-tuples
-  "Emit the results from a JoinBuffer."
-  [f iterator ^TupleEntryCollector collector all-args]
-  (doseq [^TupleEntry t (iterator-seq iterator)]
-    ; The incoming tuple contains <key1, value1, key2, value2>. Unless all-args is true, the function only
-    ; cares about the values, hence the indices are 1 and 3
-    (let [result (f (if all-args (.getTuple t)
-                                 [(.getObject t 1) (.getObject t 3)]))]
-      (emit-tuples result collector))))
-
-(defn emit-function-tuples
-  "Emit the results from a PigPenFunction."
-  [f ^Tuple tuple ^TupleEntryCollector collector]
-  (emit-tuples (f tuple) collector))
 
 (defmulti hybrid->clojure
           "Converts a hybrid cascading/clojure data structure into 100% clojure.
@@ -59,8 +32,23 @@
 (defmethod hybrid->clojure BytesWritable [^BytesWritable value]
   (-> value (OperationUtil/getBytes) thaw))
 
+(defmethod hybrid->clojure IPersistentVector [^IPersistentVector value]
+  (map hybrid->clojure value))
+
+(defmethod hybrid->clojure Set [^Set value]
+  (into #{} (map hybrid->clojure value)))
+
+(defmethod hybrid->clojure Map [^Map value]
+  (zipmap (map hybrid->clojure (keys value)) (map hybrid->clojure (vals value))))
+
 (defmethod hybrid->clojure ISeq [^ISeq value]
   (map hybrid->clojure value))
+
+(defmethod hybrid->clojure Keyword [^Keyword value]
+  value)
+
+(defmethod hybrid->clojure String [^String value]
+  value)
 
 ;; ******* Serialization ********
 (defn ^:private cs-freeze [value]
@@ -92,3 +80,50 @@
   [_ _]
   (fn [[key value]]
     [key (cs-freeze value)]))
+
+(defn- wrap-iterator [it]
+  (SingleIterationSeq/create it))
+
+(defn emit-tuples
+  "Given a seq containing the results of an operation, emit the corresponding cascading tuples."
+  [seq ^TupleEntryCollector collector]
+  (doseq [r seq] (.add collector (Tuple. (.toArray r)))))
+
+(defn emit-group-buffer-tuples
+  "Emit the results from a GroupBuffer."
+  [funcs key iterators ^TupleEntryCollector collector group-all udf-type]
+  ; TODO: handle :combinef
+  (let [normal-fn #(let [f (first funcs)]
+                    (if group-all
+                      (f [(wrap-iterator (first iterators))])
+                      (f (concat [key] (map wrap-iterator iterators)))))
+        algebraic-fn #(let [vals (map (fn [{:keys [pre combinef reducef post]} it]
+                                        (->> (wrap-iterator it)
+                                             (map hybrid->clojure)
+                                             pre
+                                             (reduce reducef (combinef))
+                                             post))
+                                      funcs iterators)]
+                       (if group-all
+                         [vals]
+                         [(cons key vals)]))
+        result (if (= :algebraic udf-type)
+                 (algebraic-fn)
+                 (normal-fn))]
+    (emit-tuples result collector)))
+
+(defn emit-join-buffer-tuples
+  "Emit the results from a JoinBuffer."
+  [f iterator ^TupleEntryCollector collector all-args]
+  (doseq [^TupleEntry t (wrap-iterator iterator)]
+    ; The incoming tuple contains <key1, value1, key2, value2>. Unless all-args is true, the function only
+    ; cares about the values, hence the indices are 1 and 3
+    (let [result (f (if all-args (.getTuple t)
+                                 [(.getObject t 1) (.getObject t 3)]))]
+      (emit-tuples result collector))))
+
+(defn emit-function-tuples
+  "Emit the results from a PigPenFunction."
+  [f ^Tuple tuple ^TupleEntryCollector collector]
+  (emit-tuples (f tuple) collector))
+

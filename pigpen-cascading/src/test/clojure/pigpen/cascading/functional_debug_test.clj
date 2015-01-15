@@ -56,7 +56,7 @@
         (cascading/load-clj input-file)))
     (dump [this command]
       (if (-> command :type #{:store :script})
-        (run-flow this command)
+        (run-flow command)
         (run-flow->output this command)))
     (file [this]
       (str prefix (gensym)))
@@ -113,27 +113,22 @@
     pigpen.functional.join-test/test-cogroup-right-outer-join-nils
     pigpen.functional.join-test/test-cogroup-full-outer-join-nils
     pigpen.functional.join-test/test-cogroup-self-join
-
-    ;; In progress
-
-    ;; Not working
+    pigpen.functional.join-test/test-fold-count
     pigpen.functional.join-test/test-cogroup-self-join+fold
     pigpen.functional.join-test/test-fold-inline-sum
     pigpen.functional.join-test/test-fold-inline-count
-    pigpen.functional.join-test/test-fold-count
     pigpen.functional.join-test/test-fold-cogroup-dual
     pigpen.functional.join-test/test-fold-all-sum
     pigpen.functional.join-test/test-fold-all-count
     pigpen.functional.join-test/test-fold-all-empty
-    pigpen.functional.code-test/test-for
     pigpen.functional.fold-test/test-vec
     pigpen.functional.fold-test/test-map
     pigpen.functional.fold-test/test-mapcat
     pigpen.functional.fold-test/test-filter
     pigpen.functional.fold-test/test-remove
     pigpen.functional.fold-test/test-keep
-    pigpen.functional.fold-test/test-distinct
     pigpen.functional.fold-test/test-take
+    pigpen.functional.fold-test/test-distinct
     pigpen.functional.fold-test/test-first
     pigpen.functional.fold-test/test-last
     pigpen.functional.fold-test/test-sort
@@ -155,6 +150,15 @@
     pigpen.functional.fold-test/test-min-key
     pigpen.functional.fold-test/test-max
     pigpen.functional.fold-test/test-max-key
+    pigpen.functional.io-test/test-store-string
+    pigpen.functional.io-test/test-store-tsv
+    pigpen.functional.io-test/test-store-clj
+    pigpen.functional.io-test/test-store-json
+
+    ;; In progress
+
+    ;; Not working
+    pigpen.functional.code-test/test-for
     pigpen.functional.io-test/test-load-string
     pigpen.functional.io-test/test-load-tsv
     pigpen.functional.io-test/test-load-tsv-non-tab
@@ -164,10 +168,6 @@
     pigpen.functional.io-test/test-load-json-no-options
     pigpen.functional.io-test/test-load-json-two-options
     pigpen.functional.io-test/test-load-lazy
-    pigpen.functional.io-test/test-store-string
-    pigpen.functional.io-test/test-store-tsv
-    pigpen.functional.io-test/test-store-clj
-    pigpen.functional.io-test/test-store-json
     pigpen.functional.map-test/test-map-indexed
     pigpen.functional.map-test/test-map-indexed+sort
     pigpen.functional.map-test/test-sort
