@@ -154,11 +154,11 @@
     pigpen.functional.io-test/test-store-tsv
     pigpen.functional.io-test/test-store-clj
     pigpen.functional.io-test/test-store-json
+    pigpen.functional.code-test/test-for
 
     ;; In progress
 
     ;; Not working
-    pigpen.functional.code-test/test-for
     pigpen.functional.io-test/test-load-string
     pigpen.functional.io-test/test-load-tsv
     pigpen.functional.io-test/test-load-tsv-non-tab

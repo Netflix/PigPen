@@ -1,7 +1,7 @@
 (ns pigpen.cascading
   (:import (cascading.tap.hadoop Hfs)
            (cascading.scheme.hadoop TextLine)
-           (cascading.pipe Pipe Each CoGroup Every)
+           (cascading.pipe Pipe Each CoGroup Every Merge)
            (cascading.flow.hadoop HadoopFlowConnector)
            (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer)
            (cascading.tuple Fields)
@@ -213,6 +213,12 @@
   {:pre [id p (= 1 (count ancestors))]}
   (let [pipe ((:pipes flowdef) (first ancestors))]
     (add-val flowdef [:pipes] id (Each. pipe (Sample. p)))))
+
+(defmethod command->flowdef :union
+  [{:keys [id ancestors opts]} flowdef]
+  {:pre [id ancestors]}
+  (let [union-pipe (Merge. (into-array (map (:pipes flowdef) ancestors)))]
+    (add-val flowdef [:pipes] id union-pipe)))
 
 (defmethod command->flowdef :script
   [_ flowdef]
