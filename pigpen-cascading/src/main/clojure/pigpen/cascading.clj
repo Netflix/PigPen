@@ -88,8 +88,8 @@
 (defmethod command->flowdef :code-def
   [{:keys [code-defs pipe field-projections]} flowdef]
   {:pre [code-defs (= (count (distinct (map :udf code-defs))) 1)]}
-  (let [inits (map #(str (get-in % [:expr :init])) code-defs)
-        funcs (map #(str (get-in % [:expr :func])) code-defs)
+  (let [inits (mapv #(str (get-in % [:expr :init])) code-defs)
+        funcs (mapv #(str (get-in % [:expr :func])) code-defs)
         udf (first (map :udf code-defs))
         fields (if field-projections
                  (cfields (map #(cascading-field (:alias %)) field-projections))
