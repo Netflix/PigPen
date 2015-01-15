@@ -155,6 +155,11 @@
     pigpen.functional.io-test/test-store-clj
     pigpen.functional.io-test/test-store-json
     pigpen.functional.code-test/test-for
+    pigpen.functional.map-test/test-map+fold1
+    pigpen.functional.map-test/test-map+fold2
+    pigpen.functional.set-test/test-union
+    pigpen.functional.set-test/test-union-multiset
+    pigpen.functional.set-test/test-concat
 
     ;; In progress
 
@@ -175,11 +180,6 @@
     pigpen.functional.map-test/test-sort-by
     pigpen.functional.map-test/test-sort-by-desc
     pigpen.functional.map-test/test-sort-by-with-duplicates
-    pigpen.functional.map-test/test-map+fold1
-    pigpen.functional.map-test/test-map+fold2
-    pigpen.functional.set-test/test-concat
-    pigpen.functional.set-test/test-union
-    pigpen.functional.set-test/test-union-multiset
     pigpen.functional.set-test/test-intersection
     pigpen.functional.set-test/test-intersection-multiset
     pigpen.functional.set-test/test-difference
