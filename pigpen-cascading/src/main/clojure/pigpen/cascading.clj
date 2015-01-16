@@ -120,7 +120,8 @@
                         (Insert. (cfields ["group_all"]) (into-array [1]))
                         (cfields ["group_all" "value"]))]
                 (map (:pipes flowdef) ancestors))
-        key-separate-from-value (every? #(> (count %) 1) (map (:pipe-fields flowdef) ancestors))
+        key-separate-from-value (or is-group-all
+                                    (every? #(> (count %) 1) (map (:pipe-fields flowdef) ancestors)))
         is-inner (every? #{:required} join-types)
         pipes (map (fn [p k] (if is-inner
                                (Each. p (cfields k) (FilterNull.))
