@@ -39,29 +39,10 @@
           identity)
 
 (defmethod get-tap-fn :string [_]
-  (fn [location opts] (Hfs. (TextLine.) location)))
+  (fn [location opts] (Hfs. (TextLine. (cfields ["line"])) location)))
 
 (defmethod get-tap-fn :default [_]
   (throw (Exception. (str "Unrecognized tap type: " name))))
-
-(defn load-text [location]
-  (-> (raw/load$ location '[offset line] :string {})))
-
-(defn load-tsv
-  ([location] (load-tsv location "\t"))
-  ([location delimiter]
-    (-> (load-text location)
-        (raw/bind$
-          `(rt/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
-          {:args          '[offset line]
-           :field-type-in :native}))))
-
-(defn load-clj [location]
-  (-> (load-text location)
-      (raw/bind$ '[clojure.edn]
-                 `(rt/map->bind (fn [~'offset ~'line] (clojure.edn/read-string ~'line)))
-                 {:args          '[offset line]
-                  :field-type-in :native})))
 
 ;; ******* Commands ********
 

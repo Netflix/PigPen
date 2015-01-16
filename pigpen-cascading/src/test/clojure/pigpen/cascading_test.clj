@@ -40,7 +40,7 @@
                                  (< sum 5)))))
      (query [input-file output-file]
             (->>
-              (cascading/load-clj input-file)
+              (pigpen/load-clj input-file)
               (func)
               (pigpen/store-clj output-file)))]
     (let [flow (cascading/generate-flow (query input1 output1))]
@@ -51,9 +51,9 @@
   (write-input input1 [{:a 1 :b 2} {:a 1 :b 3} {:a 2 :b 4}])
   (write-input input2 [{:c 1 :d "foo"} {:c 2 :d "bar"} {:c 2 :d "baz"}])
   (write-input input3 [{:c 1 :d "foo2"} {:c 2 :d "bar2"}])
-  (let [left (cascading/load-clj input1)
-        middle (cascading/load-clj input2)
-        right (cascading/load-clj input3)
+  (let [left (pigpen/load-clj input1)
+        middle (pigpen/load-clj input2)
+        right (pigpen/load-clj input3)
         command (pigpen/cogroup [(left :on :a)
                                  (middle :on :c)
                                  (right :on :c)
@@ -66,8 +66,8 @@
 (deftest test-inner-join
   (write-input input1 [{:a 1} {:a 2}])
   (write-input input2 [{:b 1} {:b 2}])
-  (let [left (cascading/load-clj input1)
-        right (cascading/load-clj input2)
+  (let [left (pigpen/load-clj input1)
+        right (pigpen/load-clj input2)
         cmd (pigpen/join [(left :on :a)
                           (right :on :b)]
                          (fn [x y] [x y]))
@@ -78,8 +78,8 @@
 (deftest test-outer-join
   (write-input input1 [{:a 1} {:a 2} {:a 3}])
   (write-input input2 [{:b 1} {:b 2} {:b 4}])
-  (let [left (cascading/load-clj input1)
-        right (cascading/load-clj input2)
+  (let [left (pigpen/load-clj input1)
+        right (pigpen/load-clj input2)
         cmd (pigpen/join [(left :on :a :type :required)
                           (right :on :b :type :optional)]
                          (fn [x y] [x y]))
@@ -89,7 +89,7 @@
 
 (deftest test-group-by
   (write-input input1 [{:a 1 :b 1} {:a 1 :b 2} {:a 2 :b 3}])
-  (let [data (cascading/load-clj input1)
+  (let [data (pigpen/load-clj input1)
         cmd (->> data
                  (pigpen/group-by :a)
                  (pigpen/store-clj output1))]
@@ -98,7 +98,7 @@
 
 (deftest test-multiple-outputs
   (write-input input1 [1 2 3])
-  (let [data (cascading/load-clj input1)
+  (let [data (pigpen/load-clj input1)
         c1 (pigpen/map (fn [x] (* x 2)) data)
         c2 (pigpen/map (fn [x] (* x 3)) data)
         o1 (pigpen/store-clj output1 c1)
@@ -110,7 +110,7 @@
 
 (deftest test-distinct
   (write-input input1 [1 2 3])
-  (let [data (cascading/load-clj input1)
+  (let [data (pigpen/load-clj input1)
         cmd (->> data
                  (pigpen/mapcat (fn [x] [x (* x 2)]))
                  (pigpen/distinct)
