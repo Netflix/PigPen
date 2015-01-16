@@ -25,9 +25,11 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   private static class BufferIterator implements Iterator {
 
     private final Iterator<Tuple> delegate;
+    private final int valIndex;
 
-    private BufferIterator(Iterator<Tuple> delegate) {
+    private BufferIterator(Iterator<Tuple> delegate, int valIndex) {
       this.delegate = delegate;
+      this.valIndex = valIndex;
     }
 
     @Override
@@ -38,7 +40,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     @Override
     public Object next() {
       Tuple t = delegate.next();
-      return t.getObject(1);
+      return t.getObject(valIndex);
     }
 
     @Override
@@ -55,9 +57,11 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   private final boolean isFullOuter;
   private final List<Boolean> groupRequirements;
   private final Keyword udfType;
+  private final boolean keySeparateFromValue;
 
-  public GroupBuffer(List<String> inits, List<String> funcs, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements, Keyword udfType) {
+  public GroupBuffer(List<String> inits, List<String> funcs, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements, Keyword udfType, boolean keySeparateFromValue) {
     super(fields);
+    this.keySeparateFromValue = keySeparateFromValue;
     this.inits = inits;
     this.funcs = funcs;
     this.numIterators = numIterators;
@@ -98,7 +102,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
       Object key = keys.get(i);
       if (requiredGroupsPresent(iterators)) {
         Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
-        emitFn.invoke(fns, key, iterators, bufferCall.getOutputCollector(), groupAll, udfType);
+        emitFn.invoke(fns, key, iterators, bufferCall.getOutputCollector(), groupAll, udfType, keySeparateFromValue);
       }
     }
   }
@@ -149,7 +153,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
         // as the same but not on the other side. Thus we have to emulate that behavior by
         // pretending that one of the streams was not joined.
         Iterator<Tuple> iterator = (nullKey && !groupRequirements.get(i) && !joinNils) ? Collections.<Tuple>emptyList().iterator() : joinerClosure.getIterator(i);
-        args.add(new BufferIterator(iterator));
+        args.add(new BufferIterator(iterator, keySeparateFromValue ? 1 : 0));
       }
       ret.add(args);
     } else {
@@ -158,7 +162,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
         List<Iterator> args = new ArrayList<Iterator>(numIterators);
         for (int i = 0; i < numIterators; i++) {
           Iterator<Tuple> iterator = (i == active) ? joinerClosure.getIterator(i) : Collections.<Tuple>emptyList().iterator();
-          args.add(new BufferIterator(iterator));
+          args.add(new BufferIterator(iterator, keySeparateFromValue ? 1 : 0));
         }
         ret.add(args);
       }

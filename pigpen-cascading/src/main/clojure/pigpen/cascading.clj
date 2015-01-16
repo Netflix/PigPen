@@ -91,16 +91,24 @@
   (let [inits (mapv #(str (get-in % [:expr :init])) code-defs)
         funcs (mapv #(str (get-in % [:expr :func])) code-defs)
         udf (first (map :udf code-defs))
-        fields (if field-projections
-                 (cfields (map #(cascading-field (:alias %)) field-projections))
-                 (cfields ["value"]))
+        field-names (if field-projections
+                      (map #(cascading-field (:alias %)) field-projections)
+                      ["value"])
+        fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
       (let [buffer (case (:group-type cogroup-opts)
-                     :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts) udf)
+                     :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts)
+                                          (:group-all cogroup-opts)
+                                          (:join-nils cogroup-opts)
+                                          (:join-requirements cogroup-opts)
+                                          udf
+                                          (:key-separate-from-value cogroup-opts))
                      :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
-      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS)))))
+      (-> flowdef
+          (update-in [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS))
+          (add-val [:pipe-fields] pipe field-names)))))
 
 (defmethod command->flowdef :group
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
@@ -112,6 +120,7 @@
                         (Insert. (cfields ["group_all"]) (into-array [1]))
                         (cfields ["group_all" "value"]))]
                 (map (:pipes flowdef) ancestors))
+        key-separate-from-value (every? #(> (count %) 1) (map (:pipe-fields flowdef) ancestors))
         is-inner (every? #{:required} join-types)
         pipes (map (fn [p k] (if is-inner
                                (Each. p (cfields k) (FilterNull.))
@@ -123,12 +132,13 @@
                                        (into-array (map cfields keys))
                                        Fields/NONE
                                        (BufferJoin.)))
-        (add-val [:cogroup-opts] id {:group-id          id
-                                     :group-type        :group
-                                     :join-nils         (true? (:join-nils opts))
-                                     :group-all         is-group-all
-                                     :num-streams       (count pipes)
-                                     :join-requirements (map #(= :required %) join-types)}))))
+        (add-val [:cogroup-opts] id {:group-id                id
+                                     :key-separate-from-value key-separate-from-value
+                                     :group-type              :group
+                                     :join-nils               (true? (:join-nils opts))
+                                     :group-all               is-group-all
+                                     :num-streams             (count pipes)
+                                     :join-requirements       (map #(= :required %) join-types)}))))
 
 (defmethod command->flowdef :join
   [{:keys [id keys fields join-types ancestors opts]} flowdef]

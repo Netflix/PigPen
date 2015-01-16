@@ -91,11 +91,11 @@
 
 (defn emit-group-buffer-tuples
   "Emit the results from a GroupBuffer."
-  [funcs key iterators ^TupleEntryCollector collector group-all udf-type]
+  [funcs key iterators ^TupleEntryCollector collector group-all udf-type key-separate-from-value]
   ; TODO: handle :combinef
   (let [normal-fn #(let [f (first funcs)]
-                    (if group-all
-                      (f [(wrap-iterator (first iterators))])
+                    (if (or group-all (not key-separate-from-value))
+                      (f (map wrap-iterator iterators))
                       (f (concat [key] (map wrap-iterator iterators)))))
         algebraic-fn #(let [vals (map (fn [{:keys [pre combinef reducef post]} it]
                                         (->> (wrap-iterator it)

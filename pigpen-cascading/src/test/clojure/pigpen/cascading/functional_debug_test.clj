@@ -160,6 +160,7 @@
     pigpen.functional.set-test/test-union
     pigpen.functional.set-test/test-union-multiset
     pigpen.functional.set-test/test-concat
+    pigpen.functional.set-test/test-intersection
 
     ;; In progress
 
@@ -180,7 +181,6 @@
     pigpen.functional.map-test/test-sort-by
     pigpen.functional.map-test/test-sort-by-desc
     pigpen.functional.map-test/test-sort-by-with-duplicates
-    pigpen.functional.set-test/test-intersection
     pigpen.functional.set-test/test-intersection-multiset
     pigpen.functional.set-test/test-difference
     pigpen.functional.set-test/test-difference-multiset
