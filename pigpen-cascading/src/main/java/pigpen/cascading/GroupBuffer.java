@@ -145,6 +145,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
 
   private List<List<Iterator>> getIterators(JoinerClosure joinerClosure, TupleEntry group, boolean allKeysNull) {
     List<List<Iterator>> ret = new ArrayList<List<Iterator>>();
+    int index = keySeparateFromValue || groupAll ? 1 : 0;
     if (!isFullOuter || joinNils || !allKeysNull) {
       List<Iterator> args = new ArrayList<Iterator>(numIterators);
       for (int i = 0; i < numIterators; i++) {
@@ -153,7 +154,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
         // as the same but not on the other side. Thus we have to emulate that behavior by
         // pretending that one of the streams was not joined.
         Iterator<Tuple> iterator = (nullKey && !groupRequirements.get(i) && !joinNils) ? Collections.<Tuple>emptyList().iterator() : joinerClosure.getIterator(i);
-        args.add(new BufferIterator(iterator, keySeparateFromValue ? 1 : 0));
+        args.add(new BufferIterator(iterator, index));
       }
       ret.add(args);
     } else {
@@ -162,7 +163,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
         List<Iterator> args = new ArrayList<Iterator>(numIterators);
         for (int i = 0; i < numIterators; i++) {
           Iterator<Tuple> iterator = (i == active) ? joinerClosure.getIterator(i) : Collections.<Tuple>emptyList().iterator();
-          args.add(new BufferIterator(iterator, keySeparateFromValue ? 1 : 0));
+          args.add(new BufferIterator(iterator, index));
         }
         ret.add(args);
       }
