@@ -78,7 +78,8 @@
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
-      (let [key-separate-from-value (> (count (first (map :args code-defs))) (:num-streams cogroup-opts))
+      (let [key-separate-from-value (or (= udf :algebraic)
+                                        (> (count (first (map :args code-defs))) (:num-streams cogroup-opts)))
             buffer (case (:group-type cogroup-opts)
                      :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts)
                                           (:group-all cogroup-opts)
@@ -137,9 +138,10 @@
                                        (group-key-cfields keys join-nils)
                                        (cfields fields)
                                        joiner))
-        (add-val [:cogroup-opts] id {:group-id   id
-                                     :group-type :join
-                                     :all-args   (true? (:all-args opts))}))))
+        (add-val [:cogroup-opts] id {:group-id    id
+                                     :group-type  :join
+                                     :num-streams (count ancestors)
+                                     :all-args    (true? (:all-args opts))}))))
 
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
