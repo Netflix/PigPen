@@ -40,7 +40,8 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     @Override
     public Object next() {
       Tuple t = delegate.next();
-      return t.getObject(valIndex);
+      Object raw = t.getObject(valIndex);
+      return OperationUtil.deserialize(raw);
     }
 
     @Override
@@ -99,7 +100,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     List<List<Iterator>> iteratorsList = getIterators(bufferCall.getJoinerClosure(), bufferCall.getGroup(), allKeysNull);
     for (int i = 0; i < iteratorsList.size(); i++) {
       List<Iterator> iterators = iteratorsList.get(i);
-      Object key = keys.get(i);
+      Object key = OperationUtil.deserialize(keys.get(i));
       if (requiredGroupsPresent(iterators)) {
         Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
         emitFn.invoke(fns, key, iterators, bufferCall.getOutputCollector(), groupAll, udfType, keySeparateFromValue);

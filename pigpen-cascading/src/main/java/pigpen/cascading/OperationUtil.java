@@ -1,18 +1,19 @@
 package pigpen.cascading;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import clojure.lang.IFn;
-import clojure.lang.LazySeq;
-import clojure.lang.PersistentVector;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
 import clojure.lang.Var;
 import org.apache.hadoop.io.BytesWritable;
 
 import cascading.tuple.Tuple;
-import cascading.tuple.TupleEntryCollector;
 
 public class OperationUtil {
 
+  private final static Var DESERIALIZER_FN = RT.var("pigpen.cascading.runtime", "hybrid->clojure");
   private static final IFn EVAL_STRING = RT.var("pigpen.runtime", "eval-string");
 
   public static void init(String initCode) {
@@ -39,5 +40,17 @@ public class OperationUtil {
     byte[] ret = new byte[bw.getLength()];
     System.arraycopy(bw.getBytes(), 0, ret, 0, bw.getLength());
     return ret;
+  }
+
+  public static Object deserialize(Object raw) {
+    return DESERIALIZER_FN.invoke(raw);
+  }
+
+  public static List deserialize(Tuple tuple) {
+    List list = new ArrayList(tuple.size());
+    for (int i = 0; i < tuple.size(); i++) {
+      list.add(OperationUtil.deserialize(tuple.getObject(i)));
+    }
+    return list;
   }
 }
