@@ -1,5 +1,7 @@
 package pigpen.cascading;
 
+import java.util.List;
+
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import clojure.lang.Var;
@@ -23,17 +25,19 @@ public class PigPenAggregateBy extends AggregateBy {
 
     private final String init;
     private final String func;
+    private final int index;
     private transient IFn fn;
     private static final Var COMPUTE_PARTIAL_FN = RT.var("pigpen.cascading.runtime", "compute-partial-mapper");
 
-    private Partial(String init, String func) {
+    private Partial(String init, String func, int index) {
       this.init = init;
       this.func = func;
+      this.index = index;
     }
 
     @Override
     public Fields getDeclaredFields() {
-      return new Fields("partial_result");
+      return getFields(index);
     }
 
     @Override
@@ -45,6 +49,7 @@ public class PigPenAggregateBy extends AggregateBy {
       if (context == null) {
         context = new Tuple(GET_SEED_VALUE_FN.invoke(fn));
       }
+      System.out.println("args = " + args);
       Tuple tuple = (Tuple)COMPUTE_PARTIAL_FN.invoke(fn, OperationUtil.deserialize(args.getObject(0)), context.getObject(0));
       return tuple;
     }
@@ -61,7 +66,8 @@ public class PigPenAggregateBy extends AggregateBy {
     private final String func;
     private static final Var COMPUTE_PARTIAL_FN = RT.var("pigpen.cascading.runtime", "compute-partial-reducer");
 
-    public Final(String init, String func) {
+    public Final(String init, String func, int index) {
+      super(getFields(index));
       this.init = init;
       this.func = func;
     }
@@ -106,7 +112,19 @@ public class PigPenAggregateBy extends AggregateBy {
     }
   }
 
-  public PigPenAggregateBy(String name, Pipe pipe, Fields keyField, String init, String func) {
-    super(name, new Pipe[] {pipe}, keyField, new Fields("value"), new Partial(init, func), new Final(init, func), DEFAULT_THRESHOLD);
+  private static Fields getFields(int index) {
+    return new Fields("agg_result" + index);
+  }
+
+  private PigPenAggregateBy(String init, String func, int index) {
+    super(new Fields("value"), new Partial(init, func, index), new Final(init, func, index));
+  }
+
+  public static AggregateBy buildAssembly(String name, Pipe[] pipes, Fields keyField, List<String> inits, List<String> funcs) {
+    AggregateBy[] assemblies = new AggregateBy[pipes.length];
+    for (int i = 0; i < pipes.length; i++) {
+      assemblies[i] = new PigPenAggregateBy(inits.get(i), funcs.get(i), i);
+    }
+    return new AggregateBy(name, pipes, keyField, assemblies);
   }
 }

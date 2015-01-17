@@ -10,7 +10,8 @@
            (cascading.pipe.assembly Unique)
            (cascading.operation.filter Limit Sample FilterNull)
            (cascading.util NullNotEquivalentComparator)
-           (cascading.flow FlowConnector))
+           (cascading.flow FlowConnector)
+           (java.util Arrays))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -19,7 +20,7 @@
             [clojure.pprint]))
 
 (defn- add-val [flowdef path id val]
-  (update-in flowdef path (partial merge {id val})))
+  (update-in flowdef path #(merge % {id val})))
 
 (defn- cfields [fields]
   {:pre [(not-empty fields)]}
@@ -73,13 +74,15 @@
         funcs (mapv #(str (get-in % [:expr :func])) code-defs)
         udf (first (map :udf code-defs))
         field-names (if field-projections
-                      (map #(cascading-field (:alias %)) field-projections)
+                      (mapv #(cascading-field (:alias %)) field-projections)
                       ["value"])
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
       (if (= udf :algebraic)
-        (update-in flowdef [:pipes pipe] #(PigPenAggregateBy. (str pipe) % (cfields (first (:keys cogroup-opts))) (first inits) (first funcs)))
+        (let [key-fields (cfields (first (:keys cogroup-opts)))
+              pipes (into-array (map (:pipes flowdef) (:ancestors cogroup-opts)))]
+          (add-val flowdef [:pipes] pipe (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields inits funcs)))
 
         (let [key-separate-from-value (or (= udf :algebraic)
                                           (> (count (first (map :args code-defs))) (:num-streams cogroup-opts)))
@@ -98,10 +101,11 @@
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
   (-> flowdef
-      (add-val [:pipes] id ((:pipes flowdef) (first ancestors)))
+      (add-val [:pipes] id (Pipe. (str id)))
       (add-val [:cogroup-opts] id {:group-id   id
                                    :group-type :partial-aggregation
-                                   :keys       keys})))
+                                   :keys       keys
+                                   :ancestors  ancestors})))
 
 (defmethod command->flowdef :group-old
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
@@ -186,7 +190,7 @@
         field-projections (if (some #(let [t (:type %)] (= :projection-field t)) projections)
                             projections
                             field-projections)
-        flowdef (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
+        flowdef  (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
         flowdef (let [pipe-opts (get-in flowdef [:cogroup-opts ancestor])]
                   (if (= (:group-id pipe-opts) ancestor)
                     (add-val flowdef [:cogroup-opts] id pipe-opts)
