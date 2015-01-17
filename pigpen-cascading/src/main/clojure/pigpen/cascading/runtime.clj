@@ -1,7 +1,7 @@
 (ns pigpen.cascading.runtime
   (:import (org.apache.hadoop.io BytesWritable)
            (pigpen.cascading OperationUtil SingleIterationSeq)
-           (cascading.tuple TupleEntryCollector Tuple)
+           (cascading.tuple TupleEntryCollector Tuple TupleEntry)
            (java.util List))
   (:require [pigpen.runtime :as rt]
             [pigpen.raw :as raw]
@@ -84,3 +84,17 @@
   [f ^List tuple ^TupleEntryCollector collector]
   (emit-tuples (f tuple) collector))
 
+(defn get-seed-value
+  "Generate the seed value for a partial aggregation."
+  [{:keys [combinef]}]
+  (combinef))
+
+(defn compute-partial-mapper
+  "Compute the result of a partial aggregation (map-side)."
+  [{:keys [pre reducef post]} arg acc]
+  (Tuple. (to-array [(reducef acc arg)])))
+
+(defn compute-partial-reducer
+  "Compute the result of a partial aggregation (map-side)."
+  [{:keys [pre combinef post]} arg acc]
+  (combinef acc arg))

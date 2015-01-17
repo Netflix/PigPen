@@ -3,7 +3,7 @@
            (cascading.scheme.hadoop TextLine)
            (cascading.pipe Pipe Each CoGroup Every Merge)
            (cascading.flow.hadoop HadoopFlowConnector)
-           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer)
+           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer PigPenAggregateBy)
            (cascading.tuple Fields)
            (cascading.operation Identity Insert)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
@@ -78,20 +78,32 @@
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
-      (let [key-separate-from-value (or (= udf :algebraic)
-                                        (> (count (first (map :args code-defs))) (:num-streams cogroup-opts)))
-            buffer (case (:group-type cogroup-opts)
-                     :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts)
-                                          (:group-all cogroup-opts)
-                                          (:join-nils cogroup-opts)
-                                          (:join-requirements cogroup-opts)
-                                          udf
-                                          key-separate-from-value)
-                     :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
-        (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
+      (if (= udf :algebraic)
+        (update-in flowdef [:pipes pipe] #(PigPenAggregateBy. (str pipe) % (cfields (first (:keys cogroup-opts))) (first inits) (first funcs)))
+
+        (let [key-separate-from-value (or (= udf :algebraic)
+                                          (> (count (first (map :args code-defs))) (:num-streams cogroup-opts)))
+              buffer (case (:group-type cogroup-opts)
+                       :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts)
+                                            (:group-all cogroup-opts)
+                                            (:join-nils cogroup-opts)
+                                            (:join-requirements cogroup-opts)
+                                            udf
+                                            key-separate-from-value)
+                       :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
+          (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS))))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS)))))
 
 (defmethod command->flowdef :group
+  [{:keys [id keys fields join-types ancestors opts]} flowdef]
+  {:pre [id keys fields join-types ancestors]}
+  (-> flowdef
+      (add-val [:pipes] id ((:pipes flowdef) (first ancestors)))
+      (add-val [:cogroup-opts] id {:group-id   id
+                                   :group-type :partial-aggregation
+                                   :keys       keys})))
+
+(defmethod command->flowdef :group-old
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
   (let [is-group-all (= keys [:pigpen.raw/group-all])
