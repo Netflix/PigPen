@@ -25,19 +25,19 @@ public class PigPenAggregateBy extends AggregateBy {
 
     private final String init;
     private final String func;
-    private final int index;
+    private final String argField;
     private transient IFn fn;
     private static final Var COMPUTE_PARTIAL_FN = RT.var("pigpen.cascading.runtime", "compute-partial-mapper");
 
-    private Partial(String init, String func, int index) {
+    private Partial(String init, String func, String argField) {
       this.init = init;
       this.func = func;
-      this.index = index;
+      this.argField = argField;
     }
 
     @Override
     public Fields getDeclaredFields() {
-      return getFields(index);
+      return getFields(argField);
     }
 
     @Override
@@ -49,9 +49,10 @@ public class PigPenAggregateBy extends AggregateBy {
       if (context == null) {
         context = new Tuple(GET_SEED_VALUE_FN.invoke(fn));
       }
-      System.out.println("args = " + args);
-      Tuple tuple = (Tuple)COMPUTE_PARTIAL_FN.invoke(fn, OperationUtil.deserialize(args.getObject(0)), context.getObject(0));
-      return tuple;
+      Object val = args.getObject(argField);
+      return OperationUtil.SENTINEL_VALUE.equals(val) ?
+          context :
+          (Tuple)COMPUTE_PARTIAL_FN.invoke(fn, OperationUtil.deserialize(val), context.getObject(0));
     }
 
     @Override
@@ -62,14 +63,16 @@ public class PigPenAggregateBy extends AggregateBy {
 
   public static class Final extends BaseOperation<Final.Context> implements Aggregator<Final.Context> {
 
+    private static final Var COMPUTE_PARTIAL_FN = RT.var("pigpen.cascading.runtime", "compute-partial-reducer");
     private final String init;
     private final String func;
-    private static final Var COMPUTE_PARTIAL_FN = RT.var("pigpen.cascading.runtime", "compute-partial-reducer");
+    private final String argField;
 
-    public Final(String init, String func, int index) {
-      super(getFields(index));
+    public Final(String init, String func, String argField) {
+      super(getFields(argField));
       this.init = init;
       this.func = func;
+      this.argField = argField;
     }
 
     protected static class Context {
@@ -102,8 +105,11 @@ public class PigPenAggregateBy extends AggregateBy {
     public void aggregate(FlowProcess flowProcess, AggregatorCall<Context> aggregatorCall) {
       Context context = aggregatorCall.getContext();
       TupleEntry args = aggregatorCall.getArguments();
-      Object newAcc = COMPUTE_PARTIAL_FN.invoke(context.fn, OperationUtil.deserialize(args.getObject(0)), context.acc);
-      context.acc = newAcc;
+      Object val = args.getObject(getFields(argField));
+      if (!OperationUtil.SENTINEL_VALUE.equals(val)) {
+        Object newAcc = COMPUTE_PARTIAL_FN.invoke(context.fn, OperationUtil.deserialize(val), context.acc);
+        context.acc = newAcc;
+      }
     }
 
     @Override
@@ -112,18 +118,18 @@ public class PigPenAggregateBy extends AggregateBy {
     }
   }
 
-  private static Fields getFields(int index) {
-    return new Fields("agg_result" + index);
+  private static Fields getFields(String fieldName) {
+    return new Fields("agg_result" + fieldName);
   }
 
-  private PigPenAggregateBy(String init, String func, int index) {
-    super(new Fields("value"), new Partial(init, func, index), new Final(init, func, index));
+  private PigPenAggregateBy(String name, String init, String func) {
+    super(new Fields(name), new Partial(init, func, name), new Final(init, func, name));
   }
 
   public static AggregateBy buildAssembly(String name, Pipe[] pipes, Fields keyField, List<String> inits, List<String> funcs) {
     AggregateBy[] assemblies = new AggregateBy[pipes.length];
     for (int i = 0; i < pipes.length; i++) {
-      assemblies[i] = new PigPenAggregateBy(inits.get(i), funcs.get(i), i);
+      assemblies[i] = new PigPenAggregateBy(pipes[i].getName(), inits.get(i), funcs.get(i));
     }
     return new AggregateBy(name, pipes, keyField, assemblies);
   }

@@ -13,6 +13,7 @@ import cascading.tuple.Tuple;
 
 public class OperationUtil {
 
+  public static final String SENTINEL_VALUE = "39c63d213f5cba3c7";
   private final static Var DESERIALIZER_FN = RT.var("pigpen.cascading.runtime", "hybrid->clojure");
   private static final IFn EVAL_STRING = RT.var("pigpen.runtime", "eval-string");
 

@@ -3,11 +3,11 @@
            (cascading.scheme.hadoop TextLine)
            (cascading.pipe Pipe Each CoGroup Every Merge)
            (cascading.flow.hadoop HadoopFlowConnector)
-           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer PigPenAggregateBy)
+           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer PigPenAggregateBy OperationUtil)
            (cascading.tuple Fields)
            (cascading.operation Identity Insert)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
-           (cascading.pipe.assembly Unique)
+           (cascading.pipe.assembly Unique Rename)
            (cascading.operation.filter Limit Sample FilterNull)
            (cascading.util NullNotEquivalentComparator)
            (cascading.flow FlowConnector)
@@ -81,7 +81,16 @@
     (if-not (nil? cogroup-opts)
       (if (= udf :algebraic)
         (let [key-fields (cfields (first (:keys cogroup-opts)))
-              pipes (into-array (map (:pipes flowdef) (:ancestors cogroup-opts)))]
+              ; TODO: this is a hack to emulate multiple streams with a single stream by using a sentinel value to fill absent fields.
+              stream-names (map #(.getName %) (map (:pipes flowdef) (:ancestors cogroup-opts)))
+              pipes (->> (:ancestors cogroup-opts)
+                         (map (:pipes flowdef))
+                         (map #(Rename. % (cfields ["value"]) (cfields [(.getName %)])))
+                         (map (fn [pipe]
+                                (reduce #(Each. %1 (Insert. (cfields [%2]) (into-array [OperationUtil/SENTINEL_VALUE])) Fields/ALL)
+                                        pipe
+                                        (remove #(= (.getName pipe) %) stream-names))))
+                         (into-array))]
           (add-val flowdef [:pipes] pipe (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields inits funcs)))
 
         (let [key-separate-from-value (or (= udf :algebraic)

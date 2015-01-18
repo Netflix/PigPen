@@ -92,11 +92,8 @@
 (defn compute-partial-mapper
   "Compute the result of a partial aggregation (map-side)."
   [{:keys [pre reducef post]} arg acc]
-  (println "***********")
-  (println "arg acc" arg acc)
-  (println "pre" (pre [arg]))
-  (println "")
-  (Tuple. (to-array [(reducef acc (let [r (first (pre [arg]))] (if (nil? r) 0 r)))])))
+  ; TODO: pre should not require wrapping the arg like this.
+  (Tuple. (to-array [(reducef acc (first (pre [arg])))])))
 
 (defn compute-partial-reducer
   "Compute the result of a partial aggregation (map-side)."
