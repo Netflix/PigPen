@@ -14,7 +14,7 @@
     value))
 
 ;; ******* Serialization ********
-(defn ^:private cs-freeze [value]
+(defn cs-freeze [value]
   (BytesWritable. (freeze value {:skip-header? true, :legacy-mode true})))
 
 (defn ^:private cs-freeze-with-nils [value]
@@ -89,16 +89,17 @@
   [{:keys [combinef]}]
   (combinef))
 
-(defn compute-partial-mapper
-  "Compute the result of a partial aggregation (map-side)."
-  [{:keys [pre reducef post]} arg acc]
-  (println "mapper" arg acc)
-  (println "post" post)
-  ; TODO: pre should not require wrapping the arg like this.
-  (Tuple. (to-array [(reducef acc (first (pre [arg])))])))
+(defn aggregate-by-prepare
+  "Apply the pre function to the arg, which results in a collection."
+  [{:keys [pre]} arg]
+  (pre [arg]))
 
-(defn compute-partial-reducer
+(defn aggregate-by-reducef
+  "Compute the result of a partial aggregation (map-side)."
+  [{:keys [reducef]} args acc]
+  (Tuple. (to-array [(reduce reducef acc args)])))
+
+(defn aggregate-by-combinef
   "Compute the result of a partial aggregation (map-side)."
   [{:keys [pre combinef post]} arg acc]
-  (println "reducer" arg acc)
   (combinef acc arg))

@@ -14,6 +14,7 @@ import cascading.tuple.Tuple;
 public class OperationUtil {
 
   public static final String SENTINEL_VALUE = "39c63d213f5cba3c7";
+  private final static Var SERIALIZER_FN = RT.var("pigpen.cascading.runtime", "cs-freeze");
   private final static Var DESERIALIZER_FN = RT.var("pigpen.cascading.runtime", "hybrid->clojure");
   private static final IFn EVAL_STRING = RT.var("pigpen.runtime", "eval-string");
 
@@ -45,6 +46,10 @@ public class OperationUtil {
 
   public static Object deserialize(Object raw) {
     return DESERIALIZER_FN.invoke(raw);
+  }
+
+  public static BytesWritable serialize(Object obj) {
+    return (BytesWritable)SERIALIZER_FN.invoke(obj);
   }
 
   public static List deserialize(Tuple tuple) {

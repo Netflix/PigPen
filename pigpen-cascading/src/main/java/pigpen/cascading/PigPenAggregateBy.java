@@ -1,5 +1,6 @@
 package pigpen.cascading;
 
+import java.util.Collection;
 import java.util.List;
 
 import clojure.lang.IFn;
@@ -27,7 +28,8 @@ public class PigPenAggregateBy extends AggregateBy {
     private final String func;
     private final String argField;
     private transient IFn fn;
-    private static final Var COMPUTE_PARTIAL_FN = RT.var("pigpen.cascading.runtime", "compute-partial-mapper");
+    private static final Var COMPUTE_PRE_FN = RT.var("pigpen.cascading.runtime", "aggregate-by-prepare");
+    private static final Var COMPUTE_REDUCE_FN = RT.var("pigpen.cascading.runtime", "aggregate-by-reducef");
 
     private Partial(String init, String func, String argField) {
       this.init = init;
@@ -50,20 +52,23 @@ public class PigPenAggregateBy extends AggregateBy {
         context = new Tuple(GET_SEED_VALUE_FN.invoke(fn));
       }
       Object val = args.getObject(argField);
-      return OperationUtil.SENTINEL_VALUE.equals(val) ?
-          context :
-          (Tuple)COMPUTE_PARTIAL_FN.invoke(fn, OperationUtil.deserialize(val), context.getObject(0));
+      if (OperationUtil.SENTINEL_VALUE.equals(val)) {
+        return context;
+      } else {
+        Collection vals = (Collection)COMPUTE_PRE_FN.invoke(fn, OperationUtil.deserialize(val));
+        return (Tuple)COMPUTE_REDUCE_FN.invoke(fn, vals, context.getObject(0));
+      }
     }
 
     @Override
     public Tuple complete(FlowProcess flowProcess, Tuple context) {
-      return context;
+      return new Tuple(OperationUtil.serialize(context.getObject(0)));
     }
   }
 
   public static class Final extends BaseOperation<Final.Context> implements Aggregator<Final.Context> {
 
-    private static final Var COMPUTE_PARTIAL_FN = RT.var("pigpen.cascading.runtime", "compute-partial-reducer");
+    private static final Var COMPUTE_PARTIAL_FN = RT.var("pigpen.cascading.runtime", "aggregate-by-combinef");
     private final String init;
     private final String func;
     private final String argField;
@@ -114,7 +119,7 @@ public class PigPenAggregateBy extends AggregateBy {
 
     @Override
     public void complete(FlowProcess flowProcess, AggregatorCall<Context> aggregatorCall) {
-      aggregatorCall.getOutputCollector().add(new Tuple(aggregatorCall.getContext().acc));
+      aggregatorCall.getOutputCollector().add(new Tuple(OperationUtil.serialize(aggregatorCall.getContext().acc)));
     }
   }
 
