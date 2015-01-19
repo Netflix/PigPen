@@ -1,11 +1,9 @@
 dependencies {
 	compile project(':pigpen')
 
-    provided 'org.clojure:clojure:1.6.0'
-
 	compile 'com.twitter:parquet-pig:1.5.0'
 	compile 'com.twitter:parquet-tools:1.5.0'
-	
+
 	provided 'org.apache.pig:pig:0.11.1'
 	provided 'org.apache.hadoop:hadoop-core:1.1.2'
 	provided 'org.antlr:antlr:3.5.2'
