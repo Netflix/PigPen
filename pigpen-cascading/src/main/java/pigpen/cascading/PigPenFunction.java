@@ -1,8 +1,6 @@
 package pigpen.cascading;
 
 import clojure.lang.IFn;
-import clojure.lang.LazySeq;
-import clojure.lang.PersistentVector;
 import clojure.lang.RT;
 import clojure.lang.Var;
 
@@ -12,7 +10,6 @@ import cascading.operation.Function;
 import cascading.operation.FunctionCall;
 import cascading.operation.OperationCall;
 import cascading.tuple.Fields;
-import cascading.tuple.Tuple;
 import cascading.tuple.TupleEntry;
 
 public class PigPenFunction extends BaseOperation implements Function {
@@ -39,6 +36,6 @@ public class PigPenFunction extends BaseOperation implements Function {
     IFn fn = (IFn)functionCall.getContext();
     TupleEntry tupleEntry = functionCall.getArguments();
     Var emitFn = RT.var("pigpen.cascading.runtime", "emit-function-tuples");
-    emitFn.invoke(fn, tupleEntry.getTuple(), functionCall.getOutputCollector());
+    emitFn.invoke(fn, OperationUtil.deserialize(tupleEntry.getTuple()), functionCall.getOutputCollector());
   }
 }

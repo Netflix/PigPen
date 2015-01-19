@@ -1,7 +1,7 @@
 (ns pigpen.cascading
   (:import (cascading.tap.hadoop Hfs)
            (cascading.scheme.hadoop TextLine)
-           (cascading.pipe Pipe Each CoGroup Every)
+           (cascading.pipe Pipe Each CoGroup Every Merge)
            (cascading.flow.hadoop HadoopFlowConnector)
            (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer)
            (cascading.tuple Fields)
@@ -39,29 +39,10 @@
           identity)
 
 (defmethod get-tap-fn :string [_]
-  (fn [location opts] (Hfs. (TextLine.) location)))
+  (fn [location opts] (Hfs. (TextLine. (cfields ["line"])) location)))
 
 (defmethod get-tap-fn :default [_]
   (throw (Exception. (str "Unrecognized tap type: " name))))
-
-(defn load-text [location]
-  (-> (raw/load$ location '[offset line] :string {})))
-
-(defn load-tsv
-  ([location] (load-tsv location "\t"))
-  ([location delimiter]
-    (-> (load-text location)
-        (raw/bind$
-          `(rt/map->bind (fn [~'offset ~'line] (pigpen.extensions.core/structured-split ~'line ~delimiter)))
-          {:args          '[offset line]
-           :field-type-in :native}))))
-
-(defn load-clj [location]
-  (-> (load-text location)
-      (raw/bind$ '[clojure.edn]
-                 `(rt/map->bind (fn [~'offset ~'line] (clojure.edn/read-string ~'line)))
-                 {:args          '[offset line]
-                  :field-type-in :native})))
 
 ;; ******* Commands ********
 
@@ -91,13 +72,21 @@
   (let [inits (mapv #(str (get-in % [:expr :init])) code-defs)
         funcs (mapv #(str (get-in % [:expr :func])) code-defs)
         udf (first (map :udf code-defs))
-        fields (if field-projections
-                 (cfields (map #(cascading-field (:alias %)) field-projections))
-                 (cfields ["value"]))
+        field-names (if field-projections
+                      (map #(cascading-field (:alias %)) field-projections)
+                      ["value"])
+        fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
-      (let [buffer (case (:group-type cogroup-opts)
-                     :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts) (:group-all cogroup-opts) (:join-nils cogroup-opts) (:join-requirements cogroup-opts) udf)
+      (let [key-separate-from-value (or (= udf :algebraic)
+                                        (> (count (first (map :args code-defs))) (:num-streams cogroup-opts)))
+            buffer (case (:group-type cogroup-opts)
+                     :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts)
+                                          (:group-all cogroup-opts)
+                                          (:join-nils cogroup-opts)
+                                          (:join-requirements cogroup-opts)
+                                          udf
+                                          key-separate-from-value)
                      :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
         (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS)))))
@@ -149,9 +138,10 @@
                                        (group-key-cfields keys join-nils)
                                        (cfields fields)
                                        joiner))
-        (add-val [:cogroup-opts] id {:group-id   id
-                                     :group-type :join
-                                     :all-args   (true? (:all-args opts))}))))
+        (add-val [:cogroup-opts] id {:group-id    id
+                                     :group-type  :join
+                                     :num-streams (count ancestors)
+                                     :all-args    (true? (:all-args opts))}))))
 
 (defmethod command->flowdef :projection-flat
   [{:keys [code alias pipe field-projections]} flowdef]
@@ -213,6 +203,12 @@
   {:pre [id p (= 1 (count ancestors))]}
   (let [pipe ((:pipes flowdef) (first ancestors))]
     (add-val flowdef [:pipes] id (Each. pipe (Sample. p)))))
+
+(defmethod command->flowdef :union
+  [{:keys [id ancestors opts]} flowdef]
+  {:pre [id ancestors]}
+  (let [union-pipe (Merge. (into-array (map (:pipes flowdef) ancestors)))]
+    (add-val flowdef [:pipes] id union-pipe)))
 
 (defmethod command->flowdef :script
   [_ flowdef]

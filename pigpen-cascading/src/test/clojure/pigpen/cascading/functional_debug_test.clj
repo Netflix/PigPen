@@ -53,7 +53,7 @@
               (->> data
                 (map prn-str)
                 (clojure.string/join)))
-        (cascading/load-clj input-file)))
+        (pig/load-clj input-file)))
     (dump [this command]
       (if (-> command :type #{:store :script})
         (run-flow command)
@@ -154,11 +154,13 @@
     pigpen.functional.io-test/test-store-tsv
     pigpen.functional.io-test/test-store-clj
     pigpen.functional.io-test/test-store-json
-
-    ;; In progress
-
-    ;; Not working
     pigpen.functional.code-test/test-for
+    pigpen.functional.map-test/test-map+fold1
+    pigpen.functional.map-test/test-map+fold2
+    pigpen.functional.set-test/test-union
+    pigpen.functional.set-test/test-union-multiset
+    pigpen.functional.set-test/test-concat
+    pigpen.functional.set-test/test-intersection
     pigpen.functional.io-test/test-load-string
     pigpen.functional.io-test/test-load-tsv
     pigpen.functional.io-test/test-load-tsv-non-tab
@@ -168,6 +170,12 @@
     pigpen.functional.io-test/test-load-json-no-options
     pigpen.functional.io-test/test-load-json-two-options
     pigpen.functional.io-test/test-load-lazy
+    pigpen.functional.set-test/test-intersection-multiset
+    pigpen.functional.set-test/test-difference
+    pigpen.functional.set-test/test-difference-multiset
+    ;; In progress
+
+    ;; Not working
     pigpen.functional.map-test/test-map-indexed
     pigpen.functional.map-test/test-map-indexed+sort
     pigpen.functional.map-test/test-sort
@@ -175,15 +183,6 @@
     pigpen.functional.map-test/test-sort-by
     pigpen.functional.map-test/test-sort-by-desc
     pigpen.functional.map-test/test-sort-by-with-duplicates
-    pigpen.functional.map-test/test-map+fold1
-    pigpen.functional.map-test/test-map+fold2
-    pigpen.functional.set-test/test-concat
-    pigpen.functional.set-test/test-union
-    pigpen.functional.set-test/test-union-multiset
-    pigpen.functional.set-test/test-intersection
-    pigpen.functional.set-test/test-intersection-multiset
-    pigpen.functional.set-test/test-difference
-    pigpen.functional.set-test/test-difference-multiset
     })
 
 (run-tests 'pigpen.cascading.functional-debug-test)
