@@ -86,6 +86,9 @@
               pipes (->> (:ancestors cogroup-opts)
                          (map (:pipes flowdef))
                          (map #(Rename. % (cfields ["value"]) (cfields [(.getName %)])))
+                         (map #(if (:group-all cogroup-opts)
+                                (Each. % (Insert. (cfields ["group_all"]) (into-array [1])) Fields/ALL)
+                                %))
                          (map (fn [pipe]
                                 (reduce #(Each. %1 (Insert. (cfields [%2]) (into-array [OperationUtil/SENTINEL_VALUE])) Fields/ALL)
                                         pipe
@@ -109,12 +112,15 @@
 (defmethod command->flowdef :group
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
-  (-> flowdef
-      (add-val [:pipes] id (Pipe. (str id)))
-      (add-val [:cogroup-opts] id {:group-id   id
-                                   :group-type :partial-aggregation
-                                   :keys       keys
-                                   :ancestors  ancestors})))
+  (let [is-group-all (= keys [:pigpen.raw/group-all])
+        keys (if is-group-all [["group_all"]] keys)]
+    (-> flowdef
+        (add-val [:pipes] id (Pipe. (str id)))
+        (add-val [:cogroup-opts] id {:group-id   id
+                                     :group-type :partial-aggregation
+                                     :keys       keys
+                                     :ancestors  ancestors
+                                     :group-all  is-group-all}))))
 
 (defmethod command->flowdef :group-old
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
@@ -123,7 +129,7 @@
         keys (if is-group-all [["group_all"]] keys)
         pipes (if is-group-all
                 [(Each. ((:pipes flowdef) (first ancestors))
-                        (Insert. (cfields ["group_all"]) (into-array [1]))
+                        (Insert. (cfields ["group_all"]) (into-array [-1]))
                         (cfields ["group_all" "value"]))]
                 (map (:pipes flowdef) ancestors))
         is-inner (every? #{:required} join-types)
@@ -199,7 +205,7 @@
         field-projections (if (some #(let [t (:type %)] (= :projection-field t)) projections)
                             projections
                             field-projections)
-        flowdef  (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
+        flowdef (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
         flowdef (let [pipe-opts (get-in flowdef [:cogroup-opts ancestor])]
                   (if (= (:group-id pipe-opts) ancestor)
                     (add-val flowdef [:cogroup-opts] id pipe-opts)

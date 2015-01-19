@@ -92,10 +92,13 @@
 (defn compute-partial-mapper
   "Compute the result of a partial aggregation (map-side)."
   [{:keys [pre reducef post]} arg acc]
+  (println arg acc)
+  (println "post" post)
   ; TODO: pre should not require wrapping the arg like this.
   (Tuple. (to-array [(reducef acc (first (pre [arg])))])))
 
 (defn compute-partial-reducer
   "Compute the result of a partial aggregation (map-side)."
   [{:keys [pre combinef post]} arg acc]
+  (println arg acc)
   (combinef acc arg))
