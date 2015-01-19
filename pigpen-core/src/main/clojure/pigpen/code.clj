@@ -73,16 +73,22 @@ or reduce."
 
 ;; TODO add an option to make the default include/exclude configurable
 
-(defn ^:private make-binding [k v]
+(defn ^:private freezable? [v]
   (cond
-    (fn? v) nil
-    (:pig (meta v)) nil
-    (:local (meta v)) nil
-    (:local (meta k)) nil
-    (not (nippy-util/readable? v)) nil
-    ;; TODO if something is freezable, but not EDN friendly, maybe use a base64 string?
-    ;(nippy/freezeable? v) [k `(thaw (decode ~(encode (freeze v))))]
-    :else [k `(quote ~v)]))
+    (fn? v) false
+    (:pig (meta v)) false
+    (:local (meta v)) false
+    (not (nippy-util/readable? v)) false
+    (sequential? v) (every? freezable? v)
+    (map? v) (every? (partial every? freezable?) v)
+    :else true))
+
+;; TODO if something is freezable, but not EDN friendly, maybe use a base64 string?
+;(nippy/freezeable? v) [k `(thaw (decode ~(encode (freeze v))))]
+(defn ^:private make-binding [k v]
+  (when (and (freezable? k)
+             (freezable? v))
+    [k `(quote ~v)]))
 
 (defn resource-exists
   "Converts a ns to a resource with the specified ext and checks for existence"
