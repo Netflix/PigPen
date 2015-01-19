@@ -28,6 +28,7 @@ public class PigPenAggregateBy extends AggregateBy {
     private final String func;
     private final String argField;
     private transient IFn fn;
+    private transient boolean allSentinel;
     private static final Var COMPUTE_PRE_FN = RT.var("pigpen.cascading.runtime", "aggregate-by-prepare");
     private static final Var COMPUTE_REDUCE_FN = RT.var("pigpen.cascading.runtime", "aggregate-by-reducef");
 
@@ -49,12 +50,14 @@ public class PigPenAggregateBy extends AggregateBy {
         fn = OperationUtil.getFn(func);
       }
       if (context == null) {
+        allSentinel = true;
         context = new Tuple(GET_SEED_VALUE_FN.invoke(fn));
       }
       Object val = args.getObject(argField);
       if (OperationUtil.SENTINEL_VALUE.equals(val)) {
         return context;
       } else {
+        allSentinel = false;
         Collection vals = (Collection)COMPUTE_PRE_FN.invoke(fn, OperationUtil.deserialize(val));
         return (Tuple)COMPUTE_REDUCE_FN.invoke(fn, vals, context.getObject(0));
       }
@@ -62,7 +65,11 @@ public class PigPenAggregateBy extends AggregateBy {
 
     @Override
     public Tuple complete(FlowProcess flowProcess, Tuple context) {
-      return new Tuple(OperationUtil.serialize(context.getObject(0)));
+      if (allSentinel) {
+        return new Tuple(OperationUtil.SENTINEL_VALUE);
+      } else {
+        return new Tuple(OperationUtil.serialize(context.getObject(0)));
+      }
     }
   }
 
@@ -83,6 +90,7 @@ public class PigPenAggregateBy extends AggregateBy {
     protected static class Context {
       private final IFn fn;
       private Object acc;
+      private boolean allSentinel;
 
       public Context(IFn fn) {
         this.fn = fn;
@@ -90,6 +98,7 @@ public class PigPenAggregateBy extends AggregateBy {
 
       public void reset() {
         acc = GET_SEED_VALUE_FN.invoke(fn);
+        allSentinel = true;
       }
     }
 
@@ -114,12 +123,16 @@ public class PigPenAggregateBy extends AggregateBy {
       if (!OperationUtil.SENTINEL_VALUE.equals(val)) {
         Object newAcc = COMPUTE_PARTIAL_FN.invoke(context.fn, OperationUtil.deserialize(val), context.acc);
         context.acc = newAcc;
+        context.allSentinel = false;
       }
     }
 
     @Override
     public void complete(FlowProcess flowProcess, AggregatorCall<Context> aggregatorCall) {
-      aggregatorCall.getOutputCollector().add(new Tuple(OperationUtil.serialize(aggregatorCall.getContext().acc)));
+      Context context = aggregatorCall.getContext();
+      if (!context.allSentinel) {
+        aggregatorCall.getOutputCollector().add(new Tuple(OperationUtil.serialize(context.acc)));
+      }
     }
   }
 

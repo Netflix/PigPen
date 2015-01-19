@@ -100,6 +100,6 @@
   (Tuple. (to-array [(reduce reducef acc args)])))
 
 (defn aggregate-by-combinef
-  "Compute the result of a partial aggregation (map-side)."
-  [{:keys [pre combinef post]} arg acc]
-  (combinef acc arg))
+  "Compute the result of a partial aggregation (reduce-side)."
+  [{:keys [combinef post]} arg acc]
+  (post (combinef acc arg)))

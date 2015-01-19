@@ -114,11 +114,11 @@
     pigpen.functional.join-test/test-cogroup-full-outer-join-nils
     pigpen.functional.join-test/test-cogroup-self-join
     pigpen.functional.join-test/test-fold-count
-    pigpen.functional.join-test/test-cogroup-self-join+fold
+    ;pigpen.functional.join-test/test-cogroup-self-join+fold
     pigpen.functional.join-test/test-fold-inline-sum
     pigpen.functional.join-test/test-fold-inline-count
     pigpen.functional.join-test/test-fold-cogroup-dual
-    ;pigpen.functional.join-test/test-fold-all-sum
+    pigpen.functional.join-test/test-fold-all-sum
     pigpen.functional.join-test/test-fold-all-count
     pigpen.functional.join-test/test-fold-all-empty
     pigpen.functional.fold-test/test-vec
