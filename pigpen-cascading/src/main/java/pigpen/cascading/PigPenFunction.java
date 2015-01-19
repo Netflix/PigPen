@@ -35,7 +35,6 @@ public class PigPenFunction extends BaseOperation implements Function {
   public void operate(FlowProcess flowProcess, FunctionCall functionCall) {
     IFn fn = (IFn)functionCall.getContext();
     TupleEntry tupleEntry = functionCall.getArguments();
-    System.out.println("tupleEntry = " + tupleEntry);
     Var emitFn = RT.var("pigpen.cascading.runtime", "emit-function-tuples");
     emitFn.invoke(fn, OperationUtil.deserialize(tupleEntry.getTuple()), functionCall.getOutputCollector());
   }

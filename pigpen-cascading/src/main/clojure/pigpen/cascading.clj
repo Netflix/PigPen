@@ -7,7 +7,7 @@
            (cascading.tuple Fields)
            (cascading.operation Identity Insert)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
-           (cascading.pipe.assembly Unique Rename)
+           (cascading.pipe.assembly Unique Rename Discard)
            (cascading.operation.filter Limit Sample FilterNull)
            (cascading.util NullNotEquivalentComparator)
            (cascading.flow FlowConnector)
@@ -87,14 +87,17 @@
                          (map (:pipes flowdef))
                          (map #(Rename. % (cfields ["value"]) (cfields [(.getName %)])))
                          (map #(if (:group-all cogroup-opts)
-                                (Each. % (Insert. (cfields ["group_all"]) (into-array [1])) Fields/ALL)
+                                (Each. % (Insert. (cfields ["group_all"]) (into-array [-1])) Fields/ALL)
                                 %))
                          (map (fn [pipe]
                                 (reduce #(Each. %1 (Insert. (cfields [%2]) (into-array [OperationUtil/SENTINEL_VALUE])) Fields/ALL)
                                         pipe
                                         (remove #(= (.getName pipe) %) stream-names))))
                          (into-array))]
-          (add-val flowdef [:pipes] pipe (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields inits funcs)))
+          (add-val flowdef [:pipes] pipe (let [p (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields inits funcs)]
+                                           (if (:group-all cogroup-opts)
+                                             (Discard. p (cfields ["group_all"]))
+                                             p))))
 
         (let [key-separate-from-value (or (= udf :algebraic)
                                           (> (count (first (map :args code-defs))) (:num-streams cogroup-opts)))
