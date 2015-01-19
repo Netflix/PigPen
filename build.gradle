@@ -74,11 +74,26 @@ subprojects {
         }
     }
 
+    ////////////////////////////////////////////////////////////////////////////////
+    // Define a task that runs an nrepl server. The port is given with the nreplPort
+    // property:
+    //    gradlew nrepl -PnreplPort=9999
+    // or put the property in ~/.gradle/gradle.properties
+    configurations { nrepl }
     dependencies {
-        development 'org.clojure:tools.nrepl:0.2.3'
+      nrepl 'org.clojure:tools.nrepl:0.2.7'
+      nrepl 'org.clojure:clojure:1.6.0'
     }
+    task nrepl(type: JavaExec) {
+        classpath project.sourceSets.main.clojure.srcDirs,
+                  project.sourceSets.test.clojure.srcDirs,
+                  sourceSets.test.runtimeClasspath,
+                  sourceSets.main.runtimeClasspath,
+                  configurations.nrepl
 
-    clojureRepl {
-        port = "9999"
+        main = "clojure.main"
+        args '--eval', "(ns gradle-nrepl (:require [clojure.tools.nrepl.server :refer (start-server stop-server)]))",
+             '--eval', "(println \"Starting nrepl server on port $nreplPort\")",
+             '--eval', "(def server (start-server :port $nreplPort))"
     }
 }
