@@ -82,19 +82,31 @@
       (if (= udf :algebraic)
         (let [key-fields (cfields (first (:keys cogroup-opts)))
               ; TODO: this is a hack to emulate multiple streams with a single stream by using a sentinel value to fill absent fields.
-              stream-names (map #(.getName %) (map (:pipes flowdef) (:ancestors cogroup-opts)))
+              agg-fields (->> field-projections
+                              (filter #(= :projection-func (:type %)))
+                              (map :alias)
+                              (map str))
+              field-to-source (zipmap agg-fields (:ancestors cogroup-opts))
               pipes (->> (:ancestors cogroup-opts)
                          (map (:pipes flowdef))
-                         (map #(Rename. % (cfields ["value"]) (cfields [(.getName %)])))
+                         (map-indexed (fn [index pipe]
+                                        (Rename. pipe (cfields ["value"]) (cfields [(nth agg-fields index)]))))
                          (map #(if (:group-all cogroup-opts)
                                 (Each. % (Insert. (cfields ["group_all"]) (into-array [-1])) Fields/ALL)
                                 %))
-                         (map (fn [pipe]
-                                (reduce #(Each. %1 (Insert. (cfields [%2]) (into-array [OperationUtil/SENTINEL_VALUE])) Fields/ALL)
-                                        pipe
-                                        (remove #(= (.getName pipe) %) stream-names))))
+                         (map-indexed (fn [index pipe]
+                                        (reduce (fn [pipe {:keys [field shared-source]}]
+                                                  (if shared-source
+                                                    (Each. pipe (cfields [(nth agg-fields index)]) (Identity. (cfields [field])) Fields/ALL)
+                                                    (Each. pipe (Insert. (cfields [field]) (into-array [OperationUtil/SENTINEL_VALUE])) Fields/ALL)))
+                                                pipe
+                                                (keep-indexed (fn [i v]
+                                                                (if (= index i)
+                                                                  nil {:field v :shared-source (= (.getName pipe) (str (field-to-source (nth agg-fields i))))}))
+                                                              agg-fields))))
+                         ;(#(vector (first %)))
                          (into-array))]
-          (add-val flowdef [:pipes] pipe (let [p (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields inits funcs)]
+          (add-val flowdef [:pipes] pipe (let [p (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields agg-fields inits funcs)]
                                            (if (:group-all cogroup-opts)
                                              (Discard. p (cfields ["group_all"]))
                                              p))))

@@ -140,14 +140,14 @@ public class PigPenAggregateBy extends AggregateBy {
     return new Fields("agg_result" + fieldName);
   }
 
-  private PigPenAggregateBy(String name, String init, String func) {
-    super(new Fields(name), new Partial(init, func, name), new Final(init, func, name));
+  private PigPenAggregateBy(String outputField, String init, String func) {
+    super(new Fields(outputField), new Partial(init, func, outputField), new Final(init, func, outputField));
   }
 
-  public static AggregateBy buildAssembly(String name, Pipe[] pipes, Fields keyField, List<String> inits, List<String> funcs) {
-    AggregateBy[] assemblies = new AggregateBy[pipes.length];
-    for (int i = 0; i < pipes.length; i++) {
-      assemblies[i] = new PigPenAggregateBy(pipes[i].getName(), inits.get(i), funcs.get(i));
+  public static AggregateBy buildAssembly(String name, Pipe[] pipes, Fields keyField, List<String> outputFields, List<String> inits, List<String> funcs) {
+    AggregateBy[] assemblies = new AggregateBy[funcs.size()];
+    for (int i = 0; i < funcs.size(); i++) {
+      assemblies[i] = new PigPenAggregateBy(outputFields.get(i), inits.get(i), funcs.get(i));
     }
     return new AggregateBy(name, pipes, keyField, assemblies);
   }
