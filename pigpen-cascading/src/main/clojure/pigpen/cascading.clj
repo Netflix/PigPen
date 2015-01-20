@@ -134,25 +134,19 @@
           (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS))))
       (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS)))))
 
-(defmethod command->flowdef :group
-  [{:keys [id keys fields join-types ancestors opts]} flowdef]
-  {:pre [id keys fields join-types ancestors]}
-  (let [is-group-all (= keys [:pigpen.raw/group-all])
-        keys (if is-group-all [["group_all"]] keys)]
-    (-> flowdef
+(defn- partial-aggregation
+  [id is-group-all keys ancestors flowdef]
+  (-> flowdef
         (add-val [:pipes] id (Pipe. (str id)))
         (add-val [:cogroup-opts] id {:group-id   id
                                      :group-type :partial-aggregation
                                      :keys       keys
                                      :ancestors  ancestors
-                                     :group-all  is-group-all}))))
+                                     :group-all  is-group-all})))
 
-(defmethod command->flowdef :group-old
-  [{:keys [id keys fields join-types ancestors opts]} flowdef]
-  {:pre [id keys fields join-types ancestors]}
-  (let [is-group-all (= keys [:pigpen.raw/group-all])
-        keys (if is-group-all [["group_all"]] keys)
-        pipes (if is-group-all
+(defn- cogroup
+  [id is-group-all keys ancestors join-types opts flowdef]
+  (let [pipes (if is-group-all
                 [(Each. ((:pipes flowdef) (first ancestors))
                         (Insert. (cfields ["group_all"]) (into-array [-1]))
                         (cfields ["group_all" "value"]))]
@@ -174,6 +168,15 @@
                                      :group-all         is-group-all
                                      :num-streams       (count pipes)
                                      :join-requirements (map #(= :required %) join-types)}))))
+
+(defmethod command->flowdef :group
+  [{:keys [id keys fields join-types ancestors requires-partial-aggregation opts]} flowdef]
+  {:pre [id keys fields join-types ancestors]}
+  (let [is-group-all (= keys [:pigpen.raw/group-all])
+        keys (if is-group-all [["group_all"]] keys)]
+    (if requires-partial-aggregation
+      (partial-aggregation id is-group-all keys ancestors flowdef)
+      (cogroup id is-group-all keys ancestors join-types opts flowdef))))
 
 (defmethod command->flowdef :join
   [{:keys [id keys fields join-types ancestors opts]} flowdef]
@@ -306,7 +309,6 @@
                                                        :type)))
                                 (map (fn [c] [(first (:ancestors c)) (:id c)]))
                                 (into {}))]
-    (println group-to-successor)
     (map (fn [c]
            (if (and (= :group (:type c))
                     (some #(= :projection-func (:type %)) (-> (:id c) (group-to-successor) (cmd-by-id) :projections)))
