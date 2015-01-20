@@ -295,10 +295,30 @@
                                                            %) a))))))
          (remove is-field-projection))))
 
+(defn- label-partial-aggregation-groups [commands]
+  (let [cmd-by-id (->> commands
+                       (map (fn [c] [(:id c) c]))
+                       (into {}))
+        group-to-successor (->> commands
+                                (filter #(= :group (-> (:ancestors %)
+                                                       (first)
+                                                       cmd-by-id
+                                                       :type)))
+                                (map (fn [c] [(first (:ancestors c)) (:id c)]))
+                                (into {}))]
+    (println group-to-successor)
+    (map (fn [c]
+           (if (and (= :group (:type c))
+                    (some #(= :projection-func (:type %)) (-> (:id c) (group-to-successor) (cmd-by-id) :projections)))
+             (assoc c :requires-partial-aggregation true)
+             c))
+         commands)))
+
 
 (defn preprocess-commands [commands]
   (-> commands
-      collapse-field-projections))
+      collapse-field-projections
+      label-partial-aggregation-groups))
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
