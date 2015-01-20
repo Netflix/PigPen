@@ -227,7 +227,7 @@
         pipe ((:pipes flowdef) ancestor)
         code-defs (map :code (filter #(let [t (:type %)]
                                        (or (= :projection-flat t) (= :projection-func t))) projections))
-        field-projections (if (some #(let [t (:type %)] (= :projection-field t)) projections)
+        field-projections (if (some #(let [t (:type %)] (or (= :projection-field t) (= :projection-func t))) projections)
                             projections
                             field-projections)
         flowdef (add-val flowdef [:pipes] id (Pipe. (str id) pipe))
