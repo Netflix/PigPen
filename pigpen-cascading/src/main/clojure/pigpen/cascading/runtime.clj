@@ -1,12 +1,9 @@
 (ns pigpen.cascading.runtime
   (:import (org.apache.hadoop.io BytesWritable)
            (pigpen.cascading OperationUtil SingleIterationSeq)
-           (cascading.tuple TupleEntryCollector Tuple TupleEntry)
+           (cascading.tuple TupleEntryCollector Tuple)
            (java.util List))
-  (:require [pigpen.runtime :as rt]
-            [pigpen.raw :as raw]
-            [pigpen.oven :as oven]
-            [taoensso.nippy :refer [freeze thaw]]))
+  (:require [taoensso.nippy :refer [freeze thaw]]))
 
 (defn hybrid->clojure [value]
   (if (instance? BytesWritable value)
