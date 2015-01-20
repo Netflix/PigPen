@@ -10,8 +10,7 @@
            (cascading.pipe.assembly Unique Rename Discard)
            (cascading.operation.filter Limit Sample FilterNull)
            (cascading.util NullNotEquivalentComparator)
-           (cascading.flow FlowConnector)
-           (java.util Arrays))
+           (cascading.flow FlowConnector))
   (:require [pigpen.runtime :as rt]
             [pigpen.cascading.runtime :as cs]
             [pigpen.raw :as raw]
@@ -121,21 +120,22 @@
                       ["value"])
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
-    (if-not (nil? cogroup-opts)
+    (if (nil? cogroup-opts)
+      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS))
       (if (= udf :algebraic)
         (partial-aggregation-code pipe inits funcs cogroup-opts field-projections flowdef)
-        (let [key-separate-from-value (or (= udf :algebraic)
-                                          (> (count (first (map :args code-defs))) (:num-streams cogroup-opts)))
+        (let [key-separate-from-value (> (count (first (map :args code-defs))) (:num-streams cogroup-opts))
               buffer (case (:group-type cogroup-opts)
-                       :group (GroupBuffer. inits funcs fields (:num-streams cogroup-opts)
+                       :group (GroupBuffer. (first inits)
+                                            (first funcs)
+                                            fields
+                                            (:num-streams cogroup-opts)
                                             (:group-all cogroup-opts)
                                             (:join-nils cogroup-opts)
                                             (:join-requirements cogroup-opts)
-                                            udf
                                             key-separate-from-value)
                        :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
-          (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS))))
-      (update-in flowdef [:pipes pipe] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS)))))
+          (update-in flowdef [:pipes pipe] #(Every. % buffer Fields/RESULTS)))))))
 
 (defn- partial-aggregation
   [id is-group-all keys ancestors flowdef]
@@ -317,7 +317,6 @@
              (assoc c :requires-partial-aggregation true)
              c))
          commands)))
-
 
 (defn preprocess-commands [commands]
   (-> commands
