@@ -81,7 +81,12 @@
     (if-not (nil? cogroup-opts)
       (if (= udf :algebraic)
         (let [key-fields (cfields (first (:keys cogroup-opts)))
-              ; TODO: this is a hack to emulate multiple streams with a single stream by using a sentinel value to fill absent fields.
+              ; This is a hack to emulate multiple streams with a single stream by using a sentinel value to fill absent fields.
+              ; For example, if we have generate1 -> [1 1 2 3], generate2 => [1 2 2 3], the resulting merged stream will be:
+              ; [[1 1 s] [1 1 s] [2 2 s] [3 3 s] [1 s 1] [2 s 2] [2 s 2] [3 s 3]], where each tuple contains [key, value1, value2],
+              ; and s represents the sentinel value.
+              ; Another twist is that in case of a self join, a single pipe must be used because otherwise cascading will
+              ; do each operation twice.
               agg-fields (->> field-projections
                               (filter #(= :projection-func (:type %)))
                               (map :alias)
@@ -104,7 +109,12 @@
                                                                 (if (= index i)
                                                                   nil {:field v :shared-source (= (.getName pipe) (str (field-to-source (nth agg-fields i))))}))
                                                               agg-fields))))
-                         ;(#(vector (first %)))
+                         (reduce (fn [pipes pipe]
+                                   (let [pipe-names (into #{} (map #(.getName %) pipes))]
+                                     (if (pipe-names (.getName pipe))
+                                       pipes
+                                       (conj pipes pipe))))
+                                 [])
                          (into-array))]
           (add-val flowdef [:pipes] pipe (let [p (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields agg-fields inits funcs)]
                                            (if (:group-all cogroup-opts)
