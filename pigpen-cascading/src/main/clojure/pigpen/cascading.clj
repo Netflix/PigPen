@@ -67,7 +67,50 @@
       (add-val [:pipe-to-sink] (first ancestors) id)
       (add-val [:sinks] id ((get-tap-fn storage) location opts))))
 
-(defmethod command->flowdef :code-def
+(defn- partial-aggregation-code
+  [pipe inits funcs cogroup-opts field-projections flowdef]
+  (let [key-fields (cfields (first (:keys cogroup-opts)))
+        ; This is a hack to emulate multiple streams with a single stream by using a sentinel value to fill absent fields.
+        ; For example, if we have generate1 -> [1 1 2 3], generate2 => [1 2 2 3], the resulting merged stream will be:
+        ; [[1 1 s] [1 1 s] [2 2 s] [3 3 s] [1 s 1] [2 s 2] [2 s 2] [3 s 3]], where each tuple contains [key, value1, value2],
+        ; and s represents the sentinel value.
+        ; Another twist is that in case of a self join, a single pipe must be used because otherwise cascading will
+        ; do each operation twice.
+        agg-fields (->> field-projections
+                        (filter #(= :projection-func (:type %)))
+                        (map :alias)
+                        (map str))
+        field-to-source (zipmap agg-fields (:ancestors cogroup-opts))
+        pipes (->> (:ancestors cogroup-opts)
+                   (map (:pipes flowdef))
+                   (map-indexed (fn [index pipe]
+                                  (Rename. pipe (cfields ["value"]) (cfields [(nth agg-fields index)]))))
+                   (map #(if (:group-all cogroup-opts)
+                          (Each. % (Insert. (cfields ["group_all"]) (into-array [-1])) Fields/ALL)
+                          %))
+                   (map-indexed (fn [index pipe]
+                                  (reduce (fn [pipe {:keys [field shared-source]}]
+                                            (if shared-source
+                                              (Each. pipe (cfields [(nth agg-fields index)]) (Identity. (cfields [field])) Fields/ALL)
+                                              (Each. pipe (Insert. (cfields [field]) (into-array [OperationUtil/SENTINEL_VALUE])) Fields/ALL)))
+                                          pipe
+                                          (keep-indexed (fn [i v]
+                                                          (if (= index i)
+                                                            nil {:field v :shared-source (= (.getName pipe) (str (field-to-source (nth agg-fields i))))}))
+                                                        agg-fields))))
+                   (reduce (fn [pipes pipe]
+                             (let [pipe-names (into #{} (map #(.getName %) pipes))]
+                               (if (pipe-names (.getName pipe))
+                                 pipes
+                                 (conj pipes pipe))))
+                           [])
+                   (into-array))]
+    (add-val flowdef [:pipes] pipe (let [p (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields agg-fields inits funcs)]
+                                     (if (:group-all cogroup-opts)
+                                       (Discard. p (cfields ["group_all"]))
+                                       p)))))
+
+(defn- code->flowdef
   [{:keys [code-defs pipe field-projections]} flowdef]
   {:pre [code-defs (= (count (distinct (map :udf code-defs))) 1)]}
   (let [inits (mapv #(str (get-in % [:expr :init])) code-defs)
@@ -80,47 +123,7 @@
         cogroup-opts (get-in flowdef [:cogroup-opts pipe])]
     (if-not (nil? cogroup-opts)
       (if (= udf :algebraic)
-        (let [key-fields (cfields (first (:keys cogroup-opts)))
-              ; This is a hack to emulate multiple streams with a single stream by using a sentinel value to fill absent fields.
-              ; For example, if we have generate1 -> [1 1 2 3], generate2 => [1 2 2 3], the resulting merged stream will be:
-              ; [[1 1 s] [1 1 s] [2 2 s] [3 3 s] [1 s 1] [2 s 2] [2 s 2] [3 s 3]], where each tuple contains [key, value1, value2],
-              ; and s represents the sentinel value.
-              ; Another twist is that in case of a self join, a single pipe must be used because otherwise cascading will
-              ; do each operation twice.
-              agg-fields (->> field-projections
-                              (filter #(= :projection-func (:type %)))
-                              (map :alias)
-                              (map str))
-              field-to-source (zipmap agg-fields (:ancestors cogroup-opts))
-              pipes (->> (:ancestors cogroup-opts)
-                         (map (:pipes flowdef))
-                         (map-indexed (fn [index pipe]
-                                        (Rename. pipe (cfields ["value"]) (cfields [(nth agg-fields index)]))))
-                         (map #(if (:group-all cogroup-opts)
-                                (Each. % (Insert. (cfields ["group_all"]) (into-array [-1])) Fields/ALL)
-                                %))
-                         (map-indexed (fn [index pipe]
-                                        (reduce (fn [pipe {:keys [field shared-source]}]
-                                                  (if shared-source
-                                                    (Each. pipe (cfields [(nth agg-fields index)]) (Identity. (cfields [field])) Fields/ALL)
-                                                    (Each. pipe (Insert. (cfields [field]) (into-array [OperationUtil/SENTINEL_VALUE])) Fields/ALL)))
-                                                pipe
-                                                (keep-indexed (fn [i v]
-                                                                (if (= index i)
-                                                                  nil {:field v :shared-source (= (.getName pipe) (str (field-to-source (nth agg-fields i))))}))
-                                                              agg-fields))))
-                         (reduce (fn [pipes pipe]
-                                   (let [pipe-names (into #{} (map #(.getName %) pipes))]
-                                     (if (pipe-names (.getName pipe))
-                                       pipes
-                                       (conj pipes pipe))))
-                                 [])
-                         (into-array))]
-          (add-val flowdef [:pipes] pipe (let [p (PigPenAggregateBy/buildAssembly (str pipe) pipes key-fields agg-fields inits funcs)]
-                                           (if (:group-all cogroup-opts)
-                                             (Discard. p (cfields ["group_all"]))
-                                             p))))
-
+        (partial-aggregation-code pipe inits funcs cogroup-opts field-projections flowdef)
         (let [key-separate-from-value (or (= udf :algebraic)
                                           (> (count (first (map :args code-defs))) (:num-streams cogroup-opts)))
               buffer (case (:group-type cogroup-opts)
@@ -137,12 +140,12 @@
 (defn- partial-aggregation
   [id is-group-all keys ancestors flowdef]
   (-> flowdef
-        (add-val [:pipes] id (Pipe. (str id)))
-        (add-val [:cogroup-opts] id {:group-id   id
-                                     :group-type :partial-aggregation
-                                     :keys       keys
-                                     :ancestors  ancestors
-                                     :group-all  is-group-all})))
+      (add-val [:pipes] id (Pipe. (str id)))
+      (add-val [:cogroup-opts] id {:group-id   id
+                                   :group-type :partial-aggregation
+                                   :keys       keys
+                                   :ancestors  ancestors
+                                   :group-all  is-group-all})))
 
 (defn- cogroup
   [id is-group-all keys ancestors join-types opts flowdef]
@@ -238,11 +241,10 @@
                   (if (= (:group-id pipe-opts) ancestor)
                     (add-val flowdef [:cogroup-opts] id pipe-opts)
                     flowdef))
-        flowdef (command->flowdef {:type              :code-def
-                                   :pipe              id
-                                   :field-projections field-projections
-                                   :code-defs         code-defs}
-                                  flowdef)]
+        flowdef (code->flowdef {:pipe              id
+                                :field-projections field-projections
+                                :code-defs         code-defs}
+                               flowdef)]
     flowdef))
 
 (defmethod command->flowdef :distinct
