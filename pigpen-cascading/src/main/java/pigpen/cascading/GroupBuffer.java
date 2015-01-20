@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import clojure.lang.IFn;
-import clojure.lang.Keyword;
 import clojure.lang.RT;
 import clojure.lang.Var;
 
@@ -50,26 +49,24 @@ public class GroupBuffer extends BaseOperation implements Buffer {
     }
   }
 
-  private final List<String> inits;
-  private final List<String> funcs;
+  private final String init;
+  private final String func;
   private final int numIterators;
   private final boolean groupAll;
   private final boolean joinNils;
   private final boolean isFullOuter;
   private final List<Boolean> groupRequirements;
-  private final Keyword udfType;
   private final boolean keySeparateFromValue;
 
-  public GroupBuffer(List<String> inits, List<String> funcs, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements, Keyword udfType, boolean keySeparateFromValue) {
+  public GroupBuffer(String init, String func, Fields fields, int numIterators, boolean groupAll, boolean joinNils, List<Boolean> groupRequirements, boolean keySeparateFromValue) {
     super(fields);
     this.keySeparateFromValue = keySeparateFromValue;
-    this.inits = inits;
-    this.funcs = funcs;
+    this.init = init;
+    this.func = func;
     this.numIterators = numIterators;
     this.groupAll = groupAll;
     this.joinNils = joinNils;
     this.groupRequirements = groupRequirements;
-    this.udfType = udfType;
     boolean fullOuter = true;
     for (Boolean isRequired : groupRequirements) {
       if (isRequired) {
@@ -82,19 +79,13 @@ public class GroupBuffer extends BaseOperation implements Buffer {
   @Override
   public void prepare(FlowProcess flowProcess, OperationCall operationCall) {
     super.prepare(flowProcess, operationCall);
-    for (String init : inits) {
-      OperationUtil.init(init);
-    }
-    List<IFn> fns = new ArrayList<IFn>();
-    for (String func : funcs) {
-      fns.add(OperationUtil.getFn(func));
-    }
-    operationCall.setContext(fns);
+    OperationUtil.init(init);
+    operationCall.setContext(OperationUtil.getFn(func));
   }
 
   @Override
   public void operate(FlowProcess flowProcess, BufferCall bufferCall) {
-    List<IFn> fns = (List<IFn>)bufferCall.getContext();
+    IFn fn = (IFn)bufferCall.getContext();
     boolean allKeysNull = allKeysNull(bufferCall.getGroup());
     List<Object> keys = getKeys(bufferCall.getGroup(), allKeysNull);
     List<List<Iterator>> iteratorsList = getIterators(bufferCall.getJoinerClosure(), bufferCall.getGroup(), allKeysNull);
@@ -103,7 +94,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
       Object key = OperationUtil.deserialize(keys.get(i));
       if (requiredGroupsPresent(iterators)) {
         Var emitFn = RT.var("pigpen.cascading.runtime", "emit-group-buffer-tuples");
-        emitFn.invoke(fns, key, iterators, bufferCall.getOutputCollector(), groupAll, udfType, keySeparateFromValue);
+        emitFn.invoke(fn, key, iterators, bufferCall.getOutputCollector(), groupAll, keySeparateFromValue);
       }
     }
   }

@@ -9,30 +9,40 @@ import clojure.lang.IPersistentMap;
 import clojure.lang.ISeq;
 
 /**
- * Sequence that allows only one iteration, but is immune to
- * memory problems resulting from holding onto the head.
+ * This sequence behaves like a normal iterator-seq up to a certain size.
+ * If the max size is exceeded, it will only allow one iteration. The objective
+ * is to become immune to memory problems resulting from holding onto the head for
+ * large collections but still support operations such as count, max, etc.
  */
 public class SingleIterationSeq extends ASeq {
+  private static int MAX_SIZE = 1000;
+
   private final Iterator iter;
   private final State state;
 
   private static class State {
     volatile Object val;
-    volatile boolean isRealized;
+    volatile Object rest;
+    volatile int index;
   }
 
   public static SingleIterationSeq create(Iterator iter) {
+    return create(iter, 0);
+  }
+
+  private static SingleIterationSeq create(Iterator iter, int index) {
     if (iter.hasNext()) {
-      return new SingleIterationSeq(iter);
+      return new SingleIterationSeq(iter, index);
     }
     return null;
   }
 
-  private SingleIterationSeq(Iterator iter) {
+  private SingleIterationSeq(Iterator iter, int index) {
     this.iter = iter;
     state = new State();
     this.state.val = state;
-    this.state.isRealized = false;
+    this.state.rest = state;
+    this.state.index = index;
   }
 
   private SingleIterationSeq(IPersistentMap meta, Iterator iter, State state) {
@@ -53,16 +63,24 @@ public class SingleIterationSeq extends ASeq {
   }
 
   public ISeq next() {
-    if (state.isRealized == false) {
+    if (state.rest == state) {
       synchronized (state) {
-        if (state.isRealized == false) {
+        if (state.rest == state) {
           first();
-          state.isRealized = true;
-          return create(iter);
+          if (state.index < MAX_SIZE) {
+            state.rest = create(iter, state.index + 1);
+            return (ISeq)state.rest;
+          } else {
+            state.rest = iter;
+            return create(iter, state.index + 1);
+          }
         }
       }
     }
-    throw new UnsupportedOperationException("This Seq can only be traversed once.");
+    if (state.rest == iter) {
+      throw new UnsupportedOperationException("This Seq can only be traversed once.");
+    }
+    return (ISeq)state.rest;
   }
 
   public SingleIterationSeq withMeta(IPersistentMap meta) {
