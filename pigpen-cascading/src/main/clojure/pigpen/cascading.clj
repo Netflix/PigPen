@@ -3,7 +3,7 @@
            (cascading.scheme.hadoop TextLine)
            (cascading.pipe Pipe Each CoGroup Every Merge GroupBy)
            (cascading.flow.hadoop HadoopFlowConnector)
-           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer PigPenAggregateBy OperationUtil)
+           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer PigPenAggregateBy OperationUtil RankBuffer)
            (cascading.tuple Fields)
            (cascading.operation Identity Insert)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
@@ -37,8 +37,8 @@
 (defmethod get-tap-fn :string [_]
   (fn [location opts] (Hfs. (TextLine. (cfields ["line"])) location)))
 
-(defmethod get-tap-fn :default [_]
-  (throw (Exception. (str "Unrecognized tap type: " name))))
+(defmethod get-tap-fn :default [t]
+  (throw (Exception. (str "Unrecognized tap type: " t))))
 
 ;; ******* Commands ********
 
@@ -118,6 +118,7 @@
         udf (first (map :udf code-defs))
         field-names (if field-projections
                       (mapv #(cascading-field (:alias %)) field-projections)
+                      ; TODO: this field name should not be hardcoded
                       ["value"])
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe-id])]
@@ -273,6 +274,16 @@
         sort-pipe (Each. sort-pipe (cfields fields) (Identity.))]
     (add-val flowdef [:pipes] id sort-pipe)))
 
+(defmethod command->flowdef :rank
+  [{:keys [id ancestors fields opts]} flowdef]
+  {:pre [id (= 1 (count ancestors))]}
+  ; TODO: In this naive, single-reducer implementation, a rank followed by an
+  ; order should skip the order since rank does a group-by itself.
+  (let [val-fields (cfields fields)
+        rank-pipe (GroupBy. ((:pipes flowdef) (first ancestors)) Fields/NONE)
+        rank-pipe (Every. rank-pipe (RankBuffer. val-fields) Fields/RESULTS)]
+    (add-val flowdef [:pipes] id rank-pipe)))
+
 (defmethod command->flowdef :script
   [_ flowdef]
   ; No-op, since the flowdef already contains everything needed to handle multiple outputs.
@@ -327,7 +338,6 @@
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
   [commands ^FlowConnector connector]
-  (clojure.pprint/pprint (preprocess-commands commands))
   (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} (preprocess-commands commands))
         {:keys [sources pipe-to-sink sinks pipes]} flowdef
         sources-map (into {} (map (fn [s] [(str s) (sources s)]) (keys sources)))
