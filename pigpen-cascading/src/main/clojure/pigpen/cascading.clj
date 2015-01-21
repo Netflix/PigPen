@@ -265,10 +265,12 @@
     (add-val flowdef [:pipes] id union-pipe)))
 
 (defmethod command->flowdef :order
-  [{:keys [id ancestors sort-keys opts]} flowdef]
+  [{:keys [id ancestors sort-keys fields opts]} flowdef]
   {:pre [id (= 1 (count ancestors))]}
-  (let [key (first sort-keys)
-        sort-pipe (GroupBy. ((:pipes flowdef) (first ancestors)) Fields/NONE (cfields [key]))]
+  (let [[key type] sort-keys
+        reverse-order (= :desc type)
+        sort-pipe (GroupBy. ((:pipes flowdef) (first ancestors)) Fields/NONE (cfields [key]) reverse-order)
+        sort-pipe (Each. sort-pipe (cfields fields) (Identity.))]
     (add-val flowdef [:pipes] id sort-pipe)))
 
 (defmethod command->flowdef :script
