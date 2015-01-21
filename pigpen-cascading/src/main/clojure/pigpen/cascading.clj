@@ -7,7 +7,7 @@
            (cascading.tuple Fields)
            (cascading.operation Identity Insert)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
-           (cascading.pipe.assembly Unique Rename Discard)
+           (cascading.pipe.assembly Unique Rename)
            (cascading.operation.filter Limit Sample FilterNull)
            (cascading.util NullNotEquivalentComparator)
            (cascading.flow FlowConnector))
@@ -63,7 +63,9 @@
 
 (defn- partial-aggregation-code
   [pipe-id inits funcs cogroup-opts field-projections flowdef]
-  (let [key-fields (cfields (first (:keys cogroup-opts)))
+  (let [key-fields (if (:group-all cogroup-opts)
+                     Fields/NONE
+                     (cfields (first (:keys cogroup-opts))))
         ; This is a hack to emulate multiple streams with a single stream by using a sentinel value to fill absent fields.
         ; For example, if we have generate1 -> [1 1 2 3], generate2 => [1 2 2 3], the resulting merged stream exposed  by
         ; cascading will be:
@@ -80,9 +82,6 @@
                    (map (:pipes flowdef))
                    (map-indexed (fn [index pipe]
                                   (Rename. pipe (cfields ["value"]) (cfields [(nth val-fields index)]))))
-                   (map #(if (:group-all cogroup-opts)
-                          (Each. % (Insert. (cfields ["group_all"]) (into-array [-1])) Fields/ALL)
-                          %))
                    (map-indexed (fn [index pipe]
                                   (reduce (fn [pipe {:keys [field shared-source]}]
                                             (if shared-source
@@ -109,10 +108,7 @@
                                  (conj pipes pipe))))
                            [])
                    (into-array))]
-    (add-val flowdef [:pipes] pipe-id (let [p (PigPenAggregateBy/buildAssembly (str pipe-id) pipes key-fields val-fields inits funcs)]
-                                        (if (:group-all cogroup-opts)
-                                          (Discard. p (cfields ["group_all"]))
-                                          p)))))
+    (add-val flowdef [:pipes] pipe-id (PigPenAggregateBy/buildAssembly (str pipe-id) pipes key-fields val-fields inits funcs))))
 
 (defn- code->flowdef
   [{:keys [code-defs pipe-id field-projections]} flowdef]
@@ -157,11 +153,7 @@
 
 (defn- cogroup
   [id is-group-all keys ancestors join-types opts flowdef]
-  (let [pipes (if is-group-all
-                [(Each. ((:pipes flowdef) (first ancestors))
-                        (Insert. (cfields ["group_all"]) (into-array [-1]))
-                        (cfields ["group_all" "value"]))]
-                (map (:pipes flowdef) ancestors))
+  (let [pipes (map (:pipes flowdef) ancestors)
         is-inner (every? #{:required} join-types)
         pipes (map (fn [p k] (if is-inner
                                (Each. p (cfields k) (FilterNull.))
@@ -170,7 +162,9 @@
     (-> flowdef
         (add-val [:pipes] id (CoGroup. (str id)
                                        (into-array Pipe pipes)
-                                       (into-array (map cfields keys))
+                                       (into-array (map (fn [k] (if is-group-all
+                                                                  Fields/NONE
+                                                                  (cfields k))) keys))
                                        Fields/NONE
                                        (BufferJoin.)))
         (add-val [:cogroup-opts] id {:group-id          id
@@ -184,7 +178,7 @@
   [{:keys [id keys fields join-types ancestors requires-partial-aggregation opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
   (let [is-group-all (= keys [:pigpen.raw/group-all])
-        keys (if is-group-all [["group_all"]] keys)]
+        keys (if is-group-all [["pigpen.raw/group-all"]] keys)]
     (if requires-partial-aggregation
       (partial-aggregation id is-group-all keys ancestors flowdef)
       (cogroup id is-group-all keys ancestors join-types opts flowdef))))

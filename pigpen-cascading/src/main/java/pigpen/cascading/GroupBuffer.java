@@ -110,7 +110,11 @@ public class GroupBuffer extends BaseOperation implements Buffer {
 
   private List<Object> getKeys(TupleEntry group, boolean allKeysNull) {
     List<Object> keys = new ArrayList<Object>();
-    if (!isFullOuter || joinNils || !allKeysNull) {
+    if (groupAll) {
+      for (int i = 0; i < numIterators; i++) {
+        keys.add(null);
+      }
+    } else if (!isFullOuter || joinNils || !allKeysNull) {
       Object key = null;
       for (int i = 0; i < group.size(); i++) {
         if (key == null) {
@@ -137,7 +141,7 @@ public class GroupBuffer extends BaseOperation implements Buffer {
 
   private List<List<Iterator>> getIterators(JoinerClosure joinerClosure, TupleEntry group, boolean allKeysNull) {
     List<List<Iterator>> ret = new ArrayList<List<Iterator>>();
-    int index = keySeparateFromValue || groupAll ? 1 : 0;
+    int index = keySeparateFromValue ? 1 : 0;
     if (!isFullOuter || joinNils || !allKeysNull) {
       List<Iterator> args = new ArrayList<Iterator>(numIterators);
       for (int i = 0; i < numIterators; i++) {
