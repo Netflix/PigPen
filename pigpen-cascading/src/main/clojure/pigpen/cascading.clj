@@ -125,22 +125,25 @@
                       ["value"])
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe-id])]
-    (if (nil? cogroup-opts)
-      (update-in flowdef [:pipes pipe-id] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS))
-      (if (= udf :algebraic)
-        (partial-aggregation-code pipe-id inits funcs cogroup-opts field-projections flowdef)
-        (let [key-separate-from-value (> (count (first (map :args code-defs))) (:num-streams cogroup-opts))
-              buffer (case (:group-type cogroup-opts)
-                       :group (GroupBuffer. (first inits)
-                                            (first funcs)
-                                            fields
-                                            (:num-streams cogroup-opts)
-                                            (:group-all cogroup-opts)
-                                            (:join-nils cogroup-opts)
-                                            (:join-requirements cogroup-opts)
-                                            key-separate-from-value)
-                       :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
-          (update-in flowdef [:pipes pipe-id] #(Every. % buffer Fields/RESULTS)))))))
+    (cond (nil? cogroup-opts)
+          (update-in flowdef [:pipes pipe-id] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS))
+
+          (= udf :algebraic)
+          (partial-aggregation-code pipe-id inits funcs cogroup-opts field-projections flowdef)
+
+          :else
+          (let [key-separate-from-value (> (count (first (map :args code-defs))) (:num-streams cogroup-opts))
+                buffer (case (:group-type cogroup-opts)
+                         :group (GroupBuffer. (first inits)
+                                              (first funcs)
+                                              fields
+                                              (:num-streams cogroup-opts)
+                                              (:group-all cogroup-opts)
+                                              (:join-nils cogroup-opts)
+                                              (:join-requirements cogroup-opts)
+                                              key-separate-from-value)
+                         :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
+            (update-in flowdef [:pipes pipe-id] #(Every. % buffer Fields/RESULTS))))))
 
 (defn- partial-aggregation
   [id is-group-all keys ancestors flowdef]
