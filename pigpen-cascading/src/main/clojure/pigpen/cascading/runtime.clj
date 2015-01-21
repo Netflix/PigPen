@@ -3,10 +3,7 @@
            (pigpen.cascading OperationUtil SingleIterationSeq)
            (cascading.tuple TupleEntryCollector Tuple)
            (java.util List))
-  (:require [pigpen.runtime :as rt]
-            [pigpen.raw :as raw]
-            [pigpen.oven :as oven]
-            [taoensso.nippy :refer [freeze thaw]]))
+  (:require [taoensso.nippy :refer [freeze thaw]]))
 
 (defn hybrid->clojure [value]
   (if (instance? BytesWritable value)
@@ -14,7 +11,7 @@
     value))
 
 ;; ******* Serialization ********
-(defn ^:private cs-freeze [value]
+(defn cs-freeze [value]
   (BytesWritable. (freeze value {:skip-header? true, :legacy-mode true})))
 
 (defn ^:private cs-freeze-with-nils [value]
@@ -49,24 +46,10 @@
 
 (defn emit-group-buffer-tuples
   "Emit the results from a GroupBuffer."
-  [funcs key iterators ^TupleEntryCollector collector group-all udf-type key-separate-from-value]
-  ; TODO: handle :combinef
-  (let [normal-fn #(let [f (first funcs)]
-                    (if (or group-all (not key-separate-from-value))
-                      (f (map wrap-iterator iterators))
-                      (f (concat [key] (map wrap-iterator iterators)))))
-        algebraic-fn #(let [vals (map (fn [{:keys [pre combinef reducef post]} it]
-                                        (->> (wrap-iterator it)
-                                             pre
-                                             (reduce reducef (combinef))
-                                             post))
-                                      funcs iterators)]
-                       (if group-all
-                         [vals]
-                         [(cons key vals)]))
-        result (if (= :algebraic udf-type)
-                 (algebraic-fn)
-                 (normal-fn))]
+  [f key iterators ^TupleEntryCollector collector group-all key-separate-from-value]
+  (let [result (if (or group-all (not key-separate-from-value))
+                 (f (map wrap-iterator iterators))
+                 (f (concat [key] (map wrap-iterator iterators))))]
     (emit-tuples result collector)))
 
 (defn emit-join-buffer-tuples
@@ -84,3 +67,22 @@
   [f ^List tuple ^TupleEntryCollector collector]
   (emit-tuples (f tuple) collector))
 
+(defn get-seed-value
+  "Generate the seed value for a partial aggregation."
+  [{:keys [combinef]}]
+  (combinef))
+
+(defn aggregate-by-prepare
+  "Apply the pre function to the arg, which results in a collection."
+  [{:keys [pre]} arg]
+  (pre [arg]))
+
+(defn aggregate-by-reducef
+  "Compute the result of a partial aggregation (map-side)."
+  [{:keys [reducef]} args acc]
+  (Tuple. (to-array [(reduce reducef acc args)])))
+
+(defn aggregate-by-combinef
+  "Compute the result of a partial aggregation (reduce-side)."
+  [{:keys [combinef post]} arg acc]
+  (post (combinef acc arg)))
