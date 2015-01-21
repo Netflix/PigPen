@@ -1,7 +1,7 @@
 (ns pigpen.cascading
   (:import (cascading.tap.hadoop Hfs)
            (cascading.scheme.hadoop TextLine)
-           (cascading.pipe Pipe Each CoGroup Every Merge)
+           (cascading.pipe Pipe Each CoGroup Every Merge GroupBy)
            (cascading.flow.hadoop HadoopFlowConnector)
            (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer PigPenAggregateBy OperationUtil)
            (cascading.tuple Fields)
@@ -264,6 +264,13 @@
   (let [union-pipe (Merge. (into-array (map (:pipes flowdef) ancestors)))]
     (add-val flowdef [:pipes] id union-pipe)))
 
+(defmethod command->flowdef :order
+  [{:keys [id ancestors sort-keys opts]} flowdef]
+  {:pre [id (= 1 (count ancestors))]}
+  (let [key (first sort-keys)
+        sort-pipe (GroupBy. ((:pipes flowdef) (first ancestors)) Fields/NONE (cfields [key]))]
+    (add-val flowdef [:pipes] id sort-pipe)))
+
 (defmethod command->flowdef :script
   [_ flowdef]
   ; No-op, since the flowdef already contains everything needed to handle multiple outputs.
@@ -318,6 +325,7 @@
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
   [commands ^FlowConnector connector]
+  (clojure.pprint/pprint (preprocess-commands commands))
   (let [flowdef (reduce (fn [def cmd] (command->flowdef cmd def)) {} (preprocess-commands commands))
         {:keys [sources pipe-to-sink sinks pipes]} flowdef
         sources-map (into {} (map (fn [s] [(str s) (sources s)]) (keys sources)))
