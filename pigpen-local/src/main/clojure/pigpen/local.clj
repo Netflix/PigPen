@@ -51,15 +51,19 @@
     nil
     value))
 
+(defn pre-process [args]
+  (mapv remove-sentinel-nil args))
+
+(defn post-process [args]
+  (mapv induce-sentinel-nil args))
+
 (defmethod pigpen.runtime/pre-process [:local :frozen]
   [_ _]
-  (fn [args]
-    (mapv remove-sentinel-nil args)))
+  pre-process)
 
 (defmethod pigpen.runtime/post-process [:local :frozen]
   [_ _]
-  (fn [args]
-    (mapv induce-sentinel-nil args)))
+  post-process)
 
 (defn cross-product [data]
   (if (empty? data) [{}]
@@ -68,6 +72,11 @@
         (for [child (cross-product (rest data))]
           (for [value head]
             (merge child value)))))))
+
+(defn pigpen-comparator [comp]
+  (case comp
+    :asc compare
+    :desc (clojure.core/comp - compare)))
 
 (defn update-field-ids [id]
   (fn [vs]
@@ -141,10 +150,8 @@ sequence. This command is very useful for unit tests.
 
   Note: pig/store commands return an empty set
         pig/script commands merge their results
-
-  See also: pigpen.core/show, pigpen.core/dump&show
 "
-  {:added "0.1.0"}
+  {:added "0.3.0"}
   ([query] (dump {} query))
   ([opts query]
     (let [graph (oven/bake query :local {} opts)
@@ -286,10 +293,7 @@ sequence. This command is very useful for unit tests.
 (s/defmethod graph->local :order
   [[data] {:keys [id key comp]} :- m/Sort]
   (->> data
-    (sort-by key
-             (case comp
-               :asc compare
-               :desc (clojure.core/comp - compare)))
+    (sort-by key (pigpen-comparator comp))
     (map #(dissoc % key))
     (map (update-field-ids id))))
 
@@ -349,15 +353,18 @@ sequence. This command is very useful for unit tests.
                           (and (= j :required)
                                (not (contains? value k)))))))))))
 
+(defn join-seed-value [ancestors join-types]
+  ;; This seeds the inner/outer joins, by placing a
+  ;; defualt empty value for inner joins
+  (->>
+    (zipmap ancestors join-types)
+    (filter (fn [[_ j]] (= j :required)))
+    (map (fn [[a _]] [a []]))
+    (into {})))
+
 (s/defmethod graph->local :join
   [data {:keys [ancestors keys join-types fields]} :- m/Join]
-  (let [join-types (zipmap ancestors join-types)
-        ;; This seeds the inner/outer joins, by placing a
-        ;; defualt empty value for inner joins
-        seed-value (->> join-types
-                     (filter (fn [[_ j]] (= j :required)))
-                     (map (fn [[a _]] [a []]))
-                     (into {}))]
+  (let [seed-value (join-seed-value ancestors join-types)]
     (->>
       ;; map
       (zipv [d data

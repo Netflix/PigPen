@@ -17,7 +17,9 @@
 ;;
 
 (ns pigpen.rx.core
-  (:require [pigpen.runtime]
+  (:require [schema.macros :as s] ;; TODO why doesn't schema.core load properly?
+            [pigpen.model :as m]
+            [pigpen.runtime]
             [pigpen.local :as local]
             [pigpen.oven :as oven]
             [clojure.java.io :as io]
@@ -36,16 +38,11 @@
 
 (defmethod pigpen.runtime/pre-process [:rx :frozen]
   [_ _]
-  (fn [args]
-    (mapv local/remove-sentinel-nil args)))
+  local/pre-process)
 
 (defmethod pigpen.runtime/post-process [:rx :frozen]
   [_ _]
-  (fn [args]
-    (let [args (mapv local/induce-sentinel-nil args)]
-      (if (next args)
-        args
-        (first args)))))
+  local/post-process)
 
 (defmethod local/eval-func :algebraic
   [_ {:keys [pre combinef reducef post]} [values]]
@@ -53,20 +50,45 @@
     (mapv local/remove-sentinel-nil)
     pre
     (reducers/fold combinef reducef)
-    post))
+    post
+    vector))
 
 (defmulti graph->observable (fn [data command] (:type command)))
 
 (defn graph->observable+ [data {:keys [id ancestors] :as command}]
   ;(prn 'id id)
-  (let [ancestor-data (mapv data ancestors)
-        ancestor-data (mapv multicast->observable ancestor-data)
-        ;_ (prn 'ancestor-data ancestor-data)
+  (let [ancestor-data (mapv (comp multicast->observable data) ancestors)
         result (graph->observable ancestor-data command)]
     ;(prn 'result result)
     (assoc data id (multicast result))))
 
-(defn dump [query]
+(defn dump
+  "Executes a script locally and returns the resulting values as a clojure
+sequence. This command is very useful for unit tests.
+
+  Example:
+
+    (->>
+      (pig/load-clj \"input.clj\")
+      (pig/map inc)
+      (pig/filter even?)
+      (pig-rx/dump)
+      (clojure.core/map #(* % %))
+      (clojure.core/filter even?))
+
+    (deftest test-script
+      (is (= (->>
+               (pig/load-clj \"input.clj\")
+               (pig/map inc)
+               (pig/filter even?)
+               (pig-rx/dump))
+             [2 4 6])))
+
+  Note: pig/store commands return an empty set
+        pig/script commands merge their results
+"
+  {:added "0.1.0"}
+  [query]
   (let [graph (oven/bake query :rx {} {})
         last-command (:id (last graph))]
     (->> graph
@@ -74,40 +96,41 @@
       (last-command)
       (multicast->observable)
       (rx-blocking/into [])
-      (map 'value))))
+      (map (comp val first)))))
 
 ;; ********** IO **********
 
-(defmethod graph->observable :return
-  [_ {:keys [data]}]
+(s/defmethod graph->observable :return
+  [_ {:keys [data]} :- m/Return]
   (rx/seq->o data))
 
-(defmethod graph->observable :load
-  [_ {:keys [location], :as command}]
+(s/defmethod graph->observable :load
+  [_ {:keys [location], :as command} :- m/Load]
   (let [local-loader (local/load command)
-        ^Observable o (->> (rx/observable*
-                             (fn [^Subscriber s]
-                               (future
-                                 (try
-                                   (println "Start reading from " location)
-                                   (doseq [file (local/locations local-loader)
-                                           :while (not (.isUnsubscribed s))]
-                                     (let [reader (local/init-reader local-loader file)]
-                                       (doseq [value (local/read local-loader reader)
-                                               :while (not (.isUnsubscribed s))]
-                                         (rx/on-next s value))
-                                       (local/close-reader local-loader reader)))
-                                   (rx/on-completed s)
-                                   ;; TODO test this more. Errors seem to cause deadlocks
-                                   (catch Throwable t (rx/on-error s t))))))
+        ^Observable o (->>
+                        (rx/observable*
+                          (fn [^Subscriber s]
+                            (future
+                              (try
+                                (println "Start reading from " location)
+                                (doseq [file (local/locations local-loader)
+                                        :while (not (.isUnsubscribed s))]
+                                  (let [reader (local/init-reader local-loader file)]
+                                    (doseq [value (local/read local-loader reader)
+                                            :while (not (.isUnsubscribed s))]
+                                      (rx/on-next s value))
+                                    (local/close-reader local-loader reader)))
+                                (rx/on-completed s)
+                                ;; TODO test this more. Errors seem to cause deadlocks
+                                (catch Throwable t (rx/on-error s t))))))
                         (rx/finally
                           (println "Stop reading from " location)))]
     (-> o
       (.onBackpressureBuffer)
       (.observeOn (Schedulers/io)))))
 
-(defmethod graph->observable :store
-  [[data] {:keys [location], :as command}]
+(s/defmethod graph->observable :store
+  [[data] {:keys [location], :as command} :- m/Store]
   (let [local-storage (local/store command)
         writer (delay
                  (println "Start writing to " location)
@@ -122,8 +145,8 @@
 
 ;; ********** Map **********
 
-(defmethod graph->observable :generate
-  [[data] {:keys [projections]}]
+(s/defmethod graph->observable :generate
+  [[data] {:keys [projections]} :- m/Mapcat]
   (rx/flatmap
     (fn [values]
       (->> projections
@@ -132,145 +155,137 @@
         (rx/seq->o)))
     data))
 
-(defmethod graph->observable :rank
-  [[data] _]
-  (rx/map-indexed (fn [i v] (assoc v '$0 i)) data))
+(s/defmethod graph->observable :rank
+  [[data] {:keys [id]} :- m/Rank]
+  (->> data
+    (rx/map-indexed (fn [i v] (assoc v 'index i)))
+    (rx/map (local/update-field-ids id))))
 
-(defmethod graph->observable :order
-  [[data] {:keys [sort-keys]}]
-  (rx/sort (partial local/pigpen-compare sort-keys) data))
+(s/defmethod graph->observable :order
+  [[data] {:keys [id key comp]} :- m/Sort]
+  (->> data
+    (rx/sort-by key (local/pigpen-comparator comp))
+    (rx/map #(dissoc % key))
+    (rx/map (local/update-field-ids id))))
 
 ;; ********** Filter **********
 
-(defmethod graph->observable :limit
-  [[data] {:keys [n]}]
-  (rx/take n data))
+(s/defmethod graph->observable :limit
+  [[data] {:keys [id n]} :- m/Take]
+  (->> data
+    (rx/take n)
+    (rx/map (local/update-field-ids id))))
 
-(defmethod graph->observable :sample
-  [[data] {:keys [p]}]
-  (rx/filter (fn [_] (< (rand) p)) data))
+(s/defmethod graph->observable :sample
+  [[data] {:keys [id p]} :- m/Sample]
+  (->> data
+    (rx/filter (fn [_] (< (rand) p)))
+    (rx/map (local/update-field-ids id))))
 
 ;; ********** Join **********
 
-(defn graph->observable-group
-  [data {:keys [ancestors keys join-types fields]}]
-  (->>
-    ;; map
-    (zipv [a ancestors
-           [k] keys
-           d data
-           j join-types]
-      (->> d
-        (rx/flatmap
-          (fn [values]
-            ;; This selects all of the fields that are produced by this relation
-            (rx/seq->o
-              (for [[[r] v :as f] (next fields)
-                    :when (= r a)]
-                {:field f
-                 ;; This changes a nil values into a relation specific nil value
-                 ;; TODO use a better sentinel value here
-                 :key (or (values k) (keyword (name a) "nil"))
-                 :values (values v)
-                 :required (= j :required)}))))))
-    ;; shuffle
-    (apply rx/merge)
-    ;; reduce
-    (rx/group-by :key)
-    (rx/flatmap (fn [[key key-group]]
-                  (->> key-group
-                    (rx/group-by :field)
-                    (rx/flatmap (fn [[field field-group-o]]
-                                  (->> field-group-o
-                                    (rx/into [])
-                                    (rx/map (fn [field-group]
-                                              [field (map :values field-group)])))))
-                    (rx/into
-                      ;; Start with the group key. If it's a single value, flatten it.
-                      ;; Keywords are the fake nils we put in earlier
-                      {(first fields) (if (and (keyword? key) (= "nil" (name key))) nil key)}))))
-    ; remove rows that were required, but are not present (inner joins)
-    (rx/filter (fn [value]
-                 (every? identity
-                         (zipv [a ancestors
-                                [k] keys
-                                j join-types]
-                           (or (= j :optional)
-                               (contains? value [[a] k]))))))))
+(s/defmethod graph->observable :reduce
+  [[data] {:keys [fields arg]} :- m/Reduce]
+  (->> data
+    (rx/map arg)
+    (rx/into [])
+    (rx/mapcat (fn [vs]
+                 (if (seq vs)
+                   (rx/return {(first fields) vs})
+                   (rx/empty))))))
 
-(defn graph->observable-group-all
-  [data {:keys [fields]}]
-  (->>
-    (zipv [[[r] v :as f] (next fields)
-           d data]
-      (->> d
-        (rx/map (fn [values]
-                  {:field f
-                   :values (v values)}))))
-    (apply rx/merge)
-    (rx/group-by :field)
-    (rx/flatmap (fn [[field field-group-o]]
-                  (->> field-group-o
-                    (rx/into [])
-                    (rx/map (fn [field-group]
-                              [field (map :values field-group)])))))
-    (rx/into {(first fields) nil})
-    (rx/filter next)))
+(s/defmethod graph->observable :group
+  [data {:keys [ancestors keys join-types fields]} :- m/Group]
+  (let [[group-field & data-fields] fields
+        join-types (zipmap keys join-types)]
+    (->>
+      ;; map
+      (zipv [d data
+             id ancestors
+             k keys]
+        (->> d
+          (rx/flatmap
+            (fn [values]
+              (let [key (local/induce-sentinel-nil+ (values k) id)]
+                (rx/seq->o
+                  (for [[f v] values]
+                    {;; This changes a nil values into a relation specific nil value
+                     :field f
+                     :key key
+                     :value v})))))))
+      ;; shuffle
+      (apply rx/merge)
+      (rx/group-by :key)
+      ;; reduce
+      (rx/flatmap (fn [[key key-group]]
+                    (->> key-group
+                      (rx/group-by :field)
+                      (rx/flatmap (fn [[field field-group-o]]
+                                    (->> field-group-o
+                                      (rx/into [])
+                                      (rx/map (fn [field-group]
+                                                [field (map :value field-group)])))))
+                      (rx/into
+                        ;; Revert the fake nils we put in the key earlier
+                        {group-field (local/remove-sentinel-nil+ key)}))))
+      ; remove rows that were required, but are not present (inner joins)
+      (rx/filter (complement
+                   (fn [value]
+                     (->> join-types
+                       (some (fn [[k j]]
+                               (and (= j :required)
+                                    (not (contains? value k))))))))))))
 
-(defmethod graph->observable :group
-  [data {:keys [keys] :as command}]
-  (if (= keys [:pigpen.raw/group-all])
-    (graph->observable-group-all data command)
-    (graph->observable-group data command)))
-
-(defmethod graph->observable :join
-  [data {:keys [ancestors keys join-types fields]}]
-  (->>
-    (zipv [a ancestors
-           [k] keys
-           d data]
-      (->> d
-        (rx/map (fn [values]
-                  ;; This selects all of the fields that are in this relation
-                  {:values (into {} (for [[[r v] :as f] fields
-                                          :when (= r a)]
-                                      [f (values v)]))
-                   ;; This is to emulate the way pig handles nils
-                   ;; This changes a nil values into a relation specific nil value
-                   :key (or (values k) (keyword (name a) "nil"))
-                   :relation a}))))
-    (apply rx/merge)
-    (rx/group-by :key)
-    (rx/flatmap (fn [[_ key-group]]
-                  (->> key-group
-                    (rx/group-by :relation)
-                    (rx/flatmap (fn [[relation relation-grouping-o]]
-                                  (->> relation-grouping-o
-                                    (rx/into [])
-                                    (rx/map (fn [relation-grouping]
-                                              [relation (map :values relation-grouping)])))))
-                    (rx/into (->>
-                               ;; This seeds the inner/outer joins, by placing a
-                               ;; defualt empty value for inner joins
-                               (zipmap ancestors join-types)
-                               (filter (fn [[_ j]] (= j :required)))
-                               (map (fn [[a _]] [a []]))
-                               (into {})))
-                    (rx/flatmap (fn [relation-grouping]
-                                  (rx/seq->o (local/cross-product (vals relation-grouping))))))))))
+(s/defmethod graph->observable :join
+  [data {:keys [ancestors keys join-types fields]} :- m/Join]
+  (let [seed-value (local/join-seed-value ancestors join-types)]
+    (->>
+      ;; map
+      (zipv [d data
+             id ancestors
+             k keys]
+        (->> d
+          (rx/map (fn [values]
+                    {:relation id
+                     ;; This changes a nil values into a relation specific nil value
+                     :key (local/induce-sentinel-nil+ (values k) id)
+                     :values values}))))
+      ;; shuffle
+      (apply rx/merge)
+      (rx/group-by :key)
+      ;; reduce
+      (rx/flatmap (fn [[_ key-group-o]]
+                    (->> key-group-o
+                      (rx/group-by :relation)
+                      (rx/flatmap (fn [[relation relation-grouping-o]]
+                                    (->> relation-grouping-o
+                                      (rx/into [])
+                                      (rx/map (fn [relation-grouping]
+                                                [relation (map :values relation-grouping)])))))
+                      (rx/into seed-value)
+                      (rx/map vals)
+                      (rx/flatmap (comp rx/seq->o local/cross-product))))))))
 
 ;; ********** Set **********
 
-(defmethod graph->observable :distinct
-  [[data] _]
-  (rx/distinct data))
+(s/defmethod graph->observable :distinct
+  [[data] {:keys [id]} :- m/Distinct]
+  (->> data
+    (rx/distinct)
+    (rx/map (local/update-field-ids id))))
 
-(defmethod graph->observable :union
-  [data _]
-  (apply rx/merge data))
+(s/defmethod graph->observable :union
+  [data {:keys [id]} :- m/Concat]
+  (->> data
+    (apply rx/merge)
+    (rx/map (local/update-field-ids id))))
 
 ;; ********** Script **********
 
-(defmethod graph->observable :script
+(s/defmethod graph->observable :noop
+  [[data] {:keys [id]} :- m/NoOp]
+  (rx/map (local/update-field-ids id) data))
+
+(s/defmethod graph->observable :script
   [data _]
   (apply rx/merge (vec data)))
