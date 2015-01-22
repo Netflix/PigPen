@@ -8,7 +8,7 @@
   (:require [clojure.test :refer :all]
             [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.core :as pigpen]
-            [pigpen.cascading.core :as cascading]
+            [pigpen.cascading :as cascading]
             [pigpen.oven :as oven]
             [clojure.pprint :as pp]))
 
