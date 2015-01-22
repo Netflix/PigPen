@@ -41,7 +41,7 @@
 (s/defschema Code
   {:type (s/eq :code)
    :expr Expr
-   :udf (s/enum :normal :sequence)
+   :udf (s/enum :normal :sequence :algebraic)
    :args [(s/either Field s/Str)]})
 
 (s/defschema Op*
@@ -93,7 +93,8 @@
   (merge Op*
          {:type (s/eq :store)
           :location s/Str
-          :storage s/Keyword}))
+          :storage s/Keyword
+          :arg Field}))
 
 (defop-zero Return
   (merge Op
@@ -169,7 +170,7 @@
 (defop-one Reduce
   (merge Op
          {:type (s/eq :reduce)
-          :value Field}))
+          :arg Field}))
 
 (defop-many Group
   (merge Op

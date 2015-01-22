@@ -75,6 +75,7 @@
                      :fields [r0/value]
                      :field-type :frozen}]
         :location "foo"
+        :arg r0/value
         :storage :string
         :opts {:type :store-opts}})))
 
@@ -312,7 +313,7 @@
       '{:type :reduce
         :id reduce0
         :description nil
-        :value r0/value
+        :arg r0/value
         :fields [reduce0/value]
         :field-type :frozen
         :ancestors [{:id r0
@@ -386,6 +387,7 @@
         :id script3
         :ancestors [{:storage :string
                      :location "foo"
+                     :arg r0/value
                      :ancestors [{:id r0
                                   :fields [r0/value]
                                   :field-type :frozen}]
@@ -395,6 +397,7 @@
                      :opts {:type :store-opts}}
                     {:storage :string
                      :location "foo"
+                     :arg r0/value
                      :ancestors [{:id r0
                                   :fields [r0/value]
                                   :field-type :frozen}]

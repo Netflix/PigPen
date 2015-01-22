@@ -1,6 +1,4 @@
 dependencies {
     compile project(':pigpen-core')
     testCompile project(':pigpen-tests')
-
-    provided 'org.clojure:clojure:1.6.0'
 }

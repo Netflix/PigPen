@@ -47,8 +47,7 @@
         (pig-raw/store$ % "bar" :string {})
         (#'pigpen.oven/braise % {})
         (map #(select-keys % [:type :id :ancestors :fields]) %))
-      '[{:ancestors []
-         :type :load
+      '[{:type :load
          :id load1
          :fields [load1/foo]}
         {:type :store
@@ -89,9 +88,9 @@
           (#'pigpen.oven/merge-command % mapping)
           (map #(select-keys % [:type :id :ancestors]) %))
         ;; Should make the ids of the load commands the same
-        '[{:type :load,   :id load3,   :ancestors []}
+        '[{:type :load,   :id load3}
           {:type :store,  :id store4,  :ancestors [load3]}
-          {:type :load,   :id load3,   :ancestors []}
+          {:type :load,   :id load3}
           {:type :store,  :id store2,  :ancestors [load3]}
           {:type :script, :id script5, :ancestors [store2 store4]}])))
 
@@ -110,7 +109,6 @@
           (#'pigpen.oven/merge-command % mapping)
           (map #(select-keys % [:type :id :ancestors :keys :fields :projections :args]) %))
         '[{:id s0
-           :ancestors []
            :fields [s0/value]}
           {:type :bind
            :id b2
@@ -118,7 +116,6 @@
            :fields [b2/key b2/value]
            :args [s0/value]}
           {:id r0
-           :ancestors []
            :fields [r0/value]}
           {:type :bind
            :id b1
@@ -153,7 +150,7 @@
           (#'pigpen.oven/dedupe % {})
           (map #(select-keys % [:type :id :ancestors]) %))
         ;; Should merge the load commands
-        '[{:type :load,   :id load3,   :ancestors []}
+        '[{:type :load,   :id load3}
           {:type :store,  :id store4,  :ancestors [load3]}
           {:type :store,  :id store2,  :ancestors [load3]}
           {:type :script, :id script5, :ancestors [store2 store4]}]))))
@@ -172,7 +169,7 @@
         (as-> script %
           (bake % :pig {} {:debug "/out/"})
           (map #(select-keys % [:type :id :ancestors :location]) %))
-        '[{:type :load,     :id load1,     :ancestors []            :location "foo"}
+        '[{:type :load,     :id load1,                              :location "foo"}
           {:type :generate, :id generate10,:ancestors [load1]}
           {:type :store,    :id store9,    :ancestors [generate10], :location "/out/load1"}
           {:type :generate, :id generate2, :ancestors [load1]}
@@ -340,7 +337,7 @@
           command (pig-join/join [(data) (data)] vector)]
       (test-diff (->> (bake command :pig {} {})
                    (map #(select-keys % [:fields :ancestors :id :type])))
-                 '[{:type :return,   :id return1,   :ancestors [],            :fields [return1/value]}
+                 '[{:type :return,   :id return1,                             :fields [return1/value]}
                    {:type :generate, :id generate6, :ancestors [return1],     :fields [generate6/key generate6/value]}
                    {:type :noop,     :id noop8,     :ancestors [generate6],   :fields [noop8/key noop8/value]}
                    {:type :noop,     :id noop9,     :ancestors [generate6],   :fields [noop9/key noop9/value]}
@@ -362,7 +359,7 @@
         (as-> (pig-query/script s1 s2) %
           (#'pigpen.oven/bake % :pig {} {})
           (map #(select-keys % [:type :id :ancestors]) %))
-        '[{:type :load,   :id load3,   :ancestors []}
+        '[{:type :load,   :id load3}
           {:type :store,  :id store4,  :ancestors [load3]}
           {:type :store,  :id store2,  :ancestors [load3]}
           {:type :script, :id script5, :ancestors [store2 store4]}]))))

@@ -18,7 +18,9 @@
 
 (ns pigpen.local
   (:refer-clojure :exclude [load load-reader read])
-  (:require [pigpen.runtime]
+  (:require [schema.macros :as s] ;; TODO why doesn't schema.core load properly?
+            [pigpen.model :as m]
+            [pigpen.runtime]
             [pigpen.raw :as raw]
             [pigpen.oven :as oven]
             [clojure.java.io :as io]
@@ -90,7 +92,9 @@
     post
     vector))
 
-(defn eval-code [{:keys [udf expr args]} values]
+(s/defn eval-code
+  [{:keys [udf expr args]} :- m/Code
+   values]
   (let [{:keys [init func]} expr
         _ (eval init)
         f (eval func)
@@ -152,8 +156,8 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** IO **********
 
-(defmethod graph->local :return
-  [_ {:keys [data]}]
+(s/defmethod graph->local :return
+  [_ {:keys [data]} :- m/Return]
   data)
 
 ; Override these to tweak how files are listed and read with the load loader.
@@ -188,7 +192,8 @@ sequence. This command is very useful for unit tests.
   "Defines a local implementation of a loader. Should return a PigPenLocalLoader."
   :storage)
 
-(defmethod load :string [{:keys [location fields opts]}]
+(s/defmethod load :string
+  [{:keys [location fields opts]} :- m/Load]
   {:pre [(= 1 (count fields))]}
   (reify PigPenLocalLoader
     (locations [_]
@@ -214,21 +219,21 @@ sequence. This command is very useful for unit tests.
   "Defines a local implementation of storage. Should return a PigPenLocalStorage."
   :storage)
 
-(defmethod store :string [{:keys [location fields]}]
-  {:pre [(= 1 (count fields))]}
+(s/defmethod store :string
+  [{:keys [location arg]} :- m/Store]
   (reify PigPenLocalStorage
     (init-writer [_]
       (store-writer location))
     (write [_ writer value]
-      (let [line (str ((first fields) value) "\n")]
+      (let [line (str (get value arg) "\n")]
         (.write ^Writer writer line)))
     (close-writer [_ writer]
       (.close ^Writer writer))))
 
 ; Uses the abstractions defined above to load the data
 
-(defmethod graph->local :load
-  [_ command]
+(s/defmethod graph->local :load
+  [_ command :- m/Load]
   (let [local-loader (load command)]
     (vec
       (forcat [file (locations local-loader)]
@@ -238,33 +243,32 @@ sequence. This command is very useful for unit tests.
             (finally
               (close-reader local-loader reader))))))))
 
-(defmethod graph->local :store
-  [[data] {:keys [id] :as command}]
+(s/defmethod graph->local :store
+  [[data] {:keys [id] :as command} :- m/Store]
   (let [local-storage (store command)
-        writer (init-writer local-storage)
-        data' (mapv (update-field-ids id) data)]
-    (doseq [value data']
+        writer (init-writer local-storage)]
+    (doseq [value data]
       (write local-storage writer value))
     (close-writer local-storage writer)
-    data'))
+    data))
 
 ;; ********** Map **********
 
-(defmethod graph->local :projection-field
-  [values {:keys [field alias]}]
+(s/defmethod graph->local :projection-field
+  [values {:keys [field alias]} :- m/ProjectionField]
   [{(first alias) (values field)}])
 
-(defmethod graph->local :projection-func
-  [values {:keys [code alias]}]
+(s/defmethod graph->local :projection-func
+  [values {:keys [code alias]} :- m/ProjectionFunc]
   [(zipmap alias (eval-code code values))])
 
-(defmethod graph->local :projection-flat
-  [values {:keys [code alias] :as command}]
+(s/defmethod graph->local :projection-flat
+  [values {:keys [code alias] :as command} :- m/ProjectionFlat]
   (for [value' (eval-code code values)]
     (zipmap alias value')))
 
-(defmethod graph->local :generate
-  [[data] {:keys [projections] :as c}]
+(s/defmethod graph->local :generate
+  [[data] {:keys [projections] :as c} :- m/Mapcat]
   (mapcat
     (fn [values]
       (->> projections
@@ -272,15 +276,15 @@ sequence. This command is very useful for unit tests.
         (cross-product)))
     data))
 
-(defmethod graph->local :rank
-  [[data] {:keys [id]}]
+(s/defmethod graph->local :rank
+  [[data] {:keys [id]} :- m/Rank]
   (->> data
     (map-indexed (fn [i v]
                    (assoc v 'index i)))
     (map (update-field-ids id))))
 
-(defmethod graph->local :order
-  [[data] {:keys [id key comp]}]
+(s/defmethod graph->local :order
+  [[data] {:keys [id key comp]} :- m/Sort]
   (->> data
     (sort-by key
              (case comp
@@ -291,27 +295,27 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Filter **********
 
-(defmethod graph->local :limit
-  [[data] {:keys [id n]}]
+(s/defmethod graph->local :limit
+  [[data] {:keys [id n]} :- m/Take]
   (->> data
     (take n)
     (map (update-field-ids id))))
 
-(defmethod graph->local :sample
-  [[data] {:keys [id p]}]
+(s/defmethod graph->local :sample
+  [[data] {:keys [id p]} :- m/Sample]
   (->> data
     (filter (fn [_] (< (rand) p)))
     (map (update-field-ids id))))
 
 ;; ********** Join **********
 
-(defmethod graph->local :reduce
-  [[data] {:keys [fields value]}]
+(s/defmethod graph->local :reduce
+  [[data] {:keys [fields arg]} :- m/Reduce]
   (when (seq data)
-    [{(first fields) (map value data)}]))
+    [{(first fields) (map arg data)}]))
 
-(defmethod graph->local :group
-  [data {:keys [ancestors keys join-types fields]}]
+(s/defmethod graph->local :group
+  [data {:keys [ancestors keys join-types fields]} :- m/Group]
   (let [[group-field & data-fields] fields
         join-types (zipmap keys join-types)]
     (->>
@@ -345,8 +349,8 @@ sequence. This command is very useful for unit tests.
                           (and (= j :required)
                                (not (contains? value k)))))))))))
 
-(defmethod graph->local :join
-  [data {:keys [ancestors keys join-types fields]}]
+(s/defmethod graph->local :join
+  [data {:keys [ancestors keys join-types fields]} :- m/Join]
   (let [join-types (zipmap ancestors join-types)
         ;; This seeds the inner/outer joins, by placing a
         ;; defualt empty value for inner joins
@@ -379,24 +383,24 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Set **********
 
-(defmethod graph->local :distinct
-  [[data] {:keys [id]}]
+(s/defmethod graph->local :distinct
+  [[data] {:keys [id]} :- m/Distinct]
   (->> data
     (distinct)
     (map (update-field-ids id))))
 
-(defmethod graph->local :union
-  [data {:keys [id]}]
+(s/defmethod graph->local :union
+  [data {:keys [id]} :- m/Concat]
   (->> data
     (apply concat)
     (map (update-field-ids id))))
 
 ;; ********** Script **********
 
-(defmethod graph->local :noop
-  [[data] {:keys [id]}]
+(s/defmethod graph->local :noop
+  [[data] {:keys [id]} :- m/NoOp]
   (map (update-field-ids id) data))
 
-(defmethod graph->local :script
+(s/defmethod graph->local :script
   [data _]
   (apply concat data))

@@ -29,6 +29,11 @@ number of optimizations and transforms to the graph.
 
 (set! *warn-on-reflection* true)
 
+(defn ^:private update-if [m ks f & args]
+  (if (get-in m ks)
+    (apply update-in m ks f args)
+    m))
+
 (defmulti ^:private tree->command
   "Converts a tree node into a single edge. This is done by converting the
    reference to another node to that node's id"
@@ -36,12 +41,7 @@ number of optimizations and transforms to the graph.
 
 (defmethod tree->command :default
   [command]
-  (update-in command [:ancestors] #(mapv :id %)))
-
-(defn ^:private update-if [m ks f & args]
-  (if (get-in m ks)
-    (apply update-in m ks f args)
-    m))
+  (update-if command [:ancestors] #(mapv :id %)))
 
 (defn ^:private update-field
   "Updates a single field with an id mapping"
@@ -65,8 +65,9 @@ number of optimizations and transforms to the graph.
 
     :bind          (update-in command [:args] (partial mapv update-fn))
     :generate      (update-in command [:projections] (partial mapv #(update-command-fields % update-fn)))
+    :store         (update-in command [:arg] update-fn)
     :order         (update-in command [:key] update-fn)
-    :reduce        (update-in command [:value] update-fn)
+    :reduce        (update-in command [:arg] update-fn)
     (:group :join) (update-in command [:keys] (partial mapv update-fn))
     :noop          (update-in command [:args] (partial mapv update-fn))
     command))
@@ -78,7 +79,7 @@ number of optimizations and transforms to the graph.
   {:pre [(map? command) ((some-fn map? fn?) id-mapping)]}
   (let [update-fn (partial update-field id-mapping)]
     (-> command
-      (update-in [:fields] (partial mapv update-fn))
+      (update-if [:fields] (partial mapv update-fn))
       (update-command-fields update-fn))))
 
 (defn ^:private update-ids
@@ -89,7 +90,7 @@ number of optimizations and transforms to the graph.
   (let [update-fn (partial update-field id-mapping)]
     (-> command
       (update-if [:id] (fn [id] (id-mapping id id)))
-      (update-in [:ancestors] (partial mapv (fn [id] (id-mapping id id))))
+      (update-if [:ancestors] (partial mapv (fn [id] (id-mapping id id))))
       (update-fields id-mapping))))
 
 ;; **********

@@ -98,7 +98,8 @@ building blocks for more complex operations."
     (dissoc :field-type :fields)
     (assoc :location location
            :storage storage
-           :description location)))
+           :description location
+           :arg (-> relation :fields first))))
 
 (s/defn return$ :- m/Return$
   [data fields]
@@ -251,7 +252,7 @@ building blocks for more complex operations."
   [relation opts]
   (->
     (command :reduce relation opts)
-    (assoc :value (-> relation :fields first))))
+    (assoc :arg (-> relation :fields first))))
 
 (defmulti ancestors->fields
   "Get the set of fields from the ancestors"
