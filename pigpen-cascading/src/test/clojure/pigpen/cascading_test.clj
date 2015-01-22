@@ -1,7 +1,10 @@
 (ns pigpen.cascading-test
   (:import (java.io File)
            (org.apache.hadoop.fs FileSystem Path)
-           (org.apache.hadoop.conf Configuration))
+           (org.apache.hadoop.conf Configuration)
+           (cascading.scheme.hadoop TextLine)
+           (cascading.tap.hadoop Hfs)
+           (cascading.tuple Fields))
   (:require [clojure.test :refer :all]
             [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.core :as pigpen]
@@ -27,6 +30,22 @@
 
 (defn read-output [path]
   (map read-string (clojure.string/split (slurp (str path "/part-00000")) #"\n")))
+
+(deftest test-load-tap
+  (write-input input1 ["line1" "line2"])
+  (let [tap (Hfs. (TextLine. (Fields. (into-array (map str ["line"])))) input1)
+        cmd (->> (cascading/load-tap tap)
+                 (pigpen/store-tsv output1))]
+    (-> cmd (cascading/generate-flow) (.complete))
+    (is (= ["line1" "line2"] (read-output output1)))))
+
+(deftest test-load-tap-custom-fn
+  (write-input input1 ["line1" "line2"])
+  (let [tap (Hfs. (TextLine. (Fields. (into-array (map str ["offset" "line"])))) input1)
+        cmd (->> (cascading/load-tap tap '(fn [_ line] [line]))
+                 (pigpen/store-tsv output1))]
+    (-> cmd (cascading/generate-flow) (.complete))
+    (is (= ["line1" "line2"] (read-output output1)))))
 
 (deftest test-simple-flow
   (write-input input1 [["1" "2" "foo"] ["4" "5" "bar"]])
