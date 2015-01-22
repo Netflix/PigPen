@@ -68,12 +68,4 @@
       (let [file (t/file this)]
         (spit file (clojure.string/join "\n" lines))
         file)))
-  #{
-    pigpen.functional.map-test/test-map-indexed
-    pigpen.functional.map-test/test-map-indexed+sort
-    pigpen.functional.map-test/test-sort
-    pigpen.functional.map-test/test-sort-desc
-    pigpen.functional.map-test/test-sort-by
-    pigpen.functional.map-test/test-sort-by-desc
-    pigpen.functional.map-test/test-sort-by-with-duplicates
-    })
+  #{})

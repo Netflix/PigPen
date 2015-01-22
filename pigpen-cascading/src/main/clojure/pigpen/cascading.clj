@@ -1,13 +1,13 @@
 (ns pigpen.cascading
   (:import (cascading.tap.hadoop Hfs)
            (cascading.scheme.hadoop TextLine)
-           (cascading.pipe Pipe Each CoGroup Every Merge)
+           (cascading.pipe Pipe Each CoGroup Every Merge GroupBy)
            (cascading.flow.hadoop HadoopFlowConnector)
-           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer PigPenAggregateBy OperationUtil)
+           (pigpen.cascading PigPenFunction GroupBuffer JoinBuffer PigPenAggregateBy OperationUtil RankBuffer)
            (cascading.tuple Fields)
            (cascading.operation Identity Insert)
            (cascading.pipe.joiner OuterJoin BufferJoin InnerJoin LeftJoin RightJoin)
-           (cascading.pipe.assembly Unique Rename Discard)
+           (cascading.pipe.assembly Unique Rename)
            (cascading.operation.filter Limit Sample FilterNull)
            (cascading.util NullNotEquivalentComparator)
            (cascading.flow FlowConnector))
@@ -37,8 +37,8 @@
 (defmethod get-tap-fn :string [_]
   (fn [location opts] (Hfs. (TextLine. (cfields ["line"])) location)))
 
-(defmethod get-tap-fn :default [_]
-  (throw (Exception. (str "Unrecognized tap type: " name))))
+(defmethod get-tap-fn :default [t]
+  (throw (Exception. (str "Unrecognized tap type: " t))))
 
 ;; ******* Commands ********
 
@@ -63,7 +63,9 @@
 
 (defn- partial-aggregation-code
   [pipe-id inits funcs cogroup-opts field-projections flowdef]
-  (let [key-fields (cfields (first (:keys cogroup-opts)))
+  (let [key-fields (if (:group-all cogroup-opts)
+                     Fields/NONE
+                     (cfields (first (:keys cogroup-opts))))
         ; This is a hack to emulate multiple streams with a single stream by using a sentinel value to fill absent fields.
         ; For example, if we have generate1 -> [1 1 2 3], generate2 => [1 2 2 3], the resulting merged stream exposed  by
         ; cascading will be:
@@ -80,9 +82,6 @@
                    (map (:pipes flowdef))
                    (map-indexed (fn [index pipe]
                                   (Rename. pipe (cfields ["value"]) (cfields [(nth val-fields index)]))))
-                   (map #(if (:group-all cogroup-opts)
-                          (Each. % (Insert. (cfields ["group_all"]) (into-array [-1])) Fields/ALL)
-                          %))
                    (map-indexed (fn [index pipe]
                                   (reduce (fn [pipe {:keys [field shared-source]}]
                                             (if shared-source
@@ -109,10 +108,7 @@
                                  (conj pipes pipe))))
                            [])
                    (into-array))]
-    (add-val flowdef [:pipes] pipe-id (let [p (PigPenAggregateBy/buildAssembly (str pipe-id) pipes key-fields val-fields inits funcs)]
-                                        (if (:group-all cogroup-opts)
-                                          (Discard. p (cfields ["group_all"]))
-                                          p)))))
+    (add-val flowdef [:pipes] pipe-id (PigPenAggregateBy/buildAssembly (str pipe-id) pipes key-fields val-fields inits funcs))))
 
 (defn- code->flowdef
   [{:keys [code-defs pipe-id field-projections]} flowdef]
@@ -122,25 +118,29 @@
         udf (first (map :udf code-defs))
         field-names (if field-projections
                       (mapv #(cascading-field (:alias %)) field-projections)
+                      ; TODO: this field name should not be hardcoded
                       ["value"])
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe-id])]
-    (if (nil? cogroup-opts)
-      (update-in flowdef [:pipes pipe-id] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS))
-      (if (= udf :algebraic)
-        (partial-aggregation-code pipe-id inits funcs cogroup-opts field-projections flowdef)
-        (let [key-separate-from-value (> (count (first (map :args code-defs))) (:num-streams cogroup-opts))
-              buffer (case (:group-type cogroup-opts)
-                       :group (GroupBuffer. (first inits)
-                                            (first funcs)
-                                            fields
-                                            (:num-streams cogroup-opts)
-                                            (:group-all cogroup-opts)
-                                            (:join-nils cogroup-opts)
-                                            (:join-requirements cogroup-opts)
-                                            key-separate-from-value)
-                       :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
-          (update-in flowdef [:pipes pipe-id] #(Every. % buffer Fields/RESULTS)))))))
+    (cond (nil? cogroup-opts)
+          (update-in flowdef [:pipes pipe-id] #(Each. % (PigPenFunction. (first inits) (first funcs) fields) Fields/RESULTS))
+
+          (= udf :algebraic)
+          (partial-aggregation-code pipe-id inits funcs cogroup-opts field-projections flowdef)
+
+          :else
+          (let [key-separate-from-value (> (count (first (map :args code-defs))) (:num-streams cogroup-opts))
+                buffer (case (:group-type cogroup-opts)
+                         :group (GroupBuffer. (first inits)
+                                              (first funcs)
+                                              fields
+                                              (:num-streams cogroup-opts)
+                                              (:group-all cogroup-opts)
+                                              (:join-nils cogroup-opts)
+                                              (:join-requirements cogroup-opts)
+                                              key-separate-from-value)
+                         :join (JoinBuffer. (first inits) (first funcs) fields (:all-args cogroup-opts)))]
+            (update-in flowdef [:pipes pipe-id] #(Every. % buffer Fields/RESULTS))))))
 
 (defn- partial-aggregation
   [id is-group-all keys ancestors flowdef]
@@ -154,11 +154,7 @@
 
 (defn- cogroup
   [id is-group-all keys ancestors join-types opts flowdef]
-  (let [pipes (if is-group-all
-                [(Each. ((:pipes flowdef) (first ancestors))
-                        (Insert. (cfields ["group_all"]) (into-array [-1]))
-                        (cfields ["group_all" "value"]))]
-                (map (:pipes flowdef) ancestors))
+  (let [pipes (map (:pipes flowdef) ancestors)
         is-inner (every? #{:required} join-types)
         pipes (map (fn [p k] (if is-inner
                                (Each. p (cfields k) (FilterNull.))
@@ -167,7 +163,9 @@
     (-> flowdef
         (add-val [:pipes] id (CoGroup. (str id)
                                        (into-array Pipe pipes)
-                                       (into-array (map cfields keys))
+                                       (into-array (map (fn [k] (if is-group-all
+                                                                  Fields/NONE
+                                                                  (cfields k))) keys))
                                        Fields/NONE
                                        (BufferJoin.)))
         (add-val [:cogroup-opts] id {:group-id          id
@@ -181,7 +179,7 @@
   [{:keys [id keys fields join-types ancestors requires-partial-aggregation opts]} flowdef]
   {:pre [id keys fields join-types ancestors]}
   (let [is-group-all (= keys [:pigpen.raw/group-all])
-        keys (if is-group-all [["group_all"]] keys)]
+        keys (if is-group-all [["pigpen.raw/group-all"]] keys)]
     (if requires-partial-aggregation
       (partial-aggregation id is-group-all keys ancestors flowdef)
       (cogroup id is-group-all keys ancestors join-types opts flowdef))))
@@ -266,6 +264,25 @@
   {:pre [id ancestors]}
   (let [union-pipe (Merge. (into-array (map (:pipes flowdef) ancestors)))]
     (add-val flowdef [:pipes] id union-pipe)))
+
+(defmethod command->flowdef :order
+  [{:keys [id ancestors sort-keys fields opts]} flowdef]
+  {:pre [id (= 1 (count ancestors))]}
+  (let [[key type] sort-keys
+        reverse-order (= :desc type)
+        sort-pipe (GroupBy. ((:pipes flowdef) (first ancestors)) Fields/NONE (cfields [key]) reverse-order)
+        sort-pipe (Each. sort-pipe (cfields fields) (Identity.))]
+    (add-val flowdef [:pipes] id sort-pipe)))
+
+(defmethod command->flowdef :rank
+  [{:keys [id ancestors fields opts]} flowdef]
+  {:pre [id (= 1 (count ancestors))]}
+  ; TODO: In this naive, single-reducer implementation, a rank followed by an
+  ; order should skip the order since rank does a group-by itself.
+  (let [val-fields (cfields fields)
+        rank-pipe (GroupBy. ((:pipes flowdef) (first ancestors)) Fields/NONE)
+        rank-pipe (Every. rank-pipe (RankBuffer. val-fields) Fields/RESULTS)]
+    (add-val flowdef [:pipes] id rank-pipe)))
 
 (defmethod command->flowdef :script
   [_ flowdef]
