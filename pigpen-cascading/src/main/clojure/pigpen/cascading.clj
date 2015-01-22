@@ -52,14 +52,14 @@
   "This is a thin wrapper around a sink tap. The tap must accept
   a single sink field since PigPen always deals with just one value"
   [^Tap tap relation]
+  {:pre (<= (.size (.getSinkFields tap)) 1)}
   (-> relation
       (raw/bind$ `(pigpen.runtime/map->bind identity)
                  {:args           (:fields relation)
-                  :alias          (let [fields (mapv identity (.getSinkFields tap))]
-                                    (println "fields" fields)
+                  :alias          (let [fields (mapv symbol (.getSinkFields tap))]
                                     (if (empty? fields)
-                                      [['value]]
-                                      fields))
+                                      'value
+                                      (first fields)))
                   :field-type-out :native})
       (raw/store$ (.toString tap) :tap {:tap tap})))
 
