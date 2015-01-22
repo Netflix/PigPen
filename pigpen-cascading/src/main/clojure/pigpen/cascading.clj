@@ -34,7 +34,7 @@
                      f) keys)))
 
 (defn load-tap
-  "This is a thin wrapper around a tap. By default a vector of
+  "This is a thin wrapper around a source tap. By default a vector of
   the tap's source fields is created and returned as a single field.
   A custom function bind-fn can be provided to map the tap's
   source fields onto a single value in some other way."
@@ -47,6 +47,21 @@
           (raw/bind$
             `(pigpen.runtime/map->bind ~bind-fn)
             {:field-type-in :native})))))
+
+(defn store-tap
+  "This is a thin wrapper around a sink tap. The tap must accept
+  a single sink field since PigPen always deals with just one value"
+  [^Tap tap relation]
+  (-> relation
+      (raw/bind$ `(pigpen.runtime/map->bind identity)
+                 {:args           (:fields relation)
+                  :alias          (let [fields (mapv identity (.getSinkFields tap))]
+                                    (println "fields" fields)
+                                    (if (empty? fields)
+                                      [['value]]
+                                      fields))
+                  :field-type-out :native})
+      (raw/store$ (.toString tap) :tap {:tap tap})))
 
 (defmulti get-tap-fn
           identity)
