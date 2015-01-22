@@ -10,9 +10,11 @@
            (cascading.pipe.assembly Unique Rename)
            (cascading.operation.filter Limit Sample FilterNull)
            (cascading.util NullNotEquivalentComparator)
-           (cascading.flow FlowConnector))
+           (cascading.flow FlowConnector)
+           (cascading.tap Tap))
   (:require [pigpen.oven :as oven]
-            [clojure.pprint]))
+            [clojure.pprint]
+            [pigpen.raw :as raw]))
 
 (defn- add-val [flowdef path id val]
   (update-in flowdef path #(merge % {id val})))
@@ -31,11 +33,30 @@
                      (when-not join-nils (.setComparator f (str (first %)) (NullNotEquivalentComparator.)))
                      f) keys)))
 
+(defn load-tap
+  "This is a thin wrapper around a tap. By default a vector of
+  the tap's source fields is created and returned as a single field.
+  A custom function bind-fn can be provided to map the tap's
+  source fields onto a single value in some other way."
+  ([^Tap tap]
+    (load-tap tap 'clojure.core/vector))
+  ([^Tap tap bind-fn]
+    (let [field-names (mapv identity (.getSourceFields tap))]
+      (-> (.toString tap)
+          (raw/load$ field-names :tap {:tap tap})
+          (raw/bind$
+            `(pigpen.runtime/map->bind ~bind-fn)
+            {:field-type-in :native})))))
+
 (defmulti get-tap-fn
           identity)
 
 (defmethod get-tap-fn :string [_]
   (fn [location opts] (Hfs. (TextLine. (cfields ["line"])) location)))
+
+(defmethod get-tap-fn :tap [_]
+  (fn [_ {:keys [tap]}]
+    tap))
 
 (defmethod get-tap-fn :default [t]
   (throw (Exception. (str "Unrecognized tap type: " t))))
