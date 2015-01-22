@@ -157,11 +157,11 @@ number of optimizations and transforms to the graph.
   "Adds an extra store statement after the command. Returns nil if no debug is
    available"
   [location command]
-  (when-let [field-type (or (:field-type command) (:field-type-out command))]
+  (when-let [field-type (or (:field-type command) (:field-type command))]
     (when-not (get-in command [:opts :implicit-schema])
       (-> command
         (raw/bind$ [] `(pigpen.runtime/map->bind pigpen.runtime/debug)
-                   {:args (:fields command), :field-type-in field-type, :field-type-out :native})
+                   {:args (:fields command), :field-type-in field-type, :field-type :native})
         ;; TODO Fix the location of store commands to match generates instead of binds
         (raw/store$ (str location (:id command)) :string {})))))
 
@@ -204,7 +204,7 @@ number of optimizations and transforms to the graph.
         first-args       (-> commands first :args)
         first-field-type (-> commands first :field-type-in)
         last-field       (-> commands last :fields)
-        last-field-type  (-> commands last :field-type-out)
+        last-field-type  (-> commands last :field-type)
         implicit-schema  (some (comp :implicit-schema :opts) commands)
 
         requires (code/build-requires (mapcat :requires commands))

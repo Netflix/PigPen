@@ -40,7 +40,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
                (if sentinel-nil
                  `(pigpen.runtime/key-selector->bind (comp pigpen.runtime/sentinel-nil ~key-selector))
                  `(pigpen.runtime/key-selector->bind ~key-selector))
-               {:field-type-out (if join-nils :frozen :frozen-with-nils)
+               {:field-type (if join-nils :frozen :frozen-with-nils)
                 :implicit-schema true
                 :alias ['key 'value]})))
 

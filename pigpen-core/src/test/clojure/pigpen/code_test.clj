@@ -17,8 +17,8 @@
 ;;
 
 (ns pigpen.code-test
-  (:use clojure.test)
-  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
+  (:require [clojure.test :refer :all]
+            [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.code :as pig]))
 
 (deftest test-assert-arity
@@ -29,7 +29,7 @@
     (pig/assert-arity '+ 0)
     (pig/assert-arity '+ 3)
     (pig/assert-arity '+ 9))
-  
+
   (testing "fn"
     (let [f '(fn
                ([] nil)
@@ -41,13 +41,13 @@
       (pig/assert-arity f 3)
       (pig/assert-arity f 4)
       (pig/assert-arity f 5)))
-  
+
   (testing "inline"
     (let [f '#(vector %)]
       (is (thrown? java.lang.AssertionError (pig/assert-arity f 0)))
       (pig/assert-arity f 1)
       (is (thrown? java.lang.AssertionError (pig/assert-arity f 2))))
-    
+
     (let [f '#(vector %1 %2)]
       (is (thrown? java.lang.AssertionError (pig/assert-arity f 0)))
       (is (thrown? java.lang.AssertionError (pig/assert-arity f 1)))
@@ -59,7 +59,7 @@
       (pig/assert-arity f 0)
       (pig/assert-arity f 1)
       (pig/assert-arity f 2)))
-  
+
   (testing "bad fn"
     (is (thrown? clojure.lang.Compiler$CompilerException (pig/assert-arity 'f 0)))
     (is (thrown? java.lang.AssertionError (pig/assert-arity nil 2)))))
@@ -75,7 +75,7 @@
          '(clojure.core/require (quote [pigpen.runtime]) (quote [pigpen.code]) (quote [pigpen.code-test])))))
 
 (defn test-fn [& args]
-  (apply + args))  
+  (apply + args))
 
 (deftest test-trap
   (let [^:local local 2

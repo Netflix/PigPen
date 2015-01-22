@@ -17,9 +17,12 @@
 ;;
 
 (ns pigpen.oven-test
-  (:use clojure.test
-        pigpen.oven)
-  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
+  (:require [clojure.test :refer :all]
+            [schema.test]
+            [schema.core :as s]
+            [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
+            [pigpen.model :as m]
+            [pigpen.oven :refer :all]
             [pigpen.raw :as pig-raw]
             [pigpen.io :as pig-io]
             [pigpen.map :as pig-map]
@@ -27,26 +30,17 @@
             [pigpen.join :as pig-join]
             [pigpen.query :as pig-query]))
 
-(deftest test-tree->command
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+(use-fixtures :once schema.test/validate-schemas)
 
-    (test-diff
-      (->
-        (pig-raw/load$ "foo" '[foo] :string {})
-        (pig-raw/store$ "bar" :string {})
-        (#'pigpen.oven/tree->command))
-      '{:type :store
-        :id store2
-        :description "bar"
-        :ancestors (load1)
-        :location "bar"
-        :storage :string
-        :fields [store2/foo]
-        :opts {:type :store-opts}})))
+(deftest test-tree->command
+  (s/validate m/Store
+              (->
+                (pig-raw/load$ "foo" '[foo] :string {})
+                (pig-raw/store$ "bar" :string {})
+                (#'pigpen.oven/tree->command))))
 
 (deftest test-braise
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-
     (test-diff
       (as-> nil %
         (pig-raw/load$ "foo" '[foo] :string {})
@@ -59,12 +53,10 @@
          :fields [load1/foo]}
         {:type :store
          :id store2
-         :ancestors (load1)
-         :fields [store2/foo]}])))
+         :ancestors (load1)}])))
 
 (deftest test-next-match
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-
     (let [s1 (->
                (pig-raw/load$ "foo" '[foo] :string {})
                (pig-raw/store$ "bar" :string {}))
@@ -105,8 +97,8 @@
 
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [r ^:pig {:id 'r :fields '[r/value]}
-          s ^:pig {:id 's :fields '[s/value]}
+    (let [r ^:pig {:id 'r :fields '[r/value], :field-type :frozen}
+          s ^:pig {:id 's :fields '[s/value], :field-type :frozen}
           c (pig-join/join [(r :on identity)
                             (s :on identity)]
                            merge)

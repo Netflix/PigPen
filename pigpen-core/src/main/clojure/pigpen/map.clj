@@ -115,7 +115,7 @@ and the value. If you require sequential ids, use option {:dense true}.
   {:pre [(map? relation) (#{:asc :desc} comp)]}
   (-> relation
     (raw/bind$ `(pigpen.runtime/key-selector->bind ~key-selector)
-               {:field-type-out :native-key-frozen-val
+               {:field-type :native-key-frozen-val
                 :implicit-schema true
                 :alias ['key 'value]})
     (raw/order$ 'key comp opts)))

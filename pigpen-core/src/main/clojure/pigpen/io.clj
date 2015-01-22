@@ -128,7 +128,7 @@ and f specify a conversion function to apply to each output row."
   [location requires f relation]
   (-> relation
     (raw/bind$ requires `(pigpen.runtime/map->bind ~f)
-               {:args (:fields relation), :field-type-out :native})
+               {:args (:fields relation), :field-type :native})
     (raw/store$ location :string {})))
 
 (defn store-string

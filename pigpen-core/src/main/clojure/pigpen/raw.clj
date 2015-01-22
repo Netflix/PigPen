@@ -18,7 +18,9 @@
 
 (ns pigpen.raw
   "Contains functions that create basic Pig commands. These are the primitive
-building blocks for more complex operations.")
+building blocks for more complex operations."
+  (:require [pigpen.model :as m]
+            [schema.core :as s]))
 
 (set! *warn-on-reflection* true)
 
@@ -26,15 +28,6 @@ building blocks for more complex operations.")
   "Wraps gensym to facilitate easier mocking"
   [prefix-string]
   (gensym prefix-string))
-
-(defn ^:private field?
-  "Determines if a symbol is a valid pig identifier"
-  [id]
-  (boolean
-    (and (symbol? id)
-         (namespace id)
-         (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (namespace id))
-         (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))))
 
 (defn update-ns [ns sym]
   (symbol (name ns) (name sym)))
@@ -46,7 +39,7 @@ building blocks for more complex operations.")
 
 ;; **********
 
-(defn ^:private command
+(s/defn ^:private command
   ([type opts]
     ^:pig {:type type
            :id (pigsym (name type))
@@ -70,20 +63,15 @@ building blocks for more complex operations.")
 
 ;; ********** Util **********
 
-(defn expr$
+(s/defn expr$ :- m/Expr
   "Code to be passed to the UDF"
   [init func]
-  {:pre [func]}
   ^:pig {:init init
          :func func})
 
-(defn code$
+(s/defn code$ :- m/Code
   "Execute custom code in a script."
   [udf args expr]
-  {:pre [expr
-         (keyword? udf)
-         (sequential? args)
-         (every? (some-fn field? string?) args)]}
   ^:pig {:type :code
          :expr expr
          :udf udf
@@ -91,12 +79,8 @@ building blocks for more complex operations.")
 
 ;; ********** IO **********
 
-(defn load$
+(s/defn load$ :- m/Load$
   [location fields storage opts]
-  {:pre [(string? location)
-         (sequential? fields)
-         (keyword? storage)
-         (or (nil? opts) (map? opts))]}
   (let [id (pigsym "load")]
     ^:pig {:type :load
            :id id
@@ -107,27 +91,21 @@ building blocks for more complex operations.")
            :storage storage
            :opts (assoc opts :type :load-opts)}))
 
-(defn store$
+(s/defn store$ :- m/Store$
   [relation location storage opts]
-  {:pre [(string? location)
-         (keyword? storage)
-         (or (nil? opts) (map? opts))]}
   (->
     (command :store relation opts)
-    (dissoc :field-type)
+    (dissoc :field-type :fields)
     (assoc :location location
            :storage storage
            :description location)))
 
-(defn return$
+(s/defn return$ :- m/Return$
   [data fields]
-  {:pre [(sequential? data)
-         (every? map? data)
-         (sequential? fields)
-         (every? symbol? fields)]}
   (let [id (pigsym "return")]
     ^:pig {:type :return
            :id id
+           :field-type :frozen
            :fields (mapv (partial update-ns+ id) fields)
            :data (for [m data]
                    (->> m
@@ -139,24 +117,18 @@ building blocks for more complex operations.")
 (defn projection-field$
   ([field] (projection-field$ field [(symbol (name field))]))
   ([field alias]
-    {:pre [(field? field)
-           (vector? alias)]}
     ^:pig {:type :projection-field
            :field field
            :alias alias}))
 
 (defn projection-func$
   [alias code]
-  {:pre [(map? code)
-         (vector? alias)]}
   ^:pig {:type :projection-func
          :code code
          :alias alias})
 
 (defn projection-flat$
   [alias code]
-  {:pre [(map? code)
-         (vector? alias)]}
   ^:pig {:type :projection-flat
          :code code
          :alias alias})
@@ -164,35 +136,28 @@ building blocks for more complex operations.")
 (defn ^:private update-alias-ns [id projection]
   (update-in projection [:alias] (partial mapv (partial update-ns id))))
 
-(defn generate$*
+(s/defn generate$* :- m/Mapcat
   "Used to make a post-bake generate"
   [relation projections opts]
-  {:pre [(symbol? relation)
-         (sequential? projections)
-         (not-empty projections)]}
   (let [{id :id, :as c} (command :generate opts)]
     (-> c
       (assoc :projections (mapv (partial update-alias-ns id) projections)
              :ancestors [relation]
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))
 
-(defn generate$
+(s/defn generate$ :- m/Mapcat$
   [relation projections opts]
-  {:pre [(map? relation)
-         (sequential? projections)
-         (not-empty projections)]}
   (let [{id :id, :as c} (command :generate relation opts)]
     (-> c
       (assoc :projections (mapv (partial update-alias-ns id) projections)
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))
 
-(defn bind$*
+(s/defn bind$* :- m/Bind
   "Used to make a post-bake bind"
   ([relation func opts] (bind$* relation [] func opts))
   ([relation requires func opts]
-    {:pre [func]}
     (->
-      (command :bind (dissoc opts :args :requires :alias :field-type-in :field-type-out))
+      (command :bind (dissoc opts :args :requires :alias :field-type-in :field-type))
       (dissoc :field-type)
       (assoc :ancestors [relation]
              :func func
@@ -200,13 +165,12 @@ building blocks for more complex operations.")
              :requires (vec (concat requires (:requires opts)))
              :fields [(get opts :alias 'value)]
              :field-type-in (get opts :field-type-in :frozen)
-             :field-type-out (get opts :field-type-out :frozen)))))
+             :field-type (get opts :field-type :frozen)))))
 
-(defn bind$
+(s/defn bind$ :- m/Bind$
   ([relation func opts] (bind$ relation [] func opts))
   ([relation requires func opts]
-    {:pre [func]}
-    (let [opts' (dissoc opts :args :requires :alias :field-type-in :field-type-out)
+    (let [opts' (dissoc opts :args :requires :alias :field-type-in :field-type)
           {id :id, :as c} (command :bind relation opts')]
       (-> c
         (dissoc :field-type)
@@ -215,9 +179,9 @@ building blocks for more complex operations.")
                :requires (vec (concat requires (:requires opts)))
                :fields (mapv (partial update-ns+ id) (get opts :alias ['value]))
                :field-type-in (get opts :field-type-in :frozen)
-               :field-type-out (get opts :field-type-out :frozen))))))
+               :field-type (get opts :field-type :frozen))))))
 
-(defn order$
+(s/defn order$ :- m/Sort$
   [relation key comp opts]
   (let [{id :id, :as c} (command :order relation opts)]
     (-> c
@@ -225,7 +189,7 @@ building blocks for more complex operations.")
       (assoc :comp comp)
       (update-in [:fields] (partial remove #{(update-ns+ id key)})))))
 
-(defn rank$
+(s/defn rank$ :- m/Rank$
   [relation opts]
   (let [{id :id, :as c} (command :rank relation opts)]
     (-> c
@@ -233,7 +197,7 @@ building blocks for more complex operations.")
 
 ;; ********** Filter **********
 
-(defn filter$*
+(s/defn filter$* :- m/Filter
   "Used to make a post-bake filter"
   [relation fields expr opts]
   {:pre [(symbol? relation)]}
@@ -244,44 +208,47 @@ building blocks for more complex operations.")
            :ancestors [relation]
            :field-type :native)))
 
-(defn filter$
+(s/defn filter$ :- m/Filter$
   [relation expr opts]
   (->
     (command :filter relation opts)
     (assoc :expr expr
            :field-type :native)))
 
-(defn limit$
+(s/defn limit$ :- m/Take$
   [relation n opts]
-  {:pre [((every-pred number? pos?) n)]}
   (->
     (command :limit relation opts)
     (assoc :n n)))
 
-(defn sample$
+(s/defn sample$ :- m/Sample$
   [relation p opts]
-  {:pre [(float? p) (<= 0.0 p 1.0)]}
   (->
     (command :sample relation opts)
     (assoc :p p)))
 
 ;; ********** Set **********
 
-(defn distinct$
+(s/defn distinct$ :- m/Distinct$
   [relation opts]
   (command :distinct relation opts))
 
-(defn union$
+(s/defn union$ :- (s/either m/Concat$ m/Op)
   [ancestors opts]
   (if-not (next ancestors)
     (first ancestors)
-    (command :union ancestors (->> ancestors first :fields (map (comp symbol name))) opts)))
+    (command :union
+             ancestors
+             (->> ancestors
+               first
+               :fields
+               (map (comp symbol name)))
+             opts)))
 
 ;; ********** Join **********
 
-(defn reduce$
+(s/defn reduce$ :- m/Reduce$
   [relation opts]
-  {:pre [(= 1 (count (:fields relation)))]}
   (->
     (command :reduce relation opts)
     (assoc :value (-> relation :fields first))))
@@ -295,11 +262,8 @@ building blocks for more complex operations.")
   (fn [type fields]
     type))
 
-(defn group$
+(s/defn group$ :- m/Group$
   [ancestors field-dispatch join-types opts]
-  {:pre [(sequential? ancestors)
-         (sequential? join-types)
-         (= (count ancestors) (count join-types))]}
   (let [{id :id, :as c} (command :group ancestors [] opts)
         fields (ancestors->fields field-dispatch id ancestors)]
     (-> c
@@ -308,7 +272,7 @@ building blocks for more complex operations.")
              :keys (fields->keys field-dispatch fields)
              :join-types (vec join-types)))))
 
-(defn join$
+(s/defn join$ :- m/Join$
   [ancestors field-dispatch join-types opts]
   {:pre [(< 1 (count ancestors))
          (or (every? #{:required} join-types) (= 2 (count ancestors)))
@@ -325,15 +289,14 @@ building blocks for more complex operations.")
 
 ;; ********** Script **********
 
-(defn noop$
+(s/defn noop$ :- m/NoOp$
   [relation opts]
   (->
     (command :noop relation opts)
     (assoc :args (:fields relation))))
 
-(defn script$
+(s/defn script$ :- m/StoreMany$
   [outputs]
-  {:pre [(sequential? outputs)]}
   ^:pig {:type :script
          :id (pigsym "script")
          :ancestors (vec outputs)})
