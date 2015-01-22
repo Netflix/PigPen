@@ -132,15 +132,13 @@
     (add-val flowdef [:pipes] pipe-id (PigPenAggregateBy/buildAssembly (str pipe-id) pipes key-fields val-fields inits funcs))))
 
 (defn- code->flowdef
-  [{:keys [code-defs pipe-id field-projections]} flowdef]
+  [{:keys [code-defs pipe-id projections field-projections]} flowdef]
   {:pre [code-defs (= (count (distinct (map :udf code-defs))) 1)]}
   (let [inits (mapv #(str (get-in % [:expr :init])) code-defs)
         funcs (mapv #(str (get-in % [:expr :func])) code-defs)
         udf (first (map :udf code-defs))
-        field-names (if field-projections
-                      (mapv #(cascading-field (:alias %)) field-projections)
-                      ; TODO: this field name should not be hardcoded
-                      ["value"])
+        field-names (let [p (if field-projections field-projections projections)]
+                      (mapv #(cascading-field (:alias %)) p))
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe-id])]
     (cond (nil? cogroup-opts)
@@ -257,6 +255,7 @@
                     (add-val flowdef [:cogroup-opts] id pipe-opts)
                     flowdef))
         flowdef (code->flowdef {:pipe-id           id
+                                :projections       projections
                                 :field-projections field-projections
                                 :code-defs         code-defs}
                                flowdef)]
