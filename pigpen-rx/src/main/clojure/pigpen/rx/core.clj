@@ -44,7 +44,7 @@
   [_ _]
   local/post-process)
 
-(defmethod local/eval-func :algebraic
+(defmethod local/eval-func :fold
   [_ {:keys [pre combinef reducef post]} [values]]
   (->> values
     (mapv local/remove-sentinel-nil)

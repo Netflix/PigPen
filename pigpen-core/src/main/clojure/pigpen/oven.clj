@@ -55,16 +55,14 @@ number of optimizations and transforms to the graph.
   "Updates command-specific fields"
   [command update-fn]
   (case (:type command)
-    (:projection-func :projection-flat) (-> command
-                                          (update-in [:code :args] (partial mapv update-fn))
-                                          (update-in [:alias] (partial mapv update-fn)))
-
-    :projection-field (-> command
-                        (update-in [:field] update-fn)
-                        (update-in [:alias] (partial mapv update-fn)))
+    :generate      (update-in command [:projections] (partial mapv #(update-command-fields % update-fn)))
+    :projection    (-> command
+                     (update-in [:expr] #(update-command-fields % update-fn))
+                     (update-in [:alias] (partial mapv update-fn)))
+    :code          (update-in command [:args] (partial mapv update-fn))
+    :field         (update-in command [:field] update-fn)
 
     :bind          (update-in command [:args] (partial mapv update-fn))
-    :generate      (update-in command [:projections] (partial mapv #(update-command-fields % update-fn)))
     :store         (update-in command [:arg] update-fn)
     :order         (update-in command [:key] update-fn)
     :reduce        (update-in command [:arg] update-fn)
@@ -215,9 +213,12 @@ number of optimizations and transforms to the graph.
                  ~@(mapv :func commands)
                  (pigpen.runtime/process->bind (pigpen.runtime/post-process ~platform ~last-field-type))])
 
-        projection (raw/projection-flat$ (mapv (comp symbol name) last-field)
-                     (raw/code$ :sequence first-args
-                       (raw/expr$ requires func)))
+        projection (raw/projection-func$
+                     (mapv (comp symbol name) last-field)
+                     (raw/code$ :seq
+                                requires
+                                func
+                                first-args))
 
         description (->> commands (map :description) (clojure.string/join))]
 

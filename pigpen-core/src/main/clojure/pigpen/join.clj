@@ -62,7 +62,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
 
 (defn ^:private projection-fold [fold field alias]
   (if fold
-    (raw/projection-func$ alias (raw/code$ :algebraic [field] (raw/expr$ "" fold)))
+    (raw/projection-func$ alias false (raw/code$ :fold "" fold [field]))
     (raw/projection-field$ field alias)))
 
 (defn seq-groups

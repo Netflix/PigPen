@@ -63,17 +63,12 @@ building blocks for more complex operations."
 
 ;; ********** Util **********
 
-(s/defn expr$ :- m/Expr
-  "Code to be passed to the UDF"
-  [init func]
-  ^:pig {:init init
-         :func func})
-
-(s/defn code$ :- m/Code
+(s/defn code$ :- m/CodeExpr
   "Execute custom code in a script."
-  [udf args expr]
+  [udf init func args]
   ^:pig {:type :code
-         :expr expr
+         :func {:init init
+                :func func}
          :udf udf
          :args (vec args)})
 
@@ -116,23 +111,25 @@ building blocks for more complex operations."
 ;; ********** Map **********
 
 (defn projection-field$
-  ([field] (projection-field$ field [(symbol (name field))]))
+  ([field]
+    (projection-field$ field [(symbol (name field))] false))
   ([field alias]
-    ^:pig {:type :projection-field
-           :field field
+    (projection-field$ field alias false))
+  ([field alias flatten]
+    ^:pig {:type :projection
+           :expr {:type :field
+                  :field field}
+           :flatten flatten
            :alias alias}))
 
-(defn projection-func$
-  [alias code]
-  ^:pig {:type :projection-func
-         :code code
-         :alias alias})
-
-(defn projection-flat$
-  [alias code]
-  ^:pig {:type :projection-flat
-         :code code
-         :alias alias})
+(s/defn projection-func$
+  ([alias code]
+    (projection-func$ alias true code))
+  ([alias flatten code :- m/CodeExpr]
+    ^:pig {:type :projection
+           :expr code
+           :flatten flatten
+           :alias alias}))
 
 (defn ^:private update-alias-ns [id projection]
   (update-in projection [:alias] (partial mapv (partial update-ns id))))

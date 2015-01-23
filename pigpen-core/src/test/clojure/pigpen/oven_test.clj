@@ -107,7 +107,7 @@
       (test-diff
         (as-> commands %
           (#'pigpen.oven/merge-command % mapping)
-          (map #(select-keys % [:type :id :ancestors :keys :fields :projections :args]) %))
+          (map #(select-keys % [:type :id :ancestors :keys :fields :args]) %))
         '[{:id s0
            :fields [s0/value]}
           {:type :bind
@@ -273,9 +273,9 @@
           (test-diff (#'pigpen.oven/bind->generate binds :pig)
                      '{:fields [generate1/value]
                        :ancestors [load1]
-                       :projections [{:type :projection-flat
-                                      :code {:type :code
-                                             :expr {:init (clojure.core/require (quote [pigpen.runtime]) (quote [clojure.edn]))
+                       :projections [{:type :projection
+                                      :expr {:type :code
+                                             :func {:init (clojure.core/require (quote [pigpen.runtime]) (quote [clojure.edn]))
                                                     :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native))
                                                                                 (pigpen.runtime/map->bind clojure.edn/read-string)
                                                                                 (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
@@ -283,8 +283,9 @@
                                                                                 (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
                                                                                 (pigpen.runtime/map->bind clojure.core/pr-str)
                                                                                 (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :native))])}
-                                             :udf :sequence
+                                             :udf :seq
                                              :args [load1/value]}
+                                      :flatten true
                                       :alias [generate1/value]}]
                        :type :generate
                        :id generate1

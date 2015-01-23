@@ -34,14 +34,18 @@
 (s/defschema FieldType
   (s/enum :native :frozen :frozen-with-nils :native-key-frozen-val))
 
-(s/defschema Expr
+(s/defschema Func
   {:init s/Any
    :func s/Any})
 
-(s/defschema Code
+(s/defschema FieldExpr
+  {:type (s/eq :field)
+   :field Field})
+
+(s/defschema CodeExpr
   {:type (s/eq :code)
-   :expr Expr
-   :udf (s/enum :normal :sequence :algebraic)
+   :func Func
+   :udf (s/enum :scalar :seq :fold)
    :args [(s/either Field s/Str)]})
 
 (s/defschema Op*
@@ -101,27 +105,16 @@
          {:type (s/eq :return)
           :data [s/Any]}))
 
-(s/defschema ProjectionField
-  {:type (s/eq :projection-field)
-   :field Field
-   :alias [(s/one Field "alias")]})
-
-(s/defschema ProjectionFunc
-  {:type (s/eq :projection-func)
-   :code Code
-   :alias [Field]})
-
-(s/defschema ProjectionFlat
-  {:type (s/eq :projection-flat)
-   :code Code
+(s/defschema Projection
+  {:type (s/eq :projection)
+   :expr (s/either CodeExpr FieldExpr)
+   :flatten s/Bool
    :alias [Field]})
 
 (defop-one Mapcat
   (merge Op
          {:type (s/eq :generate)
-          :projections [(s/either ProjectionField
-                                  ProjectionFunc
-                                  ProjectionFlat)]}))
+          :projections [Projection]}))
 
 (defop-one Bind
   (merge Op*

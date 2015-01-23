@@ -86,11 +86,11 @@
 
 (defmulti eval-func (fn [udf f args] udf))
 
-(defmethod eval-func :sequence
+(defmethod eval-func :seq
   [_ f args]
   (f args))
 
-(defmethod eval-func :algebraic
+(defmethod eval-func :fold
   [_ {:keys [pre combinef reducef post]} [values]]
   (->> values
     (mapv remove-sentinel-nil)
@@ -101,10 +101,19 @@
     post
     vector))
 
-(s/defn eval-code
-  [{:keys [udf expr args]} :- m/Code
+(defmulti eval-expr
+  (fn [expr values]
+    (:type expr)))
+
+(s/defmethod eval-expr :field
+  [{:keys [field]} :- m/FieldExpr
    values]
-  (let [{:keys [init func]} expr
+  [(values field)])
+
+(s/defmethod eval-expr :code
+  [{:keys [udf func args]} :- m/CodeExpr
+   values]
+  (let [{:keys [init func]} func
         _ (eval init)
         f (eval func)
         ;; TODO don't like - need to meditate on this one for a bit
@@ -261,18 +270,12 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Map **********
 
-(s/defmethod graph->local :projection-field
-  [values {:keys [field alias]} :- m/ProjectionField]
-  [{(first alias) (values field)}])
-
-(s/defmethod graph->local :projection-func
-  [values {:keys [code alias]} :- m/ProjectionFunc]
-  [(zipmap alias (eval-code code values))])
-
-(s/defmethod graph->local :projection-flat
-  [values {:keys [code alias] :as command} :- m/ProjectionFlat]
-  (for [value' (eval-code code values)]
-    (zipmap alias value')))
+(s/defmethod graph->local :projection
+  [values {:keys [expr flatten alias]} :- m/Projection]
+  (let [result (eval-expr expr values)]
+    (if flatten
+      (map (partial zipmap alias) result)
+      (zipmap alias result))))
 
 (s/defmethod graph->local :generate
   [[data] {:keys [projections] :as c} :- m/Mapcat]

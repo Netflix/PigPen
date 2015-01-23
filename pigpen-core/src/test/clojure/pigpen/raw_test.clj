@@ -40,12 +40,13 @@
 
 (deftest test-code$
   (test-diff
-    (code$ :normal ["a" 'r0/b 'c/d]
-           (expr$ '(require '[pigpen.runtime])
-                  '(var clojure.core/prn)))
+    (code$ :scalar
+           '(require '[pigpen.runtime])
+           '(var clojure.core/prn)
+           ["a" 'r0/b 'c/d])
     '{:type :code
-      :udf :normal
-      :expr {:init (require (quote [pigpen.runtime]))
+      :udf :scalar
+      :func {:init (require (quote [pigpen.runtime]))
              :func (var clojure.core/prn)}
       :args ["a" r0/b c/d]}))
 
@@ -94,34 +95,26 @@
 (deftest test-projection-field$
   (test-diff
     (projection-field$ 'r0/value)
-    '{:type :projection-field
-      :field r0/value
+    '{:type :projection
+      :expr {:type :field
+             :field r0/value}
+      :flatten false
       :alias [value]}))
 
 (deftest test-projection-func$
   (test-diff
-    (projection-func$ '[value]
-                      (code$ :normal '[r0/value]
-                             (expr$ `(require '[pigpen.runtime]) `identity)))
-    '{:type :projection-func
-      :code {:type :code
-             :expr {:init (clojure.core/require (quote [pigpen.runtime]))
+    (projection-func$ '[value] true
+                      (code$ :scalar
+                             `(require '[pigpen.runtime])
+                             `identity
+                             '[r0/value]))
+    '{:type :projection
+      :expr {:type :code
+             :func {:init (clojure.core/require (quote [pigpen.runtime]))
                     :func clojure.core/identity}
-             :udf :normal
+             :udf :scalar
              :args [r0/value]}
-      :alias [value]}))
-
-(deftest test-projection-flat$
-  (test-diff
-    (projection-flat$ '[value]
-                      (code$ :normal '[r0/value]
-                             (expr$ `(require '[pigpen.runtime]) `identity)))
-    '{:type :projection-flat
-      :code {:type :code
-             :expr {:init (clojure.core/require (quote [pigpen.runtime]))
-                    :func clojure.core/identity}
-             :udf :normal
-             :args [r0/value]}
+      :flatten true
       :alias [value]}))
 
 (deftest test-generate$*
@@ -134,8 +127,10 @@
         :ancestors [r0]
         :fields [generate0/value]
         :field-type :frozen
-        :projections [{:type :projection-field
-                       :field r0/value
+        :projections [{:type :projection
+                       :expr {:type :field
+                              :field r0/value}
+                       :flatten false
                        :alias [generate0/value]}]
         :opts {:type :generate-opts}})))
 
@@ -151,8 +146,10 @@
                      :field-type :frozen}]
         :fields [generate0/value]
         :field-type :frozen
-        :projections [{:type :projection-field
-                       :field r0/value
+        :projections [{:type :projection
+                       :expr {:type :field
+                              :field r0/value}
+                       :flatten false
                        :alias [generate0/value]}]
         :opts {:type :generate-opts}})))
 
