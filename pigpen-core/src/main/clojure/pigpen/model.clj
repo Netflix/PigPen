@@ -34,17 +34,14 @@
 (s/defschema FieldType
   (s/enum :native :frozen :frozen-with-nils :native-key-frozen-val))
 
-(s/defschema Func
-  {:init s/Any
-   :func s/Any})
-
 (s/defschema FieldExpr
   {:type (s/eq :field)
    :field Field})
 
 (s/defschema CodeExpr
   {:type (s/eq :code)
-   :func Func
+   :init s/Any
+   :func s/Any
    :udf (s/enum :scalar :seq :fold)
    :args [(s/either Field s/Str)]})
 

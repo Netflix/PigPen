@@ -110,16 +110,19 @@
    values]
   [(values field)])
 
+(defn field-lookup [values arg]
+  (cond
+    (string? arg) arg
+    (symbol? arg) (get values arg)
+    :else (throw (ex-info "Unknown arg" {:arg arg, :values values}))))
+
 (s/defmethod eval-expr :code
-  [{:keys [udf func args]} :- m/CodeExpr
+  [{:keys [udf init func args]} :- m/CodeExpr
    values]
-  (let [{:keys [init func]} func
-        _ (eval init)
-        f (eval func)
-        ;; TODO don't like - need to meditate on this one for a bit
-        arg-values (map #(if (string? %) % (get values %)) args)
-        result (eval-func udf f arg-values)]
-    result))
+  (eval init)
+  (let [f (eval func)
+        arg-values (map (partial field-lookup values) args)]
+    (eval-func udf f arg-values)))
 
 (defmulti graph->local (fn [data command] (:type command)))
 

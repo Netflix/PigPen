@@ -46,8 +46,8 @@
            ["a" 'r0/b 'c/d])
     '{:type :code
       :udf :scalar
-      :func {:init (require (quote [pigpen.runtime]))
-             :func (var clojure.core/prn)}
+      :init (require (quote [pigpen.runtime]))
+      :func (var clojure.core/prn)
       :args ["a" r0/b c/d]}))
 
 ;; ********** IO **********
@@ -110,8 +110,8 @@
                              '[r0/value]))
     '{:type :projection
       :expr {:type :code
-             :func {:init (clojure.core/require (quote [pigpen.runtime]))
-                    :func clojure.core/identity}
+             :init (clojure.core/require (quote [pigpen.runtime]))
+             :func clojure.core/identity
              :udf :scalar
              :args [r0/value]}
       :flatten true

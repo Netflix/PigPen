@@ -67,8 +67,8 @@ building blocks for more complex operations."
   "Execute custom code in a script."
   [udf init func args]
   ^:pig {:type :code
-         :func {:init init
-                :func func}
+         :init init
+         :func func
          :udf udf
          :args (vec args)})
 
