@@ -63,9 +63,10 @@
 (defmethod pigpen.pig/native->clojure GenericData$Array [value]
   (vec (map pigpen.pig/native->clojure value)))
 
-(defmethod pigpen.pig/native->clojure GenericData$Record [value]
-  (let [fields (->> value .getSchema .getFields (map #(.name %)))]
-    (zipmap (map keyword fields) (map #(pigpen.pig/native->clojure (.get value %)) fields))))
+(defmethod pigpen.pig/native->clojure GenericData$Record [^GenericData$Record value]
+  (let [fields (->> value .getSchema .getFields (map (fn [^Schema$Field fd] (.name fd))))]
+    (zipmap (map keyword fields) (map #(pigpen.pig/native->clojure
+                                        (.get value ^{:tag String} %)) fields))))
 
 (defn dotted-keys->nested-map [kvs]
   (->> kvs
