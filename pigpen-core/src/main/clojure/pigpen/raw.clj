@@ -94,7 +94,7 @@ building blocks for more complex operations."
     (assoc :location location
            :storage storage
            :description location
-           :arg (-> relation :fields first))))
+           :args (:fields relation))))
 
 (s/defn return$ :- m/Return$
   [data fields]

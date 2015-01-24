@@ -29,17 +29,17 @@
         :id bind2
         :description nil
         :func (pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig.runtime/native->clojure))
-        :args ["y" y "x" x]
+        :args ["y" load1/y "x" load1/x]
         :requires []
-        :fields [value]
+        :fields [bind2/value]
         :field-type-in :native
-        :field-type-out :frozen
+        :field-type :frozen
         :opts {:type :bind-opts}
         :ancestors [{:type :load
                      :id load1
                      :description "foo"
                      :location "foo"
-                     :fields [y x]
+                     :fields [load1/y load1/x]
                      :field-type :native
                      :storage :parquet
                      :opts {:type :load-opts
@@ -50,33 +50,22 @@
     (test-diff
       (pig-parquet/store-parquet "foo" {:x :chararray, :y :int} {:fields '[value]})
       '{:type :store
-        :id store3
+        :id store2
         :description "foo"
-        :location "foo"
-        :fields [y x]
         :storage :parquet
-        :opts {:type :store-opts
-               :schema {:y :int, :x :chararray}}
-        :ancestors [{:projections [{:type :projection-field
-                                    :field 0
-                                    :alias y}
-                                   {:type :projection-field
-                                    :field 1
-                                    :alias x}]
-                     :fields [y x]
-                     :ancestors [{:type :bind
-                                  :id bind1
-                                  :description nil
-                                  :func (pigpen.runtime/keyword-field-selector->bind [:y :x])
-                                  :args [value]
-                                  :requires []
-                                  :fields [value]
-                                  :field-type-in :frozen
-                                  :field-type-out :native
-                                  :opts {:type :bind-opts}
-                                  :ancestors [{:fields [value]}]}]
-                     :type :generate
-                     :id generate2
+        :location "foo"
+        :args [bind1/y bind1/x]
+        :ancestors [{:type :bind
+                     :id bind1
                      :description nil
-                     :field-type :native
-                     :opts {:type :generate-opts}}]})))
+                     :func (pigpen.runtime/keyword-field-selector->bind [:y :x])
+                     :args [value]
+                     :requires []
+                     :fields [bind1/y bind1/x]
+                     :field-type-in :frozen
+                     :field-type :frozen
+                     :opts {:type :bind-opts
+                            :field-type-out :native}
+                     :ancestors [{:fields [value]}]}]
+        :opts {:type :store-opts
+               :schema {:y :int, :x :chararray}}})))

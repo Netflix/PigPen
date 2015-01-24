@@ -47,9 +47,18 @@ number of optimizations and transforms to the graph.
   "Updates a single field with an id mapping"
   [id-mapping field]
   {:pre [field ((some-fn map? fn?) id-mapping)]}
-  (let [r (symbol (namespace field))
-        r' (id-mapping r r)]
-    (symbol (name r') (name field))))
+  (cond
+    (string? field)
+    field
+
+    (and (symbol? field)
+         (namespace field))
+    (let [r (symbol (namespace field))
+          r' (id-mapping r r)]
+      (symbol (name r') (name field)))
+
+    :else
+    (throw (ex-info "Invalid field" {:field field}))))
 
 (defn ^:private update-command-fields
   "Updates command-specific fields"
@@ -63,7 +72,7 @@ number of optimizations and transforms to the graph.
     :field         (update-in command [:field] update-fn)
 
     :bind          (update-in command [:args] (partial mapv update-fn))
-    :store         (update-in command [:arg] update-fn)
+    :store         (update-in command [:args] (partial mapv update-fn))
     :order         (update-in command [:key] update-fn)
     :reduce        (update-in command [:arg] update-fn)
     (:group :join) (update-in command [:keys] (partial mapv update-fn))

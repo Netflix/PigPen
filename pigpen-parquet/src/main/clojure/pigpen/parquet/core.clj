@@ -56,11 +56,11 @@ parquet column names.
   {:added "0.2.7"}
   [location schema]
   (let [fields (->> schema keys (mapv (comp symbol name)))
-        pig-schema (schema->pig-schema schema)]
-    (-> location
-      (raw/load$ fields :parquet {:schema pig-schema})
+        pig-schema (schema->pig-schema schema)
+        {:keys [id] :as load} (raw/load$ location fields :parquet {:schema pig-schema})]
+    (-> load
       (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig.runtime/native->clojure))
-                 {:args (clojure.core/mapcat (juxt str identity) fields), :field-type-in :native}))))
+                 {:args (clojure.core/mapcat (juxt str #(symbol (name id) (name %))) fields), :field-type-in :native}))))
 
 (defmethod pigpen.local/load :parquet
   [{:keys [location fields storage]}]
@@ -88,17 +88,17 @@ with keywords matching the parquet columns to be stored.
 "
   {:added "0.2.7"}
   [location schema relation]
-  (let [fields (map (comp symbol name) (keys schema))]
+  (let [fields (mapv (comp symbol name) (keys schema))]
     (-> relation
       (raw/bind$ [] `(pigpen.runtime/keyword-field-selector->bind ~(mapv keyword fields))
-                 {:field-type-out :native})
-      (raw/generate$ (map-indexed raw/projection-field$ fields) {:field-type :native})
+                 {:field-type-out :native
+                  :alias fields})
       (raw/store$ location :parquet {:schema schema}))))
 
 (defmethod pigpen.local/store :parquet
-  [{:keys [location fields opts]}]
+  [{:keys [location args opts]}]
   (let [schema (schema->pig-schema (:schema opts))]
-    (StoreFuncStorage. (ParquetStorer.) schema location fields)))
+    (StoreFuncStorage. (ParquetStorer.) schema location args)))
 
 (defmethod pigpen.script/storage->script [:store :parquet]
   [_]

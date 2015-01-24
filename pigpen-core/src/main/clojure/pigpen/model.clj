@@ -95,7 +95,7 @@
          {:type (s/eq :store)
           :location s/Str
           :storage s/Keyword
-          :arg Field}))
+          :args [Field]}))
 
 (defop-zero Return
   (merge Op

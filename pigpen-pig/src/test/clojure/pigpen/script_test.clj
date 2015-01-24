@@ -93,7 +93,7 @@
                             :id store0
                             :ancestors [relation0]
                             :location "foo"
-                            :arg relation0/value
+                            :args [relation0/value]
                             :storage :string
                             :opts {:type :store-opts}}
                           {}))))

@@ -239,12 +239,12 @@ sequence. This command is very useful for unit tests.
   :storage)
 
 (s/defmethod store :string
-  [{:keys [location arg]} :- m/Store]
+  [{:keys [location args]} :- m/Store]
   (reify PigPenLocalStorage
     (init-writer [_]
       (store-writer location))
     (write [_ writer value]
-      (let [line (str (get value arg) "\n")]
+      (let [line (str (get value (first args)) "\n")]
         (.write ^Writer writer line)))
     (close-writer [_ writer]
       (.close ^Writer writer))))

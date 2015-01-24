@@ -76,7 +76,7 @@
                      :fields [r0/value]
                      :field-type :frozen}]
         :location "foo"
-        :arg r0/value
+        :args [r0/value]
         :storage :string
         :opts {:type :store-opts}})))
 
@@ -384,7 +384,7 @@
         :id script3
         :ancestors [{:storage :string
                      :location "foo"
-                     :arg r0/value
+                     :args [r0/value]
                      :ancestors [{:id r0
                                   :fields [r0/value]
                                   :field-type :frozen}]
@@ -394,7 +394,7 @@
                      :opts {:type :store-opts}}
                     {:storage :string
                      :location "foo"
-                     :arg r0/value
+                     :args [r0/value]
                      :ancestors [{:id r0
                                   :fields [r0/value]
                                   :field-type :frozen}]
