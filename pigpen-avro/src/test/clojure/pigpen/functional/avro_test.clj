@@ -60,6 +60,26 @@
       "uId" "14125918269",
       "bNo" "15959",
       "sId" "12850"}
+     :panel {:defOid 29991883477}}
+    {
+     :browserTimestamp 1417997392079,
+     :rawHash
+     {"uId" "14125918269",
+      "bNo" "15959",
+      "queryParams" "",
+      "sId" "12850"},
+     :metadata {:schema_id "e48b9786fd4598fa27c1de354f735"},
+     :requestSpan
+     {
+      :metadata {:schema_id "7d8d87ef3315c672a28b6ae2d31bd9fa"},
+      :handledExceptions
+      [
+       {:exceptionClass "FooExeption",
+        :exceptionMessage "foomessage",
+        :exceptionStack "prod"}
+       ],
+      :spanId "3e313af4-76b8-48cf-abc8-92033f225126",
+      },
      :panel {:defOid 29991883477}}])
 
 
@@ -77,6 +97,6 @@
                 "resources/example_data.avro" (slurp "resources/example_schema.avsc"))
                             (pig/map #(get % :browserTimestamp 0))
                             (pig/fold (fold/sum)))]
-    (is (= (pig/dump query) [4253992129199]))))
+    (is (= (pig/dump query) [5671989521278]))))
 
 (comment (run-tests))

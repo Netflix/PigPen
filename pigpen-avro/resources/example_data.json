@@ -65,3 +65,29 @@
   },
   "panel": {"com.example.PanelInfo":{"defOid": {"long": 29991883477}}}
 }
+{
+  "browserTimestamp": 1417997392079,
+  "rawHash": {
+    "uId": "14125918269",
+    "bNo": "15959",
+    "queryParams": "",
+    "sId": "12850"
+  },
+  "metadata": {
+    "schema_id": "e48b9786fd4598fa27c1de354f735"
+  },
+  "requestSpan": {
+    "metadata": {
+      "schema_id": "7d8d87ef3315c672a28b6ae2d31bd9fa"
+    },
+    "unhandledException": {"null": null},
+      "handledExceptions": {"array": [
+          {"exceptionClass": "FooExeption",
+           "exceptionMessage": {"string": "foomessage"},
+           "exceptionStack": "prod"}
+      ]},
+    "spanId": "3e313af4-76b8-48cf-abc8-92033f225126",
+    "parentSpanId": null
+  },
+  "panel": {"com.example.PanelInfo":{"defOid": {"long": 29991883477}}}
+}
