@@ -77,15 +77,14 @@
   [commands lookup]
   (->> commands
     ;; Look for rank commands
-    (filter #(= (:type %) :rank))
+    (filter (comp #{:rank} :type))
     ;; Find the first that's after an order & has no sort of its own
-    (some (fn [c]
+    (some (fn [rank]
             ;; rank will only ever have a single ancestor
-            (let [a (-> c :ancestors first lookup)]
-              (when (and (= (:sort-keys c) [])
-                         (= (:type a) :order))
+            (let [sort (-> rank :ancestors first lookup)]
+              (when (-> sort :type #{:order})
                 ;; Return both the rank & order commands
-                [c a]))))))
+                [rank sort]))))))
 
 (defn ^:private merge-order-rank
   "Looks for a pig/sort or pig/sort-by followed by a pig/map-indexed. Moves the
@@ -94,7 +93,7 @@
   ;; Build an id > command lookup
   (let [lookup (->> commands (map (juxt :id identity)) (into {}))]
     ;; Try to find the next potential rank command.
-    (if-let [[next-rank {:keys [sort-keys ancestors]}] (next-order-rank commands lookup)]
+    (if-let [[next-rank {:keys [key comp ancestors]}] (next-order-rank commands lookup)]
       ;; If we find one, update the rank & recur
       (recur
         (for [command commands]
@@ -103,7 +102,8 @@
             ;; When we find the rank command, add the sort-keys to it and update it
             ;; to point at the sort's generate command.
             (assoc command
-                   :sort-keys sort-keys
+                   :key key
+                   :comp comp
                    :ancestors ancestors))) _)
       ;; If we don't find one, we're done
       commands)))
@@ -135,14 +135,49 @@
   (->> commands
     (mapcat (fn [{:keys [type id opts fields] :as c}]
               (if (= type :rank)
-                (let [id' (symbol (str id "_0"))]
+                (let [id-str (str id "_0")
+                      id' (symbol id-str)]
                   [(assoc c :id id')
                    (-> id'
                      (raw/bind$* '(fn [[i v]]
                                     [[(dec i) v]])
-                                 {:args ['$0 'value]
-                                  :fields ['$0 'value]})
-                     (assoc :id id))])
+                                 {})
+                     (assoc :id id)
+                     (assoc :args [(symbol id-str "$0") (symbol id-str "value")])
+                     (assoc :fields [(symbol (str id) "$0") (symbol (str id) "value")]))])
+                [c])))))
+
+;; **********
+
+(defn ^:private split-generate
+  "Splits every generate command into two so that column pruning works"
+  [commands _]
+  (->> commands
+    (mapcat (fn [{:keys [type id fields field-type projections opts] :as c}]
+              (if (= type :generate)
+                (let [id' (symbol (str id "_0"))
+                      projections-a (map-indexed
+                                      (fn [i p]
+                                        (-> p
+                                          (assoc :flatten false)
+                                          (assoc :alias [(symbol (name id') (str "value" i))])))
+                                      projections)
+                      projections-b (map-indexed
+                                      (fn [i p]
+                                        (-> p
+                                          (assoc :expr {:type :field
+                                                        :field (symbol (name id') (str "value" i))})
+                                          (update-in [:alias] (partial mapv (partial raw/update-ns id)))))
+                                      projections)]
+                  [(-> c
+                     (assoc :id id')
+                     (assoc :projections (vec projections-a))
+                     (assoc :fields (mapcat :alias projections-a)))
+                   (-> id'
+                     (raw/generate$* projections-b {})
+                     (assoc :id id)
+                     (assoc :projections projections-b)
+                     (assoc :fields (mapcat :alias projections-b)))])
                 [c])))))
 
 ;; **********
@@ -180,7 +215,8 @@ produces a non-pigpen output.
        add-pigpen-jar      1.3
        merge-order-rank    1.4
        expand-load-filters 2.1
-       dec-rank            2.2}
+       dec-rank            2.2
+       split-generate      4.5}
       (merge {:extract-references? true
               :extract-options?    true
               :add-pigpen-jar?     true

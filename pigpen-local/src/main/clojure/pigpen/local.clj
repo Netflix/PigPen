@@ -18,7 +18,7 @@
 
 (ns pigpen.local
   (:refer-clojure :exclude [load load-reader read])
-  (:require [schema.macros :as s] ;; TODO why doesn't schema.core load properly?
+  (:require [schema.core :as s]
             [pigpen.model :as m]
             [pigpen.runtime]
             [pigpen.raw :as raw]

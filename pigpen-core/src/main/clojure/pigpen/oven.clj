@@ -51,7 +51,7 @@ number of optimizations and transforms to the graph.
         r' (id-mapping r r)]
     (symbol (name r') (name field))))
 
-(defn update-command-fields
+(defn ^:private update-command-fields
   "Updates command-specific fields"
   [command update-fn]
   (case (:type command)

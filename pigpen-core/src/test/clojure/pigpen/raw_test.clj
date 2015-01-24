@@ -311,7 +311,7 @@
         :id reduce0
         :description nil
         :arg r0/value
-        :fields [reduce0/value]
+        :fields [r0/value]
         :field-type :frozen
         :ancestors [{:id r0
                      :fields [r0/value]

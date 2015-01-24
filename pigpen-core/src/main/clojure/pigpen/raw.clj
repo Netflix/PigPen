@@ -249,6 +249,7 @@ building blocks for more complex operations."
   [relation opts]
   (->
     (command :reduce relation opts)
+    (assoc :fields [(-> relation :fields first)])
     (assoc :arg (-> relation :fields first))))
 
 (defmulti ancestors->fields

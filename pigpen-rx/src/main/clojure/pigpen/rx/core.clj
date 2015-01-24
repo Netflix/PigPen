@@ -17,7 +17,7 @@
 ;;
 
 (ns pigpen.rx.core
-  (:require [schema.macros :as s] ;; TODO why doesn't schema.core load properly?
+  (:require [schema.core :as s]
             [pigpen.model :as m]
             [pigpen.runtime]
             [pigpen.local :as local]
