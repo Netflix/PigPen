@@ -61,7 +61,7 @@
                      (pigpen.runtime/post-process :none :native))])]
 
     (is (= (command [1 2])
-           [[1 2]])))
+           [[[1 2]]])))
 
   (let [command (pigpen.runtime/exec
                   [(pigpen.runtime/process->bind
@@ -75,7 +75,7 @@
                      (pigpen.runtime/post-process :none :native))])]
 
     (is (= (command ["1"])
-           ["1"])))
+           [["1"]])))
 
   (let [command (pigpen.runtime/exec
                   [(pigpen.runtime/process->bind
@@ -87,7 +87,7 @@
                      (pigpen.runtime/post-process :none :native))])]
 
     (is (= (command ["1"])
-           ["1" "2" "3"])))
+           [["1"] ["2"] ["3"]])))
 
   (let [command (pigpen.runtime/exec
                   [(pigpen.runtime/process->bind
@@ -101,4 +101,4 @@
                      (pigpen.runtime/post-process :none :native))])]
 
     (is (= (command ["1"])
-           ["1" "2" "2" "4" "2" "4" "4" "8"]))))
+           [["1"] ["2"] ["2"] ["4"] ["2"] ["4"] ["4"] ["8"]]))))

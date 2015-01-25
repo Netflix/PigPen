@@ -17,10 +17,13 @@
 ;;
 
 (ns pigpen.local.functional-test
-  (:require [clojure.test :refer [run-tests]]
+  (:require [clojure.test :refer :all]
+            [schema.test]
             [pigpen.functional-test :as t :refer [TestHarness]]
             [pigpen.functional-suite :refer [def-functional-tests]]
             [pigpen.core :as pig]))
+
+(use-fixtures :once schema.test/validate-schemas)
 
 (def prefix "build/functional/local/")
 
