@@ -16,10 +16,16 @@
 ;;
 ;;
 
-(ns pigpen.core-test
-  (:use clojure.test)
-  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]))
+(ns pigpen.model-test
+  (:require [clojure.test :refer :all]
+            [pigpen.model :as m]))
 
-;; ********** Script **********
+(deftest test-field?
 
-;; TODO test-script
+  (is (= true (m/field? 'foo/bar)))
+  (is (= false (m/field? 'foo)))
+  (is (= false (m/field? nil)))
+  (is (= false (m/field? [])))
+  (is (= false (m/field? "foo")))
+  (is (= false (m/field? :foo)))
+  (is (= false (m/field? ["foo" :string]))))

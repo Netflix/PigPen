@@ -2,8 +2,6 @@ dependencies {
     compile project(':pigpen')
     testCompile project(':pigpen-tests')
 
-    provided 'org.clojure:clojure:1.6.0'
-
-    compile 'io.reactivex:rxjava:1.0.0-rc.1'
-    compile 'io.reactivex:rxclojure:1.0.0-rc.1'
+    compile 'io.reactivex:rxjava:1.0.4'
+    compile 'io.reactivex:rxclojure:1.0.0'
 }

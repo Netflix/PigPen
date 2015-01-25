@@ -46,7 +46,7 @@ Function f should be a function of one argument.
 
   Note: Unlike clojure.core/map, pigpen.core/map takes only one relation. This
 is due to the fact that there is no defined order in pigpen. See pig/join,
-pig/cogroup, and pig/union for combining sets of data. 
+pig/cogroup, and pig/union for combining sets of data.
 
   See also: pigpen.core/mapcat, pigpen.core/map-indexed, pigpen.core/join,
             pigpen.core/cogroup, pigpen.core/union
@@ -81,8 +81,8 @@ f to each item in relation. Thus f should return a collection.
   {:pre [(map? relation) f]}
   (code/assert-arity f 2)
   (-> relation
-    (raw/rank$ [] opts)
-    (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args ['$0 'value]})))
+    (raw/rank$ opts)
+    (raw/bind$ `(pigpen.runtime/map->bind ~f) {})))
 
 (defmacro map-indexed
   "Returns a relation of applying f to the the index and value of every item in
@@ -108,17 +108,16 @@ and the value. If you require sequential ids, use option {:dense true}.
   ([f opts relation]
     `(map-indexed* (code/trap ~f) (assoc ~opts :description ~(pp-str f)) ~relation)))
 
+;; TODO remove multi-key support
 (defn sort*
   "See pigpen.core/sort, pigpen.core/sort-by"
   [key-selector comp opts relation]
   {:pre [(map? relation) (#{:asc :desc} comp)]}
   (-> relation
     (raw/bind$ `(pigpen.runtime/key-selector->bind ~key-selector)
-               {:field-type-out :native-key-frozen-val
-                :implicit-schema true})
-    (raw/generate$ [(raw/projection-field$ 0 'key)
-                    (raw/projection-field$ 1 'value)] {})
-    (raw/order$ ['key comp] opts)))
+               {:field-type :native-key-frozen-val
+                :alias ['key 'value]})
+    (raw/order$ 'key comp opts)))
 
 (defmacro sort
   "Sorts the data with an optional comparator. Takes an optional map of options.

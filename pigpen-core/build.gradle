@@ -5,4 +5,5 @@ dependencies {
     compile 'org.clojure:core.async:0.1.267.0-0d7780-alpha'
     compile 'com.taoensso:nippy:2.6.3'
     compile 'rhizome:rhizome:0.1.9'
+    compile 'prismatic:schema:0.3.3'
 }

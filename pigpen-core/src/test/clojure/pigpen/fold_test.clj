@@ -16,6 +16,6 @@
 ;;
 ;;
 
-(ns pigpen.map-test
+(ns pigpen.fold-test
   (:require [clojure.test :refer :all]
-            [pigpen.map]))
+            [pigpen.fold]))

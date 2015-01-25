@@ -36,14 +36,12 @@ coerced to ::nil so they can be differentiated from outer joins later."
   ;; TODO - If this is an inner join, we can filter nil keys before the join
   [{:keys [join-nils sentinel-nil]} {:keys [from key-selector on by]}]
   (let [key-selector (or key-selector on by 'identity)]
-    (-> from
-      (raw/bind$ (if sentinel-nil
-                   `(pigpen.runtime/key-selector->bind (comp pigpen.runtime/sentinel-nil ~key-selector))
-                   `(pigpen.runtime/key-selector->bind ~key-selector))
-                 {:field-type-out (if join-nils :frozen :frozen-with-nils)
-                  :implicit-schema true})
-      (raw/generate$ [(raw/projection-field$ 0 'key)
-                      (raw/projection-field$ 1 'value)] {}))))
+    (raw/bind$ from
+               (if sentinel-nil
+                 `(pigpen.runtime/key-selector->bind (comp pigpen.runtime/sentinel-nil ~key-selector))
+                 `(pigpen.runtime/key-selector->bind ~key-selector))
+               {:field-type (if join-nils :frozen :frozen-with-nils)
+                :alias ['key 'value]})))
 
 ;; TODO verify these are vetted at compile time
 (defn fold-fn*
@@ -63,7 +61,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
 
 (defn ^:private projection-fold [fold field alias]
   (if fold
-    (raw/projection-func$ alias (raw/code$ :algebraic [field] (raw/expr$ "" fold)))
+    (raw/projection-func$ alias false (raw/code$ :fold "" fold [field]))
     (raw/projection-field$ field alias)))
 
 (defn seq-groups
@@ -72,54 +70,66 @@ coerced to ::nil so they can be differentiated from outer joins later."
   (fn [key & groups]
     (apply f key (map #(if (seq? %) (seq %) %) groups))))
 
+(defmethod raw/ancestors->fields :group
+  [_ id ancestors]
+  (vec (cons (symbol (name id) "group") (mapcat :fields ancestors))))
+
+(defmethod raw/fields->keys :group
+  [_ fields]
+  (filterv (comp '#{key} symbol name) fields))
+
 (defn group*
   "See pigpen.core/group-by, pigpen.core/cogroup"
   [selects f opts]
   (let [relations  (mapv (partial select->generate opts) selects)
-        keys       (for [r relations] ['key])
-        values     (cons 'group (for [r relations] [[(:id r)] 'value]))
-        folds      (mapv projection-fold (cons nil (map :fold selects)) values (map #(symbol (str "value" %)) (range)))
-        join-types (mapv #(get % :type :optional) selects)]
+        join-types (mapv #(get % :type :optional) selects)
+        fields     (mapcat :fields relations)
+        {:keys [fields], :as c} (raw/group$ relations :group join-types (dissoc opts :fold))
+        values     (filter (comp '#{group value} symbol name) fields)
+        folds      (mapv projection-fold
+                         (cons nil (map :fold selects))
+                         values
+                         (map #(vector (symbol (str "value" %))) (range)))]
     (code/assert-arity f (count values))
-    (-> relations
-      (raw/group$ keys join-types (dissoc opts :fold))
+    (-> c
       (raw/generate$ folds {})
-      (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f)) {:args (mapv :alias folds)}))))
+      (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f)) {}))))
 
-(defn group-all*
+(defn reduce*
   "See pigpen.core/into, pigpen.core/reduce"
   [relation f opts]
-  (code/assert-arity f 2)
-  (let [keys       [raw/group-all$]
-        values     [[[(:id relation)] 'value]]
-        join-types [:optional]]
-    (-> [relation]
-      (raw/group$ keys join-types opts)
-      (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args values}))))
+  (code/assert-arity f 1)
+  (-> relation
+    (raw/reduce$ opts)
+    (raw/bind$ `(pigpen.runtime/map->bind ~f) {})))
 
 (defn fold*
   "See pigpen.core/fold"
   [relation fold opts]
-  (let [keys       [raw/group-all$]
-        values     [[[(:id relation)] 'value]]
-        join-types [:optional]]
-    (-> [relation]
-      (raw/group$ keys join-types opts)
-      (raw/generate$ [(projection-fold fold (first values) 'value)] {}))))
+  (let [{:keys [fields], :as c} (raw/reduce$ relation opts)]
+    (-> c
+      (raw/generate$ [(projection-fold fold (first fields) '[value])] {}))))
+
+(defmethod raw/ancestors->fields :join
+  [_ id ancestors]
+  (vec (mapcat :fields ancestors)))
+
+(defmethod raw/fields->keys :join
+  [_ fields]
+  (filterv (comp '#{key} symbol name) fields))
 
 (defn join*
   "See pigpen.core/join"
   [selects f {:keys [all-args] :as opts}]
   (let [relations  (mapv (partial select->generate opts) selects)
-        keys       (for [r relations] ['key])
-        values     (forcat [r relations]
-                     (if all-args
-                       [[[(:id r) 'key]] [[(:id r) 'value]]]
-                       [[[(:id r) 'value]]]))
-        join-types (mapv #(get % :type :required) selects)]
+        join-types (mapv #(get % :type :required) selects)
+        fields     (mapcat :fields relations)
+        values     (if all-args
+                     fields
+                     (filter (comp '#{value} symbol name) fields))]
     (code/assert-arity f (count values))
     (-> relations
-      (raw/join$ keys join-types opts)
+      (raw/join$ :join join-types opts)
       (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args values}))))
 
 (defmacro group-by
@@ -169,7 +179,7 @@ Optionally takes a map of options, including :parallel and :fold.
 "
   {:added "0.1.0"}
   [to relation]
-  `(group-all* ~relation (quote (partial clojure.core/into ~to)) {:description (str "into " ~to)}))
+  `(reduce* ~relation (quote (partial clojure.core/into ~to)) {:description (str "into " ~to)}))
 
 ;; TODO If reduce returns a seq, should it be flattened for further processing?
 (defmacro reduce
@@ -197,13 +207,13 @@ for further processing.
 "
   {:added "0.1.0"}
   ([f relation]
-    `(group-all* ~relation
-                 (code/trap (partial clojure.core/reduce ~f))
-                 {:description ~(pp-str f)}))
+    `(reduce* ~relation
+              (code/trap (partial clojure.core/reduce ~f))
+              {:description ~(pp-str f)}))
   ([f val relation]
-    `(group-all* ~relation
-                 (code/trap (partial clojure.core/reduce ~f ~val))
-                 {:description ~(pp-str f)})))
+    `(reduce* ~relation
+              (code/trap (partial clojure.core/reduce ~f ~val))
+              {:description ~(pp-str f)})))
 
 (defmacro fold
   "Computes a parallel reduce of the relation. This is done in multiple stages
@@ -366,7 +376,7 @@ as a semi-join in relational databases.
              {:from ~relation :key-selector (code/trap ~key-selector)}]
             '(fn [~'k ~'v] ~'v)
             (assoc ~opts :description ~(pp-str key-selector)
-                         :sentinel-nil true))))
+                   :sentinel-nil true))))
 
 (defmacro remove-by
   "Filters a relation by the keys in another relation. The key-selector function
@@ -406,6 +416,6 @@ referred to as an anti-join in relational databases.
                  {:from ~relation :key-selector (code/trap ~key-selector)}]
                 'vector
                 (assoc ~opts :description ~(pp-str key-selector)
-                             :all-args true
-                             :sentinel-nil true))
+                       :all-args true
+                       :sentinel-nil true))
          (raw/bind$ '(pigpen.runtime/mapcat->bind ~f) {})))))
