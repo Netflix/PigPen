@@ -34,7 +34,7 @@
                      f) keys)))
 
 (defn load-tap
-  "This is a thin wrapper around a tap. By default a vector of
+  "This is a thin wrapper around a source tap. By default a vector of
   the tap's source fields is created and returned as a single field.
   A custom function bind-fn can be provided to map the tap's
   source fields onto a single value in some other way."
@@ -47,6 +47,21 @@
           (raw/bind$
             `(pigpen.runtime/map->bind ~bind-fn)
             {:field-type-in :native})))))
+
+(defn store-tap
+  "This is a thin wrapper around a sink tap. The tap must accept
+  a single sink field since PigPen always deals with just one value"
+  [^Tap tap relation]
+  {:pre (<= (.size (.getSinkFields tap)) 1)}
+  (-> relation
+      (raw/bind$ `(pigpen.runtime/map->bind identity)
+                 {:args           (:fields relation)
+                  :alias          (let [fields (mapv symbol (.getSinkFields tap))]
+                                    (if (empty? fields)
+                                      'value
+                                      (first fields)))
+                  :field-type-out :native})
+      (raw/store$ (.toString tap) :tap {:tap tap})))
 
 (defmulti get-tap-fn
           identity)
@@ -132,15 +147,13 @@
     (add-val flowdef [:pipes] pipe-id (PigPenAggregateBy/buildAssembly (str pipe-id) pipes key-fields val-fields inits funcs))))
 
 (defn- code->flowdef
-  [{:keys [code-defs pipe-id field-projections]} flowdef]
+  [{:keys [code-defs pipe-id projections field-projections]} flowdef]
   {:pre [code-defs (= (count (distinct (map :udf code-defs))) 1)]}
   (let [inits (mapv #(str (get-in % [:expr :init])) code-defs)
         funcs (mapv #(str (get-in % [:expr :func])) code-defs)
         udf (first (map :udf code-defs))
-        field-names (if field-projections
-                      (mapv #(cascading-field (:alias %)) field-projections)
-                      ; TODO: this field name should not be hardcoded
-                      ["value"])
+        field-names (let [p (if field-projections field-projections projections)]
+                      (mapv #(cascading-field (:alias %)) p))
         fields (cfields field-names)
         cogroup-opts (get-in flowdef [:cogroup-opts pipe-id])]
     (cond (nil? cogroup-opts)
@@ -257,6 +270,7 @@
                     (add-val flowdef [:cogroup-opts] id pipe-opts)
                     flowdef))
         flowdef (code->flowdef {:pipe-id           id
+                                :projections       projections
                                 :field-projections field-projections
                                 :code-defs         code-defs}
                                flowdef)]
