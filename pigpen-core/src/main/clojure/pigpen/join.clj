@@ -85,15 +85,21 @@ coerced to ::nil so they can be differentiated from outer joins later."
         join-types (mapv #(get % :type :optional) selects)
         fields     (mapcat :fields relations)
         {:keys [fields], :as c} (raw/group$ relations :group join-types (dissoc opts :fold))
-        values     (filter (comp '#{group value} symbol name) fields)
-        folds      (mapv projection-fold
-                         (cons nil (map :fold selects))
-                         values
-                         (map #(vector (symbol (str "value" %))) (range)))]
+        values     (filter (comp '#{group value} symbol name) fields)]
     (code/assert-arity f (count values))
-    (-> c
-      (raw/generate$ folds {})
-      (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f)) {}))))
+    (if (some :fold selects)
+      (let [folds (mapv projection-fold
+                        (cons nil (map :fold selects))
+                        values
+                        (map #(vector (symbol (str "value" %))) (range)))]
+        (-> c
+          (raw/generate$ folds {})
+          (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f)) {})))
+
+      ; no folds
+      (-> c
+        (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f))
+                   {:args values})))))
 
 (defn reduce*
   "See pigpen.core/into, pigpen.core/reduce"

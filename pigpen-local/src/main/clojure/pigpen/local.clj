@@ -65,13 +65,12 @@
   [_ _]
   post-process)
 
-(defn cross-product [data]
-  (if (empty? data) [{}]
-    (let [head (first data)]
-      (apply concat
-        (for [child (cross-product (rest data))]
-          (for [value head]
-            (merge child value)))))))
+(defn cross-product [[head & more]]
+  (if head
+    (for [value head
+          child (cross-product more)]
+      (merge child value))
+    [{}]))
 
 (defn pigpen-comparator [comp]
   (case comp

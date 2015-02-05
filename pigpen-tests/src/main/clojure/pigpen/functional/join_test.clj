@@ -136,6 +136,29 @@
     '#{[:bar 2]
        [:foo 3]}))
 
+(t/deftest test-fold-cogroup-single
+  "single fold co-group"
+  [harness]
+  (let [data0 (t/data harness [{:k :foo, :a 1}
+                               {:k :foo, :a 2}
+                               {:k :foo, :a 3}
+                               {:k :bar, :a 4}
+                               {:k :bar, :a 5}])
+        data1 (t/data harness [{:k :foo, :b 1}
+                               {:k :foo, :b 2}
+                               {:k :bar, :b 3}
+                               {:k :bar, :b 4}
+                               {:k :bar, :b 5}])]
+    (test-diff
+      (->>
+        (pig-join/cogroup [(data0 :on :k, :required true, :fold (->> (fold/map :a) (fold/sum)))
+                           (data1 :on :k, :required true)]
+                          vector)
+        (t/dump harness)
+        (set))
+      '#{[:foo 6 ({:k :foo, :b 1} {:k :foo, :b 2})]
+         [:bar 9 ({:k :bar, :b 3} {:k :bar, :b 4} {:k :bar, :b 5})]})))
+
 (t/deftest test-fold-cogroup-dual
   "dual fold co-group"
   [harness]
@@ -351,6 +374,36 @@
       '#{[0 1 1]
          [1 1 1]
          [2 1 1]})))
+
+(t/deftest test-cogroup-self-join+left-fold
+  "cogroup self join, with one fold, one not"
+  [harness]
+  (let [data (t/data harness [0 1 2])]
+    (test-diff
+      (->>
+        (pig-join/cogroup [(data :fold (fold/count))
+                           (data)]
+                          vector)
+        (t/dump harness)
+        (set))
+      '#{[0 1 (0)]
+         [1 1 (1)]
+         [2 1 (2)]})))
+
+(t/deftest test-cogroup-self-join+right-fold
+  "cogroup self join, with one fold, one not"
+  [harness]
+  (let [data (t/data harness [0 1 2])]
+    (test-diff
+      (->>
+        (pig-join/cogroup [(data)
+                           (data :fold (fold/count))]
+                          vector)
+        (t/dump harness)
+        (set))
+      '#{[0 (0) 1]
+         [1 (1) 1]
+         [2 (2) 1]})))
 
 (t/deftest test-join-inner-implicit
   "inner join - implicit :required"
@@ -594,10 +647,11 @@
       (->>
         (t/data harness join-data1)
         (pig-join/filter-by :k keys)
-        (t/dump harness))
+        (t/dump harness)
+        (sort-by :v))
       '[{:k :i, :v 5}
-        {:k :i, :v 7}
         {:k :i, :v 5}
+        {:k :i, :v 7}
         {:k :i, :v 7}])))
 
 (t/deftest test-remove-by

@@ -2,20 +2,20 @@ package pigpen.cascading;
 
 import cascading.flow.FlowProcess;
 import cascading.operation.BaseOperation;
-import cascading.operation.Function;
-import cascading.operation.FunctionCall;
+import cascading.operation.Buffer;
+import cascading.operation.BufferCall;
 import cascading.operation.OperationCall;
 import cascading.tuple.Fields;
 import clojure.lang.IFn;
 
-public class PigPenFunction extends BaseOperation implements Function {
+public class ReduceBuffer extends BaseOperation implements Buffer {
 
     private static final IFn PREPARE = OperationUtil.getVar("prepare");
-    private static final IFn OPERATE = OperationUtil.getVar("function-operate");
+    private static final IFn OPERATE = OperationUtil.getVar("reduce-operate");
 
     private final String context;
 
-    public PigPenFunction(final String context, final Fields fields) {
+    public ReduceBuffer(final String context, final Fields fields) {
         super(fields);
         this.context = context;
     }
@@ -27,7 +27,7 @@ public class PigPenFunction extends BaseOperation implements Function {
     }
 
     @Override
-    public void operate(final FlowProcess flowProcess, final FunctionCall functionCall) {
-        OPERATE.invoke(functionCall);
+    public void operate(final FlowProcess flowProcess, final BufferCall bufferCall) {
+        OPERATE.invoke(bufferCall);
     }
 }

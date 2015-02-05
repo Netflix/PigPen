@@ -19,6 +19,8 @@
 (ns pigpen.runtime
   "Functions for evaluating user code at runtime")
 
+(set! *warn-on-reflection* true)
+
 (defmacro with-ns
   "Evaluates f within ns. Calls (require 'ns) first."
   [ns f]

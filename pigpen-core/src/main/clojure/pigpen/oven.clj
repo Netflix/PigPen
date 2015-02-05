@@ -266,8 +266,7 @@ number of optimizations and transforms to the graph.
                 (assoc :fields fields')
                 (assoc :keys (raw/fields->keys field-dispatch fields')))]
     ;; Return both the id->id' mapping and the new commands
-    ;; This mapping will collapse, but that's ok because the values are identical
-    [(zipmap ancestors ancestor-ids')
+    [{(first ancestors) (cycle ancestor-ids')}
      (conj ancestors' join')]))
 
 (defn ^:private alias-self-joins
@@ -276,7 +275,12 @@ number of optimizations and transforms to the graph.
   [commands _]
   (let [command-lookup (->> commands
                          (map (juxt :id identity))
-                         (into {}))]
+                         (into {}))
+        ;; Because a self join corrects by changing a->a1 and a->a2, we
+        ;; alternate between a1 and a2 when performing the lookup. This atom
+        ;; maintains that state. This works because each subsequent command has
+        ;; only one reference to the join.
+        lookup-indexes (atom {})]
 
     (loop [[{:keys [type ancestors] :as command} & more] commands
            id-map {} ;; keep a history of all ids we've changed
@@ -295,7 +299,14 @@ number of optimizations and transforms to the graph.
 
           ;; any joins will exist before their consumers, so we just
           ;; update with id-map as we find them
-          (recur more id-map (conj result (update-ids command id-map))))))))
+          (recur more id-map
+                 (conj result
+                       (update-ids command
+                                   (fn [id else]
+                                     (if-let [aliases (get id-map id)]
+                                       (let [n (get (swap! lookup-indexes #(update-in % [id] (fnil inc -1))) id)]
+                                         (->> aliases (drop n) first))
+                                       else))))))))))
 
 ;; **********
 
