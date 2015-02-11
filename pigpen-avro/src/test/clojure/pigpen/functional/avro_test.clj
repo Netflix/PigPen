@@ -99,4 +99,14 @@
                             (pig/fold (fold/sum)))]
     (is (= (pig/dump query) [5671989521278]))))
 
+(deftest test-compatibility
+  (let [query (->>
+               (pig-avro/load-avro
+                "resources/example_data.avro" (slurp "resources/example_compatibility_new.avsc"))
+               (pig/map #(get % :newFieldWithDefault 0))
+               (pig/fold (fold/distinct))
+               (pigpen.oven/bake))]
+    (is (.contains (pig/generate-script query) "\"default\":\"foo\""))
+    (is (= (pig/dump query) [#{"foo"}]))))
+
 (comment (run-tests))

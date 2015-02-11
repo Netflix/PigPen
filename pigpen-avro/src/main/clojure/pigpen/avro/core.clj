@@ -106,7 +106,7 @@
            storage (raw/storage$
                     ["piggybank.jar"]
                     "org.apache.pig.piggybank.storage.avro.AvroStorage"
-                    ["schema" (SchemaNormalization/toParsingForm parsed-schema)])
+                    ["schema" (.toString parsed-schema)])
            field-symbols (map symbol (field-names parsed-schema))]
        (->
         (raw/load$ location field-symbols storage {:implicit-schema true})
@@ -125,11 +125,14 @@
    :else (attrs-lookup (.get record ^{:tag java.lang.String} (first attr-names)) (rest attr-names))))
 
 (defmethod pigpen.local/load "org.apache.pig.piggybank.storage.avro.AvroStorage"
-  [{:keys [location fields] }]
+  [{:keys [location fields storage]}]
   (reify PigPenLocalLoader
     (locations [_] (pigpen.local/load-list location))
     (init-reader [_ filename]
-      (-> ^java.lang.String filename (java.io.File.) (DataFileReader. (SpecificDatumReader.))))
+      (-> ^java.lang.String filename
+          (java.io.File.)
+          (DataFileReader.
+           (SpecificDatumReader. ^Schema (parse-schema (-> storage :args second))))))
     (read [_ reader]
       (for [datum ^SpecificDatumReader reader]
         (zipmap fields (map #(attrs-lookup datum (str/split (name %) #"\.")) fields))))
