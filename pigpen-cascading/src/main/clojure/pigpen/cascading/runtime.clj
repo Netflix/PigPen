@@ -116,12 +116,9 @@
   [^FunctionCall function-call]
   (let [{:keys [projections fields]} (.getContext function-call)
         tuple-entry (.getArguments function-call)
-        values (->>
-                 (map
-                   (fn [f v] [(symbol f) (hybrid->clojure v)])
-                   (.getFields tuple-entry)
-                   (.getTuple tuple-entry))
-                 (into {}))]
+        values (fn [f]
+                 (hybrid->clojure
+                   (.getObject tuple-entry (name f))))]
     (doseq [r (->> projections
                 (map (partial eval-projections values))
                 (cross-product)
