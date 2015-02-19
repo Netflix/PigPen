@@ -40,8 +40,7 @@
         (map #(select-keys % [:type :id :ancestors :references :jar]) %))
       '[{:type :register
          :jar "ref.jar"}
-        {:ancestors []
-         :type :load
+        {:type :load
          :id load1}
         {:type :store
          :id store2
@@ -61,8 +60,7 @@
          :option "pig.maxCombinedSplitSize"
          :value 1000000}
         {:type :load
-         :id load1
-         :ancestors []}
+         :id load1}
         {:type :store
          :id store2
          :ancestors [load1]}])))
@@ -78,44 +76,36 @@
         (as-> s %
           (#'pigpen.oven/braise % {})
           (#'pigpen.pig.oven/merge-order-rank % {})
-          (map #(select-keys % [:type :id :ancestors :sort-keys]) %))
-        '[{:type :return,   :id return1,   :ancestors []}
-          {:type :bind,     :id bind2,     :ancestors [return1]}
-          {:type :generate, :id generate3, :ancestors [bind2]}
-          {:type :order,    :id order4,    :ancestors [generate3], :sort-keys [key :asc]}
-          {:type :rank,     :id rank5,     :ancestors [generate3], :sort-keys [key :asc]}
-          {:type :bind,     :id bind6,     :ancestors [rank5]}]))))
+          (map #(select-keys % [:comp :key :ancestors :id :type]) %))
+        '[{:type :return, :id return1}
+          {:type :bind,   :id bind2,  :ancestors [return1]}
+          {:type :order,  :id order3, :ancestors [bind2], :key bind2/key, :comp :asc}
+          {:type :rank,   :id rank4,  :ancestors [bind2], :key bind2/key, :comp :asc}
+          {:type :bind,   :id bind5,  :ancestors [rank4]}]))))
 
 (deftest test-expand-load-filters
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [command (raw/load$ "foo" '[foo] :string {:filter '(= foo 2)})]
       (test-diff (pig-oven/bake command)
                  '[{:type :register
-                    :id nil
-                    :ancestors []
-                    :fields []
-                    :args []
                     :jar "pigpen.jar"}
                    {:type :load
                     :id load1_0
                     :description "foo"
                     :location "foo"
-                    :ancestors []
-                    :fields [foo]
+                    :fields [load1/foo]
                     :field-type :native
-                    :args []
                     :storage :string
                     :opts {:type :load-opts
                            :filter (= foo 2)}}
-                   {:type :filter-native
+                   {:type :filter
                     :id load1
                     :description nil
                     :ancestors [load1_0]
                     :expr (= foo 2)
-                    :fields [foo]
+                    :fields [load1/foo]
                     :field-type :native
-                    :args []
-                    :opts {:type :filter-native-opts}}]))))
+                    :opts {:type :filter-opts}}]))))
 
 (deftest test-clean
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -129,9 +119,75 @@
           (#'pigpen.oven/braise % {})
           (#'pigpen.pig.oven/merge-order-rank % {})
           (#'pigpen.oven/clean % {})
-          (map #(select-keys % [:type :id :ancestors :sort-keys]) %))
-        '[{:type :return,   :id return1,   :ancestors []}
-          {:type :bind,     :id bind2,     :ancestors [return1]}
-          {:type :generate, :id generate3, :ancestors [bind2]}
-          {:type :rank,     :id rank5,     :ancestors [generate3], :sort-keys [key :asc]}
-          {:type :bind,     :id bind6,     :ancestors [rank5]}]))))
+          (map #(select-keys % [:comp :key :ancestors :id :type]) %))
+        '[{:type :return, :id return1}
+          {:type :bind,   :id bind2, :ancestors [return1]}
+          {:type :rank,   :id rank4, :ancestors [bind2], :key bind2/key, :comp :asc}
+          {:type :bind,   :id bind5, :ancestors [rank4]}]))))
+
+(deftest test-dec-rank
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+
+    (let [s (->> (pig-io/return [1 2 3])
+              (pig-map/map-indexed vector))]
+
+      (test-diff
+        (as-> s %
+          (#'pigpen.oven/braise % {})
+          (#'pigpen.pig.oven/dec-rank % {})
+          (#'pigpen.oven/optimize-binds % {})
+          (map #(select-keys % [:projections :ancestors :fields :id :type]) %))
+        '[{:type :return, :id return1, :fields [return1/value]}
+          {:type :rank, :id rank2_0, :fields [rank2/index rank2/value], :ancestors [return1]}
+          {:type :generate
+           :id generate5
+           :fields [generate5/value]
+           :ancestors [rank2_0]
+           :projections [{:type :projection
+                          :expr {:type :code
+                                 :init (clojure.core/require (quote [pigpen.runtime]))
+                                 :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process nil :frozen))
+                                                             (fn [[i v]] [[(dec i) v]])
+                                                             (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.pig.oven-test vector))
+                                                             (pigpen.runtime/process->bind (pigpen.runtime/post-process nil :frozen))])
+                                 :udf :seq
+                                 :args [rank2_0/$0 rank2_0/value]}
+                          :flatten true
+                          :alias [generate5/value]}]}]))))
+
+(deftest test-split-generate
+  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
+
+    (let [s (->> (pig-io/return [1 2 3])
+              (pig-map/map inc))]
+
+      (test-diff
+        (as-> s %
+          (#'pigpen.oven/braise % {})
+          (#'pigpen.oven/optimize-binds % {})
+          (#'pigpen.pig.oven/split-generate % {})
+          (map #(select-keys % [:projections :ancestors :fields :id :type]) %))
+        '[{:type :return
+           :id return1
+           :fields [return1/value]}
+          {:type :generate
+           :id generate3_0
+           :fields [generate3_0/value0]
+           :ancestors [return1]
+           :projections [{:type :projection
+                          :expr {:type :code
+                                 :init (clojure.core/require (quote [pigpen.runtime]))
+                                 :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process nil :frozen)) (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.pig.oven-test inc)) (pigpen.runtime/process->bind (pigpen.runtime/post-process nil :frozen))])
+                                 :udf :seq
+                                 :args [return1/value]}
+                          :flatten false
+                          :alias [generate3_0/value0]}]}
+          {:type :generate
+           :id generate3
+           :fields [generate3/value]
+           :ancestors [generate3_0]
+           :projections [{:type :projection
+                          :expr {:type :field
+                                 :field generate3_0/value0}
+                          :flatten true
+                          :alias [generate3/value]}]}]))))

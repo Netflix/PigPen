@@ -4,13 +4,17 @@
            (org.apache.hadoop.conf Configuration)
            (cascading.scheme.hadoop TextLine)
            (cascading.tap.hadoop Hfs)
-           (cascading.tuple Fields))
+           (cascading.tuple Fields Tuple TupleEntry TupleEntryCollector)
+           (cascading.operation FunctionCall)
+           (pigpen.cascading PigPenFunction))
   (:require [clojure.test :refer :all]
             [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.core :as pigpen]
             [pigpen.cascading.core :as cascading]
+            [pigpen.cascading.runtime :as runtime]
             [pigpen.oven :as oven]
-            [clojure.pprint :as pp]))
+            [clojure.pprint :as pp]
+            [criterium.core :as criterium]))
 
 (def input1 "/tmp/input1")
 (def input2 "/tmp/input2")
@@ -136,3 +140,42 @@
                  (pigpen/store-clj output1))]
     (.complete (cascading/generate-flow cmd))
     (is (= #{1 2 4 3 6} (into #{} (read-output output1))))))
+
+(deftest test-performance
+  (let [in-fields (Fields. (into-array ["load1/value"]))
+        out-fields (Fields. (into-array ["generate1/value"]))
+        context {:fields ['generate1/value]
+                 :projections [{:type :projection
+                                :expr {:type :code
+                                       :init nil
+                                       :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :cascading :frozen))
+                                                                   (pigpen.runtime/map->bind identity)
+                                                                   (pigpen.runtime/process->bind (pigpen.runtime/post-process :cascading :frozen))])
+                                       :udf :seq
+                                       :args ['load1/value]}
+                                :flatten true
+                                :alias ['generate1/value]}]}
+        value (->> 0
+                runtime/cs-freeze
+                vector
+                into-array
+                (Tuple.)
+                (TupleEntry. in-fields))
+        call (reify FunctionCall
+               (getContext [this]
+                 context)
+               (setContext [this context]
+                 (throw (ex-info "setContext" {})))
+               (getArgumentFields [this]
+                 (throw (ex-info "getArgumentFields" {})))
+               (getArguments [this]
+                 value)
+               (getDeclaredFields [this]
+                 (throw (ex-info "getDeclaredFields" {})))
+               (getOutputCollector [this]
+                 (proxy [TupleEntryCollector] [out-fields]
+                   (collect [tuple]))))
+        udf (PigPenFunction. nil out-fields)
+        results (criterium/benchmark (.operate udf nil call) {})]
+    (criterium/report-result results)
+    (is (< (first (:mean results)) 1.6E-5))))

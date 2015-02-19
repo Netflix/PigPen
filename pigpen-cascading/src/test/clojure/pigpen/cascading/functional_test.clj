@@ -67,5 +67,4 @@
     (write [this lines]
       (let [file (t/file this)]
         (spit file (clojure.string/join "\n" lines))
-        file)))
-  #{})
+        file))))

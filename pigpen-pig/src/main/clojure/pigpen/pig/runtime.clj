@@ -344,10 +344,10 @@ serialization info."
 
 (defn udf-lookup [type]
   (case type
-    :normal "pigpen.PigPenFnDataByteArray"
-    :sequence "pigpen.PigPenFnDataBag"
+    :scalar  "pigpen.PigPenFnDataByteArray"
+    :seq     "pigpen.PigPenFnDataBag"
     :boolean "pigpen.PigPenFnBoolean"
-    :algebraic "pigpen.PigPenFnAlgebraic"))
+    :fold    "pigpen.PigPenFnAlgebraic"))
 
 (defn eval-udf
   [func ^Tuple t]
