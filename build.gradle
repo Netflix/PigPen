@@ -33,6 +33,10 @@ subprojects {
         mapping('clj', 'SEMICOLON_STYLE')
     }
 
+    jar {
+       from 'src/main/clojure'
+    }
+
     apply plugin: 'clojure'
     tasks.uberjar.enabled=true
     clojure.aotCompile = true
