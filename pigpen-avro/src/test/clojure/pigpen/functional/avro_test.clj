@@ -60,7 +60,8 @@
       "uId" "14125918269",
       "bNo" "15959",
       "sId" "12850"}
-     :panel {:defOid 29991883477}}
+     :panel {:defOid 29991883477,
+             :entityType "PANEL_B"}}
     {
      :browserTimestamp 1417997392079,
      :rawHash
@@ -80,7 +81,8 @@
        ],
       :spanId "3e313af4-76b8-48cf-abc8-92033f225126",
       },
-     :panel {:defOid 29991883477}}])
+     :panel {:defOid 29991883477
+             :entityType "PANEL_A"}}])
 
 
 ;; Example data was generated like,
@@ -89,7 +91,7 @@
 (deftest test-avro
   (let [query (pig-avro/load-avro
                "resources/example_data.avro" (slurp "resources/example_schema.avsc"))]
-    (is (= (pig/dump query) clj-data))))
+    (test-diff (pig/dump query) clj-data)))
 
 (deftest test-fold
   (let [query (->>
@@ -108,5 +110,13 @@
                (pigpen.oven/bake))]
     (is (.contains (pig/generate-script query) "\"default\":\"foo\""))
     (is (= (pig/dump query) [#{"foo"}]))))
+
+(deftest test-enums
+  (let [query (->>
+               (pig-avro/load-avro
+                "resources/example_data.avro" (slurp "resources/example_schema.avsc"))
+                            (pig/map #(get-in % [:panel :entityType]))
+                            (pig/fold (fold/distinct)))]
+    (is (= (pig/dump query) [#{nil "PANEL_A" "PANEL_B"}]))))
 
 (comment (run-tests))

@@ -105,6 +105,18 @@
                 "long"
               ],
               "default": null
+            },
+            {
+              "name": "entityType",
+              "type": [
+                "null",
+                {
+                  "name": "PanelType",
+                  "type": "enum",
+                  "symbols": ["PANEL_A", "PANEL_B", "PANEL_C"]
+                }
+              ],
+              "default": null
             }
           ]
         }
