@@ -41,7 +41,10 @@ subprojects {
     tasks.uberjar.enabled=true
     clojure.aotCompile = true
 
-    compileClojure {
+   compileClojure {
+        jvmOptions {
+            jvmArgs '-Djava.awt.headless=true'
+        }
         classpath = project.files(
             project.compileJava.outputs,
             classpath
