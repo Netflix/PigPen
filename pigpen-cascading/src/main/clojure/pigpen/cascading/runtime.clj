@@ -95,7 +95,7 @@
 (defn field-lookup [values arg]
   (cond
     (string? arg) arg
-    (symbol? arg) (get values arg)
+    (symbol? arg) (values arg)
     :else (throw (ex-info "Unknown arg" {:arg arg, :values values}))))
 
 (s/defmethod eval-expr :code
@@ -118,7 +118,7 @@
         tuple-entry (.getArguments function-call)
         values (fn [f]
                  (hybrid->clojure
-                   (.getObject tuple-entry (name f))))]
+                   (.getObject tuple-entry (pr-str f))))]
     (doseq [r (->> projections
                 (map (partial eval-projections values))
                 (cross-product)
