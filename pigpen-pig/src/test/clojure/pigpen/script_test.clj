@@ -122,15 +122,15 @@
                               :alias [r1/b]}
                             {})))))
 
-(deftest test-generate
+(deftest test-project
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (is (= "DEFINE udf1 pigpen.PigPenFnDataByteArray('','(fn [x] (* x x))');
 
-generate0 = FOREACH relation0 GENERATE
+project0 = FOREACH relation0 GENERATE
     a AS (b),
     udf1('a', a) AS (c);\n\n"
-           (command->script '{:type :generate
-                              :id generate0
+           (command->script '{:type :project
+                              :id project0
                               :ancestors [relation0]
                               :fields [r1/b r1/c]
                               :field-type :frozen
@@ -149,14 +149,14 @@ generate0 = FOREACH relation0 GENERATE
                                              :alias [r1/c]}]}
                             {})))))
 
-(deftest test-generate-flatten
+(deftest test-project-flatten
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (is (= "DEFINE udf1 pigpen.PigPenFnDataBag('','(fn [x] [x x])');
 
-generate0 = FOREACH relation0 GENERATE
+project0 = FOREACH relation0 GENERATE
     FLATTEN(udf1('a', a)) AS (b);\n\n"
-           (command->script '{:type :generate
-                              :id generate0
+           (command->script '{:type :project
+                              :id project0
                               :ancestors [relation0]
                               :fields [r1/b]
                               :field-type :frozen

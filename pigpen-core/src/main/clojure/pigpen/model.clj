@@ -108,9 +108,9 @@
    :flatten s/Bool
    :alias [Field]})
 
-(defop-one Mapcat
+(defop-one Project
   (merge Op
-         {:type (s/eq :generate)
+         {:type (s/eq :project)
           :projections [Projection]}))
 
 (defop-one Bind

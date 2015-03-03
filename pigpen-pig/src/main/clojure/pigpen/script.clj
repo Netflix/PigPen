@@ -208,8 +208,8 @@ See pigpen.core and pigpen.pig
                      (str " AS " pig-alias))]
     [pig-define (str pig-code pig-schema)]))
 
-(s/defmethod command->script :generate
-  [{:keys [id ancestors projections opts]} :- m/Mapcat
+(s/defmethod command->script :project
+  [{:keys [id ancestors projections opts]} :- m/Project
    state]
   (let [relation-id (escape-id (first ancestors))
         pig-id (escape-id id)

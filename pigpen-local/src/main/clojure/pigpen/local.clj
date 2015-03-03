@@ -279,8 +279,8 @@ sequence. This command is very useful for unit tests.
       (map (partial zipmap alias) result)
       (zipmap alias result))))
 
-(s/defmethod graph->local :generate
-  [[data] {:keys [projections] :as c} :- m/Mapcat]
+(s/defmethod graph->local :project
+  [[data] {:keys [projections] :as c} :- m/Project]
   (mapcat
     (fn [values]
       (->> projections

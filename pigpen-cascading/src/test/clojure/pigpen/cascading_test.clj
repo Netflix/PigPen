@@ -143,8 +143,8 @@
 
 (deftest test-performance
   (let [in-fields (Fields. (into-array ["load1/value"]))
-        out-fields (Fields. (into-array ["generate1/value"]))
-        context {:fields ['generate1/value]
+        out-fields (Fields. (into-array ["project1/value"]))
+        context {:fields ['project1/value]
                  :projections [{:type :projection
                                 :expr {:type :code
                                        :init nil
@@ -154,7 +154,7 @@
                                        :udf :seq
                                        :args ['load1/value]}
                                 :flatten true
-                                :alias ['generate1/value]}]}
+                                :alias ['project1/value]}]}
         value (->> 0
                 runtime/cs-freeze
                 vector

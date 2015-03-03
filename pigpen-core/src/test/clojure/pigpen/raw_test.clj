@@ -117,41 +117,41 @@
       :flatten true
       :alias [value]}))
 
-(deftest test-generate$*
+(deftest test-project$*
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (generate$* 'r0 [(projection-field$ 'r0/value)] {})
-      '{:type :generate
-        :id generate0
+      (project$* 'r0 [(projection-field$ 'r0/value)] {})
+      '{:type :project
+        :id project0
         :description nil
         :ancestors [r0]
-        :fields [generate0/value]
+        :fields [project0/value]
         :field-type :frozen
         :projections [{:type :projection
                        :expr {:type :field
                               :field r0/value}
                        :flatten false
-                       :alias [generate0/value]}]
-        :opts {:type :generate-opts}})))
+                       :alias [project0/value]}]
+        :opts {:type :project-opts}})))
 
-(deftest test-generate$
+(deftest test-project$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (generate$ r0 [(projection-field$ 'r0/value)] {})
-      '{:type :generate
-        :id generate0
+      (project$ r0 [(projection-field$ 'r0/value)] {})
+      '{:type :project
+        :id project0
         :description nil
         :ancestors [{:id r0
                      :fields [r0/value]
                      :field-type :frozen}]
-        :fields [generate0/value]
+        :fields [project0/value]
         :field-type :frozen
         :projections [{:type :projection
                        :expr {:type :field
                               :field r0/value}
                        :flatten false
-                       :alias [generate0/value]}]
-        :opts {:type :generate-opts}})))
+                       :alias [project0/value]}]
+        :opts {:type :project-opts}})))
 
 (deftest test-bind$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]

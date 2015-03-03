@@ -100,7 +100,7 @@
           (if-not (= command next-rank)
             command
             ;; When we find the rank command, add the sort-keys to it and update it
-            ;; to point at the sort's generate command.
+            ;; to point at the sort's project command.
             (assoc command
                    :key key
                    :comp comp
@@ -149,12 +149,12 @@
 
 ;; **********
 
-(defn ^:private split-generate
-  "Splits every generate command into two so that column pruning works"
+(defn ^:private split-project
+  "Splits every project command into two so that column pruning works"
   [commands _]
   (->> commands
     (mapcat (fn [{:keys [type id fields field-type projections opts] :as c}]
-              (if (= type :generate)
+              (if (= type :project)
                 (let [id' (symbol (str id "_0"))
                       projections-a (map-indexed
                                       (fn [i p]
@@ -174,7 +174,7 @@
                      (assoc :projections (vec projections-a))
                      (assoc :fields (mapcat :alias projections-a)))
                    (-> id'
-                     (raw/generate$* projections-b {})
+                     (raw/project$* projections-b {})
                      (assoc :id id)
                      (assoc :projections projections-b)
                      (assoc :fields (mapcat :alias projections-b)))])
@@ -216,7 +216,7 @@ produces a non-pigpen output.
        merge-order-rank    1.4
        expand-load-filters 2.1
        dec-rank            2.2
-       split-generate      4.5}
+       split-project       4.5}
       (merge {:extract-references? true
               :extract-options?    true
               :add-pigpen-jar?     true

@@ -139,9 +139,9 @@
           (map #(select-keys % [:projections :ancestors :fields :id :type]) %))
         '[{:type :return, :id return1, :fields [return1/value]}
           {:type :rank, :id rank2_0, :fields [rank2/index rank2/value], :ancestors [return1]}
-          {:type :generate
-           :id generate5
-           :fields [generate5/value]
+          {:type :project
+           :id project5
+           :fields [project5/value]
            :ancestors [rank2_0]
            :projections [{:type :projection
                           :expr {:type :code
@@ -153,9 +153,9 @@
                                  :udf :seq
                                  :args [rank2_0/$0 rank2_0/value]}
                           :flatten true
-                          :alias [generate5/value]}]}]))))
+                          :alias [project5/value]}]}]))))
 
-(deftest test-split-generate
+(deftest test-split-project
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
     (let [s (->> (pig-io/return [1 2 3])
@@ -165,14 +165,14 @@
         (as-> s %
           (#'pigpen.oven/braise % {})
           (#'pigpen.oven/optimize-binds % {})
-          (#'pigpen.pig.oven/split-generate % {})
+          (#'pigpen.pig.oven/split-project % {})
           (map #(select-keys % [:projections :ancestors :fields :id :type]) %))
         '[{:type :return
            :id return1
            :fields [return1/value]}
-          {:type :generate
-           :id generate3_0
-           :fields [generate3_0/value0]
+          {:type :project
+           :id project3_0
+           :fields [project3_0/value0]
            :ancestors [return1]
            :projections [{:type :projection
                           :expr {:type :code
@@ -181,13 +181,13 @@
                                  :udf :seq
                                  :args [return1/value]}
                           :flatten false
-                          :alias [generate3_0/value0]}]}
-          {:type :generate
-           :id generate3
-           :fields [generate3/value]
-           :ancestors [generate3_0]
+                          :alias [project3_0/value0]}]}
+          {:type :project
+           :id project3
+           :fields [project3/value]
+           :ancestors [project3_0]
            :projections [{:type :projection
                           :expr {:type :field
-                                 :field generate3_0/value0}
+                                 :field project3_0/value0}
                           :flatten true
-                          :alias [generate3/value]}]}]))))
+                          :alias [project3/value]}]}]))))

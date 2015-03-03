@@ -28,7 +28,7 @@
     (->> commands
       (map (fn [c]
              (let [a (some-> c :ancestors first lookup)]
-               (if (and (-> c :type #{:generate})
+               (if (and (-> c :type #{:project})
                         (-> a :type #{:reduce})
                         (->> c
                           :projections
@@ -49,7 +49,7 @@
     (->> commands
       (map (fn [c]
              (let [a (some-> c :ancestors first lookup)]
-               (if (and (-> c :type #{:generate})
+               (if (and (-> c :type #{:project})
                         (-> a :type #{:group})
                         (->> c
                           :projections

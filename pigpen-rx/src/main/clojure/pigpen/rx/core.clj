@@ -145,8 +145,8 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Map **********
 
-(s/defmethod graph->observable :generate
-  [[data] {:keys [projections]} :- m/Mapcat]
+(s/defmethod graph->observable :project
+  [[data] {:keys [projections]} :- m/Project]
   (rx/flatmap
     (fn [values]
       (->> projections

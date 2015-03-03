@@ -134,18 +134,18 @@ building blocks for more complex operations."
 (defn ^:private update-alias-ns [id projection]
   (update-in projection [:alias] (partial mapv (partial update-ns id))))
 
-(s/defn generate$* :- m/Mapcat
-  "Used to make a post-bake generate"
+(s/defn project$* :- m/Project
+  "Used to make a post-bake project"
   [relation projections opts]
-  (let [{id :id, :as c} (command :generate opts)]
+  (let [{id :id, :as c} (command :project opts)]
     (-> c
       (assoc :projections (mapv (partial update-alias-ns id) projections)
              :ancestors [relation]
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))
 
-(s/defn generate$ :- m/Mapcat$
+(s/defn project$ :- m/Project$
   [relation projections opts]
-  (let [{id :id, :as c} (command :generate relation opts)]
+  (let [{id :id, :as c} (command :project relation opts)]
     (-> c
       (assoc :projections (mapv (partial update-alias-ns id) projections)
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))

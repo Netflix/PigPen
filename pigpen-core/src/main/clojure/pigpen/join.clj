@@ -28,7 +28,7 @@
 
 (set! *warn-on-reflection* true)
 
-(defn ^:private select->generate
+(defn ^:private select->bind
   "Performs the key selection prior to a join. If join-nils is true, we leave
 nils as frozen nils so they appear as values. Otherwise we return a nil value as
 nil and let the join take its course. If sentinel-nil is true, nil keys are
@@ -81,7 +81,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
 (defn group*
   "See pigpen.core/group-by, pigpen.core/cogroup"
   [selects f opts]
-  (let [relations  (mapv (partial select->generate opts) selects)
+  (let [relations  (mapv (partial select->bind opts) selects)
         join-types (mapv #(get % :type :optional) selects)
         fields     (mapcat :fields relations)
         {:keys [fields], :as c} (raw/group$ relations :group join-types (dissoc opts :fold))
@@ -93,7 +93,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
                         values
                         (map #(vector (symbol (str "value" %))) (range)))]
         (-> c
-          (raw/generate$ folds {})
+          (raw/project$ folds {})
           (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f)) {})))
 
       ; no folds
@@ -114,7 +114,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
   [relation fold opts]
   (let [{:keys [fields], :as c} (raw/reduce$ relation opts)]
     (-> c
-      (raw/generate$ [(projection-fold fold (first fields) '[value])] {}))))
+      (raw/project$ [(projection-fold fold (first fields) '[value])] {}))))
 
 (defmethod raw/ancestors->fields :join
   [_ id ancestors]
@@ -127,7 +127,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
 (defn join*
   "See pigpen.core/join"
   [selects f {:keys [all-args] :as opts}]
-  (let [relations  (mapv (partial select->generate opts) selects)
+  (let [relations  (mapv (partial select->bind opts) selects)
         join-types (mapv #(get % :type :required) selects)
         fields     (mapcat :fields relations)
         values     (if all-args

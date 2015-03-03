@@ -64,7 +64,7 @@ number of optimizations and transforms to the graph.
   "Updates command-specific fields"
   [command update-fn]
   (case (:type command)
-    :generate      (update-in command [:projections] (partial mapv #(update-command-fields % update-fn)))
+    :project       (update-in command [:projections] (partial mapv #(update-command-fields % update-fn)))
     :projection    (-> command
                      (update-in [:expr] #(update-command-fields % update-fn))
                      (update-in [:alias] (partial mapv update-fn)))
@@ -170,7 +170,7 @@ number of optimizations and transforms to the graph.
       (-> command
         (raw/bind$ [] `(pigpen.runtime/map->bind pigpen.runtime/debug)
                    {:args (:fields command), :field-type-in field-type, :field-type :native})
-        ;; TODO Fix the location of store commands to match generates instead of binds
+        ;; TODO Fix the location of store commands to match projects instead of binds
         (raw/store$ (str location (:id command)) :string {})))))
 
 ;; TODO add a debug-lite version
@@ -206,7 +206,7 @@ number of optimizations and transforms to the graph.
                   [before binds (conj after command)])))
             [[] [] []] commands)))
 
-(defn ^:private bind->generate [commands platform]
+(defn ^:private bind->project [commands platform]
   ;; TODO make sure all inner field types are :frozen
   (let [first-relation   (-> commands first :ancestors first)
         first-args       (-> commands first :args)
@@ -231,7 +231,7 @@ number of optimizations and transforms to the graph.
 
         description (->> commands (map :description) (clojure.string/join))]
 
-    (raw/generate$* first-relation [projection] {:field-type last-field-type
+    (raw/project$* first-relation [projection] {:field-type last-field-type
                                                  :description description
                                                  :implicit-schema implicit-schema})))
 
@@ -242,9 +242,9 @@ number of optimizations and transforms to the graph.
     (let [[before binds after] (find-bind-sequence commands)]
       (if (empty? binds)
         commands
-        (let [generate (bind->generate binds platform)
-              next (concat before [generate] after)
-              next (merge-command next {(-> binds last :id) (:id generate)})]
+        (let [project (bind->project binds platform)
+              next (concat before [project] after)
+              next (merge-command next {(-> binds last :id) (:id project)})]
           (recur next opts))))))
 
 ;; **********

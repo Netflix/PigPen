@@ -122,7 +122,7 @@
 
 (s/defmethod command->flowdef :reduce-fold
   [{:keys [reduce :- m/Reduce
-           fold :- m/Mapcat]}
+           fold :- m/Project]}
    [{:keys [^Pipe pipe]}]
    _]
   (let [projections (:projections fold)
@@ -153,7 +153,7 @@
 
 (s/defmethod command->flowdef :group-fold
   [{:keys [group :- m/Group
-           fold :- m/Mapcat]}
+           fold :- m/Project]}
    ancestors
    _]
   (let [{:keys [id keys]} group
@@ -185,8 +185,8 @@
         join-keys (group-key-cfields keys (:join-nils opts))]
     (CoGroup. (str id) pipes join-keys (cfields fields) joiner)))
 
-(s/defmethod command->flowdef :generate
-  [{:keys [id projections fields]} :- m/Mapcat
+(s/defmethod command->flowdef :project
+  [{:keys [id projections fields]} :- m/Project
    [{:keys [^Pipe pipe ancestor]}]
    _]
   (let [context (pr-str `'{:ancestor ~(update-in ancestor [:opts] dissoc :tap)
