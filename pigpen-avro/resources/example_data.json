@@ -63,7 +63,12 @@
     "spanId": "3e313af4-76b8-48cf-abc8-92033f225126",
     "parentSpanId": null
   },
-  "panel": {"com.example.PanelInfo":{"defOid": {"long": 29991883477}}}
+  "panel": {
+    "com.example.PanelInfo": {
+      "defOid": {"long": 29991883477},
+      "entityType": {"com.example.PanelType": "PANEL_B"}
+    }
+  }
 }
 {
   "browserTimestamp": 1417997392079,
@@ -89,5 +94,10 @@
     "spanId": "3e313af4-76b8-48cf-abc8-92033f225126",
     "parentSpanId": null
   },
-  "panel": {"com.example.PanelInfo":{"defOid": {"long": 29991883477}}}
+  "panel": {
+    "com.example.PanelInfo": {
+      "defOid": {"long": 29991883477},
+      "entityType": {"com.example.PanelType": "PANEL_A"}
+    }
+  }
 }

@@ -28,7 +28,7 @@
             SchemaNormalization]
            [org.apache.avro.file DataFileReader]
            [org.apache.avro.specific SpecificDatumReader]
-           [org.apache.avro.generic GenericData$Record GenericData$Array]
+           [org.apache.avro.generic GenericData$Record GenericData$Array GenericData$EnumSymbol]
            [pigpen.local PigPenLocalLoader]))
 
 (set! *warn-on-reflection* true)
@@ -67,6 +67,9 @@
   (let [fields (->> value .getSchema .getFields (map (fn [^Schema$Field fd] (.name fd))))]
     (zipmap (map keyword fields) (map #(pigpen.pig/native->clojure
                                         (.get value ^{:tag String} %)) fields))))
+
+(defmethod pigpen.pig/native->clojure GenericData$EnumSymbol [value]
+  (str value))
 
 (defn dotted-keys->nested-map [kvs]
   (->> kvs
