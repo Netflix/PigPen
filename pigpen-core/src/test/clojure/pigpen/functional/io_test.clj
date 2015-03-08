@@ -20,7 +20,9 @@
   (:use clojure.test)
   (:require [pigpen.extensions.test :refer [test-diff]]
             [pigpen.core :as pig]
-            [pigpen.fold :as fold]))
+            [pigpen.fold :as fold]
+            [clojure.java.io :as io])
+  (:import [java.util.zip GZIPOutputStream]))
 
 (.mkdirs (java.io.File. "build/functional/io-test"))
 
@@ -30,10 +32,10 @@
     (test-diff
       (set (pig/dump command))
       '#{"The quick brown fox"
-         "jumps over the lazy dog"})))  
+         "jumps over the lazy dog"})))
 
 (deftest test-load-tsv
-  
+
   (testing "Normal tsv with default delimiter"
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv")]
       (spit "build/functional/io-test/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
@@ -41,7 +43,7 @@
         (set (pig/dump command))
         '#{["a" "b" "c"]
            ["1" "2" "3"]})))
-  
+
   (testing "Normal tsv with non-tab delimiter"
     (let [command (pig/load-tsv "build/functional/io-test/test-load-tsv" #",")]
       (spit "build/functional/io-test/test-load-tsv" "a\tb\tc\n1\t2\t3\n")
@@ -85,31 +87,42 @@
            ["another string" "-532" "23.7"]}))))
 
 (deftest test-load-clj
-  (let [command (pig/load-clj "build/functional/io-test/test-load-clj")]
-    (spit "build/functional/io-test/test-load-clj" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
-    (test-diff
-      (set (pig/dump command))
-      '#{{:a 2, :b "bar"}
-         {:a 1, :b "foo"}})))
+
+  (testing "normal"
+    (let [command (pig/load-clj "build/functional/io-test/test-load-clj")]
+      (spit "build/functional/io-test/test-load-clj" "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")
+      (test-diff
+        (set (pig/dump command))
+        '#{{:a 2, :b "bar"}
+           {:a 1, :b "foo"}})))
+
+  (testing "gz input"
+    (let [command (pig/load-clj "build/functional/io-test/test-load-clj.gz")]
+      (with-open [o (GZIPOutputStream. (io/output-stream "build/functional/io-test/test-load-clj.gz"))]
+        (.write o (.getBytes "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")))
+      (test-diff
+        (set (pig/dump command))
+        '#{{:a 2, :b "bar"}
+           {:a 1, :b "foo"}}))))
 
 (deftest test-load-json
-  
+
   (spit "build/functional/io-test/test-load-json" "{\"a\" 1, \"b\" \"foo\"}\n{\"a\" 2, \"b\" \"bar\"}")
-  
+
   (testing "Default"
     (let [command (pig/load-json "build/functional/io-test/test-load-json")]
       (test-diff
         (set (pig/dump command))
         '#{{:a 2, :b "bar"}
            {:a 1, :b "foo"}})))
-  
+
   (testing "No options"
     (let [command (pig/load-json "build/functional/io-test/test-load-json" {})]
       (test-diff
         (set (pig/dump command))
         '#{{"a" 2, "b" "bar"}
            {"a" 1, "b" "foo"}})))
-  
+
   (testing "Two options"
     (let [command (pig/load-json "build/functional/io-test/test-load-json"
                                  {:key-fn keyword
@@ -169,13 +182,13 @@
            (slurp "build/functional/io-test/test-store-json")))))
 
 (deftest test-return
-  
+
   (let [data [1 2]
         command (pig/return data)]
     (test-diff
       (pig/dump command)
       '[1 2]))
-  
+
   (let [command (->>
                   (pig/return [])
                   (pig/map inc))]
