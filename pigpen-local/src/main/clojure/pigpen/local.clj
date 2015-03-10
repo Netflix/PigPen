@@ -295,7 +295,7 @@ sequence. This command is very useful for unit tests.
                    (assoc v 'index i)))
     (map (update-field-ids id))))
 
-(s/defmethod graph->local :order
+(s/defmethod graph->local :sort
   [[data] {:keys [id key comp]} :- m/Sort]
   (->> data
     (sort-by key (pigpen-comparator comp))

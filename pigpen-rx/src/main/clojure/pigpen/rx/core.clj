@@ -161,7 +161,7 @@ sequence. This command is very useful for unit tests.
     (rx/map-indexed (fn [i v] (assoc v 'index i)))
     (rx/map (local/update-field-ids id))))
 
-(s/defmethod graph->observable :order
+(s/defmethod graph->observable :sort
   [[data] {:keys [id key comp]} :- m/Sort]
   (->> data
     (rx/sort-by key (local/pigpen-comparator comp))

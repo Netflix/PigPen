@@ -125,7 +125,7 @@
 
 (defop-one Sort
   (merge Op
-         {:type (s/eq :order)
+         {:type (s/eq :sort)
           :key Field
           :comp (s/enum :asc :desc)}))
 

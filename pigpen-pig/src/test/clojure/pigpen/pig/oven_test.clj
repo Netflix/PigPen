@@ -65,7 +65,7 @@
          :id store2
          :ancestors [load1]}])))
 
-(deftest test-merge-order-rank
+(deftest test-merge-sort-rank
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
     (let [s (->> (pig-io/return ["b" "c" "a"])
@@ -75,11 +75,11 @@
       (test-diff
         (as-> s %
           (#'pigpen.oven/braise % {})
-          (#'pigpen.pig.oven/merge-order-rank % {})
+          (#'pigpen.pig.oven/merge-sort-rank % {})
           (map #(select-keys % [:comp :key :ancestors :id :type]) %))
         '[{:type :return, :id return1}
           {:type :bind,   :id bind2,  :ancestors [return1]}
-          {:type :order,  :id order3, :ancestors [bind2], :key bind2/key, :comp :asc}
+          {:type :sort,   :id sort3,  :ancestors [bind2], :key bind2/key, :comp :asc}
           {:type :rank,   :id rank4,  :ancestors [bind2], :key bind2/key, :comp :asc}
           {:type :bind,   :id bind5,  :ancestors [rank4]}]))))
 
@@ -117,7 +117,7 @@
       (test-diff
         (as-> s %
           (#'pigpen.oven/braise % {})
-          (#'pigpen.pig.oven/merge-order-rank % {})
+          (#'pigpen.pig.oven/merge-sort-rank % {})
           (#'pigpen.oven/clean % {})
           (map #(select-keys % [:comp :key :ancestors :id :type]) %))
         '[{:type :return, :id return1}

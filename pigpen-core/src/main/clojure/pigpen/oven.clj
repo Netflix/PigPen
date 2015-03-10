@@ -73,7 +73,7 @@ number of optimizations and transforms to the graph.
 
     :bind          (update-in command [:args] (partial mapv update-fn))
     :store         (update-in command [:args] (partial mapv update-fn))
-    :order         (update-in command [:key] update-fn)
+    :sort          (update-in command [:key] update-fn)
     :reduce        (update-in command [:arg] update-fn)
     (:group :join) (update-in command [:keys] (partial mapv update-fn))
     :noop          (update-in command [:args] (partial mapv update-fn))

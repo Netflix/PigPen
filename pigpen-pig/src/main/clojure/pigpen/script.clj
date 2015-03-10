@@ -220,12 +220,12 @@ See pigpen.core and pigpen.pig
         pig-projections (->> pig-projections (map second) (join ",\n    "))]
     (str pig-defines pig-id " = FOREACH " relation-id " GENERATE\n    " pig-projections ";\n\n")))
 
-(defmethod command->script :order-opts
+(defmethod command->script :sort-opts
   [{:keys [parallel]} state]
   (let [pig-parallel (if parallel (str " PARALLEL " parallel))]
     (str pig-parallel)))
 
-(s/defmethod command->script :order
+(s/defmethod command->script :sort
   [{:keys [id ancestors key comp opts]} :- m/Sort
    state]
   (let [relation-id (escape-id (first ancestors))

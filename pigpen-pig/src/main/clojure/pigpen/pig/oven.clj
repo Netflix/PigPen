@@ -72,28 +72,28 @@
 
 ;; **********
 
-(defn ^:private next-order-rank
+(defn ^:private next-sort-rank
   "Finds a pig/sort or pig/sort-by followed by a pig/map-indexed."
   [commands lookup]
   (->> commands
     ;; Look for rank commands
     (filter (comp #{:rank} :type))
-    ;; Find the first that's after an order & has no sort of its own
+    ;; Find the first that's after an sort & has no sort of its own
     (some (fn [rank]
             ;; rank will only ever have a single ancestor
             (let [sort (-> rank :ancestors first lookup)]
-              (when (-> sort :type #{:order})
-                ;; Return both the rank & order commands
+              (when (-> sort :type #{:sort})
+                ;; Return both the rank & sort commands
                 [rank sort]))))))
 
-(defn ^:private merge-order-rank
+(defn ^:private merge-sort-rank
   "Looks for a pig/sort or pig/sort-by followed by a pig/map-indexed. Moves the
-   order operation into the rank command."
+   sort operation into the rank command."
   [commands _]
   ;; Build an id > command lookup
   (let [lookup (->> commands (map (juxt :id identity)) (into {}))]
     ;; Try to find the next potential rank command.
-    (if-let [[next-rank {:keys [key comp ancestors]}] (next-order-rank commands lookup)]
+    (if-let [[next-rank {:keys [key comp ancestors]}] (next-sort-rank commands lookup)]
       ;; If we find one, update the rank & recur
       (recur
         (for [command commands]
@@ -213,7 +213,7 @@ produces a non-pigpen output.
       {extract-options     1.1
        extract-references  1.2
        add-pigpen-jar      1.3
-       merge-order-rank    1.4
+       merge-sort-rank     1.4
        expand-load-filters 2.1
        dec-rank            2.2
        split-project       4.5}

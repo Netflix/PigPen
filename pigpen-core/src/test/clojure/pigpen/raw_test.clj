@@ -191,21 +191,21 @@
         :field-type :native
         :opts {:type :bind-opts}})))
 
-(deftest test-order$
+(deftest test-sort$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (order$ r1 'key :asc {})
-      '{:type :order
-        :id order0
+      (sort$ r1 'key :asc {})
+      '{:type :sort
+        :id sort0
         :description nil
         :ancestors [{:id r1
                      :fields [r1/key r1/value]
                      :field-type :frozen}]
-        :fields [order0/value]
+        :fields [sort0/value]
         :field-type :frozen
         :key r1/key
         :comp :asc
-        :opts {:type :order-opts}})))
+        :opts {:type :sort-opts}})))
 
 (deftest test-rank$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]

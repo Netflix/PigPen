@@ -179,9 +179,9 @@ building blocks for more complex operations."
                :field-type-in (get opts :field-type-in :frozen)
                :field-type (get opts :field-type :frozen))))))
 
-(s/defn order$ :- m/Sort$
+(s/defn sort$ :- m/Sort$
   [relation key comp opts]
-  (let [{id :id, :as c} (command :order relation opts)]
+  (let [{id :id, :as c} (command :sort relation opts)]
     (-> c
       (assoc :key (update-ns+ (:id relation) key))
       (assoc :comp comp)

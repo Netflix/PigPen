@@ -170,18 +170,18 @@ project0 = FOREACH relation0 GENERATE
                                              :alias [r1/b]}]}
                             {})))))
 
-(deftest test-order
-  (is (= "order0 = ORDER relation0 BY key ASC PARALLEL 10;\n\n"
+(deftest test-sort
+  (is (= "sort0 = ORDER relation0 BY key ASC PARALLEL 10;\n\n"
          (command->script
-           '{:type :order
-             :id order0
+           '{:type :sort
+             :id sort0
              :description nil
              :ancestors [relation0]
              :fields [r0/key r0/value]
              :field-type :frozen
              :key r0/key
              :comp :asc
-             :opts {:type :order-opts
+             :opts {:type :sort-opts
                     :parallel 10}}
            {}))))
 

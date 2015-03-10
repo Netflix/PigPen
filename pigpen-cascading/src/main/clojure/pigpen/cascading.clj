@@ -237,7 +237,7 @@
     (into-array Pipe)
     (Merge.)))
 
-(s/defmethod command->flowdef :order
+(s/defmethod command->flowdef :sort
   [{:keys [key comp fields]} :- m/Sort
    [{:keys [^Pipe pipe ancestor]}]
    _]
@@ -253,7 +253,7 @@
    [{:keys [^Pipe pipe]}]
    _]
   ; TODO: In this naive, single-reducer implementation, a rank followed by an
-  ; order should skip the order since rank does a group-by itself.
+  ; sort should skip the sort since rank does a group-by itself.
   (-> pipe
     (GroupBy. Fields/NONE)
     (Every. (RankBuffer. (cfields fields)) Fields/RESULTS)))

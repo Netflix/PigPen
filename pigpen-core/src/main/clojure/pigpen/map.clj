@@ -117,7 +117,7 @@ and the value. If you require sequential ids, use option {:dense true}.
     (raw/bind$ `(pigpen.runtime/key-selector->bind ~key-selector)
                {:field-type :native-key-frozen-val
                 :alias ['key 'value]})
-    (raw/order$ 'key comp opts)))
+    (raw/sort$ 'key comp opts)))
 
 (defmacro sort
   "Sorts the data with an optional comparator. Takes an optional map of options.
