@@ -382,14 +382,14 @@ distinct0 = DISTINCT relation0 PARTITION BY pigpen.PigPenPartitioner1;\n\n"
                                        :partition-type :native}}
                               state))))))
 
-(deftest test-union
-  (is (= "union0 = UNION r0, r1;\n\n"
-         (command->script '{:type :union
-                            :id union0
+(deftest test-concat
+  (is (= "concat0 = UNION r0, r1;\n\n"
+         (command->script '{:type :concat
+                            :id concat0
                             :fields [r0/value]
                             :field-type :frozen
                             :ancestors [r0 r1]
-                            :opts {:type :union-opts}}
+                            :opts {:type :concat-opts}}
                           {}))))
 
 ;; ********** Script **********

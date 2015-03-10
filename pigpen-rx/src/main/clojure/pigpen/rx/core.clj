@@ -274,7 +274,7 @@ sequence. This command is very useful for unit tests.
     (rx/distinct)
     (rx/map (local/update-field-ids id))))
 
-(s/defmethod graph->observable :union
+(s/defmethod graph->observable :concat
   [data {:keys [id]} :- m/Concat]
   (->> data
     (apply rx/merge)

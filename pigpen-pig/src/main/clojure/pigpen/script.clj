@@ -351,12 +351,12 @@ See pigpen.core and pigpen.pig
         [pig-set pig-opts] (command->script opts state)]
     (str pig-set id " = DISTINCT " relation-id pig-opts ";\n\n")))
 
-(defmethod command->script :union-opts
+(defmethod command->script :concat-opts
   [{:keys [parallel]} state]
   (let [pig-parallel (if parallel (str " PARALLEL " parallel))]
     (str pig-parallel)))
 
-(s/defmethod command->script :union
+(s/defmethod command->script :concat
   [{:keys [id ancestors opts]} :- m/Concat
    state]
   (let [pig-id (escape-id id)

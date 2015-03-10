@@ -287,19 +287,19 @@
         :opts {:type :distinct-opts
                :parallel 20}})))
 
-(deftest test-union$
+(deftest test-concat$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (union$ '[{:id r0, :fields [r0/value], :field-type :frozen}
+      (concat$ '[{:id r0, :fields [r0/value], :field-type :frozen}
                 {:id r1, :fields [r1/value], :field-type :frozen}] {})
-      '{:type :union
-        :id union0
+      '{:type :concat
+        :id concat0
         :description nil
-        :fields [union0/value]
+        :fields [concat0/value]
         :field-type :frozen
         :ancestors [{:id r0, :fields [r0/value], :field-type :frozen}
                     {:id r1, :fields [r1/value], :field-type :frozen}]
-        :opts {:type :union-opts}})))
+        :opts {:type :concat-opts}})))
 
 ;; ********** Join **********
 

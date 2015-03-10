@@ -128,7 +128,7 @@ Optionally takes a map of options as the first parameter.
    :added "0.1.0"}
   [& opts-relations]
   (let [[opts relations] (split-opts-relations opts-relations)]
-    (raw/distinct$ (raw/union$ (filter identity relations) {}) opts)))
+    (raw/distinct$ (raw/concat$ (filter identity relations) {}) opts)))
 
 (defn concat
   "Concatenates all relations provided. Does not guarantee any ordering of the
@@ -148,7 +148,7 @@ relations. Identical to pigpen.core/union-multiset.
   {:arglists '([relations+])
    :added "0.1.0"}
   [& relations]
-  (raw/union$ (filter identity relations) {}))
+  (raw/concat$ (filter identity relations) {}))
 
 (defn union-multiset
   "Performs a union on all relations provided and returns all results.
@@ -168,7 +168,7 @@ Identical to pigpen.core/concat.
   {:arglists '([relations+])
    :added "0.1.0"}
   [& relations]
-  (raw/union$ (filter identity relations) {}))
+  (raw/concat$ (filter identity relations) {}))
 
 (defn intersection
   "Performs an intersection on all relations provided and returns the distinct

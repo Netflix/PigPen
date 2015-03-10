@@ -401,7 +401,7 @@ sequence. This command is very useful for unit tests.
     (distinct)
     (map (update-field-ids id))))
 
-(s/defmethod graph->local :union
+(s/defmethod graph->local :concat
   [data {:keys [id]} :- m/Concat]
   (->> data
     (apply concat)

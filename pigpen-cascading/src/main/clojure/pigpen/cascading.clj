@@ -227,7 +227,7 @@
     (Each. (Sample. p))
     (Rename. (cfields (:fields ancestor)) (cfields fields))))
 
-(s/defmethod command->flowdef :union
+(s/defmethod command->flowdef :concat
   [{:keys [fields]} :- m/Concat
    ancestors
    _]

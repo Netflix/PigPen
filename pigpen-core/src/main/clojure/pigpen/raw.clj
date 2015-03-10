@@ -231,11 +231,11 @@ building blocks for more complex operations."
   [relation opts]
   (command :distinct relation opts))
 
-(s/defn union$ :- (s/either m/Concat$ m/Op)
+(s/defn concat$ :- (s/either m/Concat$ m/Op)
   [ancestors opts]
   (if-not (next ancestors)
     (first ancestors)
-    (command :union
+    (command :concat
              ancestors
              (->> ancestors
                first

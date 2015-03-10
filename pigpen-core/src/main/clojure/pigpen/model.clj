@@ -155,7 +155,7 @@
 
 (defop-many Concat
   (merge Op
-         {:type (s/eq :union)}))
+         {:type (s/eq :concat)}))
 
 (defop-one Reduce
   (merge Op
