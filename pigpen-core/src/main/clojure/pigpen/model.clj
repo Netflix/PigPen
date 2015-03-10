@@ -141,7 +141,7 @@
 
 (defop-one Take
   (merge Op
-         {:type (s/eq :limit)
+         {:type (s/eq :take)
           :n (s/pred (every-pred number? pos?) "positive number")}))
 
 (defop-one Sample

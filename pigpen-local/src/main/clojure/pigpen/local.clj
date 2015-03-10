@@ -304,7 +304,7 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Filter **********
 
-(s/defmethod graph->local :limit
+(s/defmethod graph->local :take
   [[data] {:keys [id n]} :- m/Take]
   (->> data
     (take n)

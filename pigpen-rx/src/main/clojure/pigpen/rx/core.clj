@@ -170,7 +170,7 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Filter **********
 
-(s/defmethod graph->observable :limit
+(s/defmethod graph->observable :take
   [[data] {:keys [id n]} :- m/Take]
   (->> data
     (rx/take n)

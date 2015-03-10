@@ -79,7 +79,7 @@ returns true.
 "
   {:added "0.1.0"}
   [n relation]
-  (raw/limit$ relation n {}))
+  (raw/take$ relation n {}))
 
 (defn sample
   "Samples the input records by p percentage. This is non-deterministic;

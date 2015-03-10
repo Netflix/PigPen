@@ -223,10 +223,10 @@ project0 = FOREACH relation0 GENERATE
                             :expr '(and (= foo 1) (> bar 2))}
                           {}))))
 
-(deftest test-limit
-  (is (= "limit0 = LIMIT relation0 100;\n\n"
-         (command->script '{:type :limit
-                            :id limit0
+(deftest test-take
+  (is (= "take0 = LIMIT relation0 100;\n\n"
+         (command->script '{:type :take
+                            :id take0
                             :fields [relation0/value]
                             :field-type :frozen
                             :ancestors [relation0]

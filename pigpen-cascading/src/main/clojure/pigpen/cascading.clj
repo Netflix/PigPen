@@ -211,7 +211,7 @@
     (Unique. Fields/ALL)
     (Rename. (cfields (:fields ancestor)) (cfields fields))))
 
-(s/defmethod command->flowdef :limit
+(s/defmethod command->flowdef :take
   [{:keys [n fields]} :- m/Take
    [{:keys [^Pipe pipe ancestor]}]
    _]

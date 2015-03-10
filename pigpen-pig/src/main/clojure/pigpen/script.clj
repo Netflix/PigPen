@@ -264,7 +264,7 @@ See pigpen.core and pigpen.pig
       (str pig-id " = FILTER " relation-id " BY " pig-expr ";\n\n")
       (str pig-id " = " relation-id ";\n\n"))))
 
-(s/defmethod command->script :limit
+(s/defmethod command->script :take
   [{:keys [id ancestors n opts]} :- m/Take
    state]
   (let [relation-id (escape-id (first ancestors))

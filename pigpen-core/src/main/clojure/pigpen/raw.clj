@@ -213,10 +213,10 @@ building blocks for more complex operations."
     (assoc :expr expr
            :field-type :native)))
 
-(s/defn limit$ :- m/Take$
+(s/defn take$ :- m/Take$
   [relation n opts]
   (->
-    (command :limit relation opts)
+    (command :take relation opts)
     (assoc :n n)))
 
 (s/defn sample$ :- m/Sample$

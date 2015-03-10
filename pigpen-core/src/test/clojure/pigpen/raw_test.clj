@@ -240,20 +240,20 @@
         :expr (and (= foo "a") (> bar 2))
         :opts {:type :filter-opts}})))
 
-(deftest test-limit$
+(deftest test-take$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (limit$ r0 1000 {})
-      '{:type :limit
-        :id limit0
+      (take$ r0 1000 {})
+      '{:type :take
+        :id take0
         :description nil
         :ancestors [{:id r0
                      :fields [r0/value]
                      :field-type :frozen}]
         :n 1000
-        :fields [limit0/value]
+        :fields [take0/value]
         :field-type :frozen
-        :opts {:type :limit-opts}})))
+        :opts {:type :take-opts}})))
 
 (deftest test-sample$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
