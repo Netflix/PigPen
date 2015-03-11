@@ -32,15 +32,17 @@
 unless debugging scripts."
   ([location] `(load-binary ~location [~'value]))
   ([location fields]
-    `(raw/load$ ~location '~fields :binary {})))
+    `(raw/load$ ~location :binary '~fields {})))
 
 (defn load-string*
   "The base for load-string, load-clj, and load-json. The parameters requires
 and f specify a conversion function to apply to each input row."
-  [location requires f]
-  (->
-    (raw/load$ location ['value] :string {})
-    (raw/bind$ requires `(pigpen.runtime/map->bind ~f) {:field-type-in :native})))
+  ([location f]
+    (load-string* location [] f))
+  ([location requires f]
+    (->>
+      (raw/load$ location :string ['value] {})
+      (raw/bind$ requires `(pigpen.runtime/map->bind ~f) {:field-type-in :native}))))
 
 (defn load-string
   "Loads data from a file. Each line is returned as a string.
@@ -120,16 +122,18 @@ the specified delimiter. The default delimiter is \\t.
   "Stores data in the PigPen binary format. This is generally not used
 unless debugging scripts."
   [location relation]
-  (raw/store$ relation location :binary {}))
+  (raw/store$ location :binary {} relation))
 
 (defn store-string*
   "The base for store-string, store-clj, and store-json. The parameters requires
 and f specify a conversion function to apply to each output row."
-  [location requires f relation]
-  (-> relation
-    (raw/bind$ requires `(pigpen.runtime/map->bind ~f)
-               {:args (:fields relation), :field-type :native})
-    (raw/store$ location :string {})))
+  ([location f relation]
+    (store-string* location [] f relation))
+  ([location requires f relation]
+    (->> relation
+      (raw/bind$ requires `(pigpen.runtime/map->bind ~f)
+                 {:args (:fields relation), :field-type :native})
+      (raw/store$ location :string {}))))
 
 (defn store-string
   "Stores the relation into location as a string. Each value is written as a
@@ -197,6 +201,23 @@ written as a single line. Options can be passed to write-str as a map.
                       `(fn [~'~'s] (clojure.data.json/write-str ~'~'s ~@~@opts'))
                       ~relation))))
 
+(defn store-many
+  "Combines multiple store commands into a single script. This is not required
+if you have a single output.
+
+  Example:
+
+    (pig/store-many
+      (pig/store-tsv \"foo.tsv\" foo)
+      (pig/store-clj \"bar.clj\" bar))
+
+  Note: When run locally, this will merge the results of any source relations.
+"
+  {:arglists '([outputs+])
+   :added "0.1.0"}
+  [& outputs]
+  (raw/store-many$ outputs))
+
 (defn return
   "Returns a constant set of data as a pigpen relation. This is useful for
 testing, but not supported in generated scripts. The parameter 'data' must be a
@@ -212,9 +233,9 @@ sequence. The values of 'data' can be any clojure type.
   {:added "0.1.0"}
   [data]
   (raw/return$
+    ['value]
     (for [d data]
-      {'value d})
-    ['value]))
+      {'value d})))
 
 (defn constantly
   "Returns a function that takes any number of arguments and returns a constant

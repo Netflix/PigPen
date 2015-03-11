@@ -69,8 +69,8 @@
     (load-tap tap 'clojure.core/vector))
   ([^Tap tap bind-fn]
     (let [fields (mapv symbol (.getSourceFields tap))]
-      (-> (.toString tap)
-        (raw/load$ fields :tap {:tap tap})
+      (->>
+        (raw/load$ (.toString tap) :tap fields {:tap tap})
         (raw/bind$
           `(pigpen.runtime/map->bind ~bind-fn)
           {:field-type-in :native})))))
@@ -122,7 +122,7 @@
 
 (s/defmethod command->flowdef :reduce-fold
   [{:keys [reduce :- m/Reduce
-           fold :- m/Mapcat]}
+           fold :- m/Project]}
    [{:keys [^Pipe pipe]}]
    _]
   (let [projections (:projections fold)
@@ -153,7 +153,7 @@
 
 (s/defmethod command->flowdef :group-fold
   [{:keys [group :- m/Group
-           fold :- m/Mapcat]}
+           fold :- m/Project]}
    ancestors
    _]
   (let [{:keys [id keys]} group
@@ -185,8 +185,8 @@
         join-keys (group-key-cfields keys (:join-nils opts))]
     (CoGroup. (str id) pipes join-keys (cfields fields) joiner)))
 
-(s/defmethod command->flowdef :generate
-  [{:keys [id projections fields]} :- m/Mapcat
+(s/defmethod command->flowdef :project
+  [{:keys [id projections fields]} :- m/Project
    [{:keys [^Pipe pipe ancestor]}]
    _]
   (let [context (pr-str `'{:ancestor ~(update-in ancestor [:opts] dissoc :tap)
@@ -211,7 +211,7 @@
     (Unique. Fields/ALL)
     (Rename. (cfields (:fields ancestor)) (cfields fields))))
 
-(s/defmethod command->flowdef :limit
+(s/defmethod command->flowdef :take
   [{:keys [n fields]} :- m/Take
    [{:keys [^Pipe pipe ancestor]}]
    _]
@@ -227,7 +227,7 @@
     (Each. (Sample. p))
     (Rename. (cfields (:fields ancestor)) (cfields fields))))
 
-(s/defmethod command->flowdef :union
+(s/defmethod command->flowdef :concat
   [{:keys [fields]} :- m/Concat
    ancestors
    _]
@@ -237,7 +237,7 @@
     (into-array Pipe)
     (Merge.)))
 
-(s/defmethod command->flowdef :order
+(s/defmethod command->flowdef :sort
   [{:keys [key comp fields]} :- m/Sort
    [{:keys [^Pipe pipe ancestor]}]
    _]
@@ -253,12 +253,12 @@
    [{:keys [^Pipe pipe]}]
    _]
   ; TODO: In this naive, single-reducer implementation, a rank followed by an
-  ; order should skip the order since rank does a group-by itself.
+  ; sort should skip the sort since rank does a group-by itself.
   (-> pipe
     (GroupBy. Fields/NONE)
     (Every. (RankBuffer. (cfields fields)) Fields/RESULTS)))
 
-(s/defmethod command->flowdef :script
+(s/defmethod command->flowdef :store-many
   [_ _ _]
   ; No-op, since the flowdef already contains everything needed to handle multiple outputs.
   nil)
@@ -282,7 +282,7 @@
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
-  [commands ^FlowConnector connector]
+  [^FlowConnector connector commands]
   (let [[flowdef _] (reduce command->flowdef+ [(FlowDef/flowDef) {}] commands)]
     (.connect connector flowdef)))
 
@@ -290,6 +290,6 @@
   "Transforms the relation specified into a Cascading flow that is ready to be executed."
   ([query] (generate-flow (HadoopFlowConnector.) query))
   ([connector query]
-    (-> query
+    (->> query
       (oven/bake {})
       (commands->flow connector))))

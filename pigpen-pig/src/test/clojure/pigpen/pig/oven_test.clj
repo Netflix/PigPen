@@ -32,12 +32,12 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
     (test-diff
-      (as-> nil %
-        (raw/load$ "foo" '[foo] :test-storage {})
-        (raw/store$ % "bar" :test-storage {})
-        (#'pigpen.oven/braise % {})
-        (#'pigpen.pig.oven/extract-references % {:extract-references? true})
-        (map #(select-keys % [:type :id :ancestors :references :jar]) %))
+      (->>
+        (raw/load$ "foo" :test-storage '[foo] {})
+        (raw/store$ "bar" :test-storage {})
+        (#'pigpen.oven/braise {})
+        (#'pigpen.pig.oven/extract-references {:extract-references? true})
+        (map #(select-keys % [:type :id :ancestors :references :jar])))
       '[{:type :register
          :jar "ref.jar"}
         {:type :load
@@ -50,12 +50,12 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
     (test-diff
-      (as-> nil %
-        (raw/load$ "foo" '[foo] :string {:pig-options {"pig.maxCombinedSplitSize" 1000000}})
-        (raw/store$ % "bar" :string {})
-        (#'pigpen.oven/braise % {})
-        (#'pigpen.pig.oven/extract-options % {:extract-options? true})
-        (map #(select-keys % [:type :id :ancestors :references :option :value]) %))
+      (->>
+        (raw/load$ "foo" :string '[foo] {:pig-options {"pig.maxCombinedSplitSize" 1000000}})
+        (raw/store$ "bar" :string {})
+        (#'pigpen.oven/braise {})
+        (#'pigpen.pig.oven/extract-options {:extract-options? true})
+        (map #(select-keys % [:type :id :ancestors :references :option :value])))
       '[{:type :option
          :option "pig.maxCombinedSplitSize"
          :value 1000000}
@@ -65,7 +65,7 @@
          :id store2
          :ancestors [load1]}])))
 
-(deftest test-merge-order-rank
+(deftest test-merge-sort-rank
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
     (let [s (->> (pig-io/return ["b" "c" "a"])
@@ -73,19 +73,19 @@
               (pig-map/map-indexed vector))]
 
       (test-diff
-        (as-> s %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.pig.oven/merge-order-rank % {})
-          (map #(select-keys % [:comp :key :ancestors :id :type]) %))
+        (->> s
+          (#'pigpen.oven/braise {})
+          (#'pigpen.pig.oven/merge-sort-rank {})
+          (map #(select-keys % [:comp :key :ancestors :id :type])))
         '[{:type :return, :id return1}
           {:type :bind,   :id bind2,  :ancestors [return1]}
-          {:type :order,  :id order3, :ancestors [bind2], :key bind2/key, :comp :asc}
+          {:type :sort,   :id sort3,  :ancestors [bind2], :key bind2/key, :comp :asc}
           {:type :rank,   :id rank4,  :ancestors [bind2], :key bind2/key, :comp :asc}
           {:type :bind,   :id bind5,  :ancestors [rank4]}]))))
 
 (deftest test-expand-load-filters
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [command (raw/load$ "foo" '[foo] :string {:filter '(= foo 2)})]
+    (let [command (raw/load$ "foo" :string '[foo] {:filter '(= foo 2)})]
       (test-diff (pig-oven/bake command)
                  '[{:type :register
                     :jar "pigpen.jar"}
@@ -115,11 +115,11 @@
               (pig-map/map-indexed vector))]
 
       (test-diff
-        (as-> s %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.pig.oven/merge-order-rank % {})
-          (#'pigpen.oven/clean % {})
-          (map #(select-keys % [:comp :key :ancestors :id :type]) %))
+        (->> s
+          (#'pigpen.oven/braise {})
+          (#'pigpen.pig.oven/merge-sort-rank {})
+          (#'pigpen.oven/clean {})
+          (map #(select-keys % [:comp :key :ancestors :id :type])))
         '[{:type :return, :id return1}
           {:type :bind,   :id bind2, :ancestors [return1]}
           {:type :rank,   :id rank4, :ancestors [bind2], :key bind2/key, :comp :asc}
@@ -132,16 +132,16 @@
               (pig-map/map-indexed vector))]
 
       (test-diff
-        (as-> s %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.pig.oven/dec-rank % {})
-          (#'pigpen.oven/optimize-binds % {})
-          (map #(select-keys % [:projections :ancestors :fields :id :type]) %))
+        (->> s
+          (#'pigpen.oven/braise {})
+          (#'pigpen.pig.oven/dec-rank {})
+          (#'pigpen.oven/optimize-binds {})
+          (map #(select-keys % [:projections :ancestors :fields :id :type])))
         '[{:type :return, :id return1, :fields [return1/value]}
           {:type :rank, :id rank2_0, :fields [rank2/index rank2/value], :ancestors [return1]}
-          {:type :generate
-           :id generate5
-           :fields [generate5/value]
+          {:type :project
+           :id project5
+           :fields [project5/value]
            :ancestors [rank2_0]
            :projections [{:type :projection
                           :expr {:type :code
@@ -153,26 +153,26 @@
                                  :udf :seq
                                  :args [rank2_0/$0 rank2_0/value]}
                           :flatten true
-                          :alias [generate5/value]}]}]))))
+                          :alias [project5/value]}]}]))))
 
-(deftest test-split-generate
+(deftest test-split-project
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
     (let [s (->> (pig-io/return [1 2 3])
               (pig-map/map inc))]
 
       (test-diff
-        (as-> s %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.oven/optimize-binds % {})
-          (#'pigpen.pig.oven/split-generate % {})
-          (map #(select-keys % [:projections :ancestors :fields :id :type]) %))
+        (->> s
+          (#'pigpen.oven/braise {})
+          (#'pigpen.oven/optimize-binds {})
+          (#'pigpen.pig.oven/split-project {})
+          (map #(select-keys % [:projections :ancestors :fields :id :type])))
         '[{:type :return
            :id return1
            :fields [return1/value]}
-          {:type :generate
-           :id generate3_0
-           :fields [generate3_0/value0]
+          {:type :project
+           :id project3_0
+           :fields [project3_0/value0]
            :ancestors [return1]
            :projections [{:type :projection
                           :expr {:type :code
@@ -181,13 +181,13 @@
                                  :udf :seq
                                  :args [return1/value]}
                           :flatten false
-                          :alias [generate3_0/value0]}]}
-          {:type :generate
-           :id generate3
-           :fields [generate3/value]
-           :ancestors [generate3_0]
+                          :alias [project3_0/value0]}]}
+          {:type :project
+           :id project3
+           :fields [project3/value]
+           :ancestors [project3_0]
            :projections [{:type :projection
                           :expr {:type :field
-                                 :field generate3_0/value0}
+                                 :field project3_0/value0}
                           :flatten true
-                          :alias [generate3/value]}]}]))))
+                          :alias [project3/value]}]}]))))

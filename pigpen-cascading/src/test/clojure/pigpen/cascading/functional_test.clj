@@ -52,7 +52,7 @@
                 (clojure.string/join)))
         (pig/load-clj input-file)))
     (dump [this command]
-      (if (-> command :type #{:store :script})
+      (if (-> command :type #{:store :store-many})
         (run-flow command)
         (run-flow->output this command)))
     (file [this]

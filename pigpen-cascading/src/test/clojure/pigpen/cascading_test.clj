@@ -126,7 +126,7 @@
         c2 (pigpen/map (fn [x] (* x 3)) data)
         o1 (pigpen/store-clj output1 c1)
         o2 (pigpen/store-clj output2 c2)
-        s (pigpen/script o1 o2)]
+        s (pigpen/store-many o1 o2)]
     (.complete (cascading/generate-flow s))
     (is (= '(2 4 6) (read-output output1)))
     (is (= '(3 6 9) (read-output output2)))))
@@ -143,8 +143,8 @@
 
 (deftest test-performance
   (let [in-fields (Fields. (into-array ["load1/value"]))
-        out-fields (Fields. (into-array ["generate1/value"]))
-        context {:fields ['generate1/value]
+        out-fields (Fields. (into-array ["project1/value"]))
+        context {:fields ['project1/value]
                  :projections [{:type :projection
                                 :expr {:type :code
                                        :init nil
@@ -154,7 +154,7 @@
                                        :udf :seq
                                        :args ['load1/value]}
                                 :flatten true
-                                :alias ['generate1/value]}]}
+                                :alias ['project1/value]}]}
         value (->> 0
                 runtime/cs-freeze
                 vector

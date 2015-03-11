@@ -160,12 +160,12 @@ sequence. This command is very useful for unit tests.
              [2 4 6])))
 
   Note: pig/store commands return an empty set
-        pig/script commands merge their results
+        pig/store-many commands merge their results
 "
   {:added "0.3.0"}
   ([query] (dump {} query))
   ([opts query]
-    (let [graph (oven/bake query :local {} opts)
+    (let [graph (oven/bake :local {} opts query)
           last-command (:id (last graph))]
       (->> graph
         (reduce graph->local+ {})
@@ -279,8 +279,8 @@ sequence. This command is very useful for unit tests.
       (map (partial zipmap alias) result)
       (zipmap alias result))))
 
-(s/defmethod graph->local :generate
-  [[data] {:keys [projections] :as c} :- m/Mapcat]
+(s/defmethod graph->local :project
+  [[data] {:keys [projections] :as c} :- m/Project]
   (mapcat
     (fn [values]
       (->> projections
@@ -295,7 +295,7 @@ sequence. This command is very useful for unit tests.
                    (assoc v 'index i)))
     (map (update-field-ids id))))
 
-(s/defmethod graph->local :order
+(s/defmethod graph->local :sort
   [[data] {:keys [id key comp]} :- m/Sort]
   (->> data
     (sort-by key (pigpen-comparator comp))
@@ -304,7 +304,7 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Filter **********
 
-(s/defmethod graph->local :limit
+(s/defmethod graph->local :take
   [[data] {:keys [id n]} :- m/Take]
   (->> data
     (take n)
@@ -401,7 +401,7 @@ sequence. This command is very useful for unit tests.
     (distinct)
     (map (update-field-ids id))))
 
-(s/defmethod graph->local :union
+(s/defmethod graph->local :concat
   [data {:keys [id]} :- m/Concat]
   (->> data
     (apply concat)
@@ -413,6 +413,6 @@ sequence. This command is very useful for unit tests.
   [[data] {:keys [id]} :- m/NoOp]
   (map (update-field-ids id) data))
 
-(s/defmethod graph->local :script
+(s/defmethod graph->local :store-many
   [data _]
   (apply concat data))

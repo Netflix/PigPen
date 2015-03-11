@@ -30,10 +30,12 @@
 
 (defn map*
   "See pigpen.core/map"
-  [f opts relation]
-  {:pre [(map? relation) f]}
-  (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.runtime/map->bind ~f) opts))
+  ([f relation]
+    (map* f {} relation))
+  ([f opts relation]
+    {:pre [(map? relation) f]}
+    (code/assert-arity f (-> relation :fields count))
+    (raw/bind$ `(pigpen.runtime/map->bind ~f) opts relation)))
 
 (defmacro map
   "Returns a relation of f applied to every item in the source relation.
@@ -57,10 +59,12 @@ pig/cogroup, and pig/union for combining sets of data.
 
 (defn mapcat*
   "See pigpen.core/mapcat"
-  [f opts relation]
-  {:pre [(map? relation) f]}
-  (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.runtime/mapcat->bind ~f) opts))
+  ([f relation]
+    (mapcat* f {} relation))
+  ([f opts relation]
+    {:pre [(map? relation) f]}
+    (code/assert-arity f (-> relation :fields count))
+    (raw/bind$ `(pigpen.runtime/mapcat->bind ~f) opts relation)))
 
 (defmacro mapcat
   "Returns the result of applying concat, or flattening, the result of applying
@@ -77,12 +81,14 @@ f to each item in relation. Thus f should return a collection.
   `(mapcat* (code/trap ~f) {:description ~(pp-str f)} ~relation))
 
 (defn map-indexed*
-  [f opts relation]
-  {:pre [(map? relation) f]}
-  (code/assert-arity f 2)
-  (-> relation
-    (raw/rank$ opts)
-    (raw/bind$ `(pigpen.runtime/map->bind ~f) {})))
+  ([f relation]
+    (map-indexed* f {} relation))
+  ([f opts relation]
+    {:pre [(map? relation) f]}
+    (code/assert-arity f 2)
+    (->> relation
+      (raw/rank$ opts)
+      (raw/bind$ `(pigpen.runtime/map->bind ~f) {}))))
 
 (defmacro map-indexed
   "Returns a relation of applying f to the the index and value of every item in
@@ -108,16 +114,17 @@ and the value. If you require sequential ids, use option {:dense true}.
   ([f opts relation]
     `(map-indexed* (code/trap ~f) (assoc ~opts :description ~(pp-str f)) ~relation)))
 
-;; TODO remove multi-key support
 (defn sort*
   "See pigpen.core/sort, pigpen.core/sort-by"
-  [key-selector comp opts relation]
-  {:pre [(map? relation) (#{:asc :desc} comp)]}
-  (-> relation
-    (raw/bind$ `(pigpen.runtime/key-selector->bind ~key-selector)
-               {:field-type :native-key-frozen-val
-                :alias ['key 'value]})
-    (raw/order$ 'key comp opts)))
+  ([key-selector comp relation]
+    (sort* key-selector comp {} relation))
+  ([key-selector comp opts relation]
+    {:pre [(map? relation) (#{:asc :desc} comp)]}
+    (->> relation
+      (raw/bind$ `(pigpen.runtime/key-selector->bind ~key-selector)
+                 {:field-type :native-key-frozen-val
+                  :alias ['key 'value]})
+      (raw/sort$ 'key comp opts))))
 
 (defmacro sort
   "Sorts the data with an optional comparator. Takes an optional map of options.

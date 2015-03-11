@@ -21,14 +21,14 @@
 
 (defn merge-reduce-fold
   "Merges a reduce command followed by a fold operation"
-  [commands _]
+  [_ commands]
   (let [lookup (->> commands
                  (map (juxt :id identity))
                  (into {}))]
     (->> commands
       (map (fn [c]
              (let [a (some-> c :ancestors first lookup)]
-               (if (and (-> c :type #{:generate})
+               (if (and (-> c :type #{:project})
                         (-> a :type #{:reduce})
                         (->> c
                           :projections
@@ -42,14 +42,14 @@
 
 (defn merge-group-fold
   "Merges a group command followed by a fold operation"
-  [commands _]
+  [_ commands]
   (let [lookup (->> commands
                  (map (juxt :id identity))
                  (into {}))]
     (->> commands
       (map (fn [c]
              (let [a (some-> c :ancestors first lookup)]
-               (if (and (-> c :type #{:generate})
+               (if (and (-> c :type #{:project})
                         (-> a :type #{:group})
                         (->> c
                           :projections
@@ -68,11 +68,11 @@
 
 (defn bake
   {:added "0.3.0"}
-  ([query] (bake query {}))
-  ([query opts]
+  ([query] (bake {} query))
+  ([opts query]
     (pigpen.oven/bake
-      query
       :cascading
       {merge-reduce-fold 4.1
        merge-group-fold  4.2}
-      (merge default-opts opts))))
+      (merge default-opts opts)
+      query)))

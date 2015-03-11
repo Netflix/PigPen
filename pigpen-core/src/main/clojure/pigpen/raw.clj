@@ -75,7 +75,7 @@ building blocks for more complex operations."
 ;; ********** IO **********
 
 (s/defn load$ :- m/Load$
-  [location fields storage opts]
+  [location storage fields opts]
   (let [id (pigsym "load")]
     ^:pig {:type :load
            :id id
@@ -87,7 +87,7 @@ building blocks for more complex operations."
            :opts (assoc opts :type :load-opts)}))
 
 (s/defn store$ :- m/Store$
-  [relation location storage opts]
+  [location storage opts relation]
   (->
     (command :store relation opts)
     (dissoc :field-type :fields)
@@ -96,8 +96,14 @@ building blocks for more complex operations."
            :description location
            :args (:fields relation))))
 
+(s/defn store-many$ :- m/StoreMany$
+  [outputs]
+  ^:pig {:type :store-many
+         :id (pigsym "store-many")
+         :ancestors (vec outputs)})
+
 (s/defn return$ :- m/Return$
-  [data fields]
+  [fields data]
   (let [id (pigsym "return")]
     ^:pig {:type :return
            :id id
@@ -134,26 +140,26 @@ building blocks for more complex operations."
 (defn ^:private update-alias-ns [id projection]
   (update-in projection [:alias] (partial mapv (partial update-ns id))))
 
-(s/defn generate$* :- m/Mapcat
-  "Used to make a post-bake generate"
-  [relation projections opts]
-  (let [{id :id, :as c} (command :generate opts)]
+(s/defn project$* :- m/Project
+  "Used to make a post-bake project"
+  [projections opts relation]
+  (let [{id :id, :as c} (command :project opts)]
     (-> c
       (assoc :projections (mapv (partial update-alias-ns id) projections)
              :ancestors [relation]
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))
 
-(s/defn generate$ :- m/Mapcat$
-  [relation projections opts]
-  (let [{id :id, :as c} (command :generate relation opts)]
+(s/defn project$ :- m/Project$
+  [projections opts relation]
+  (let [{id :id, :as c} (command :project relation opts)]
     (-> c
       (assoc :projections (mapv (partial update-alias-ns id) projections)
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))
 
 (s/defn bind$* :- m/Bind
   "Used to make a post-bake bind"
-  ([relation func opts] (bind$* relation [] func opts))
-  ([relation requires func opts]
+  ([func opts relation] (bind$* [] func opts relation))
+  ([requires func opts relation]
     (->
       (command :bind (dissoc opts :args :requires :alias :field-type-in :field-type))
       (dissoc :field-type)
@@ -166,8 +172,8 @@ building blocks for more complex operations."
              :field-type (get opts :field-type :frozen)))))
 
 (s/defn bind$ :- m/Bind$
-  ([relation func opts] (bind$ relation [] func opts))
-  ([relation requires func opts]
+  ([func opts relation] (bind$ [] func opts relation))
+  ([requires func opts relation]
     (let [opts' (dissoc opts :args :requires :alias :field-type-in :field-type)
           {id :id, :as c} (command :bind relation opts')]
       (-> c
@@ -179,16 +185,16 @@ building blocks for more complex operations."
                :field-type-in (get opts :field-type-in :frozen)
                :field-type (get opts :field-type :frozen))))))
 
-(s/defn order$ :- m/Sort$
-  [relation key comp opts]
-  (let [{id :id, :as c} (command :order relation opts)]
+(s/defn sort$ :- m/Sort$
+  [key comp opts relation]
+  (let [{id :id, :as c} (command :sort relation opts)]
     (-> c
       (assoc :key (update-ns+ (:id relation) key))
       (assoc :comp comp)
       (update-in [:fields] (partial remove #{(update-ns+ id key)})))))
 
 (s/defn rank$ :- m/Rank$
-  [relation opts]
+  [opts relation]
   (let [{id :id, :as c} (command :rank relation opts)]
     (-> c
       (update-in [:fields] (partial cons (update-ns+ id 'index))))))
@@ -197,7 +203,7 @@ building blocks for more complex operations."
 
 (s/defn filter$* :- m/Filter
   "Used to make a post-bake filter"
-  [relation fields expr opts]
+  [fields expr opts relation]
   {:pre [(symbol? relation)]}
   (->
     (command :filter opts)
@@ -207,20 +213,20 @@ building blocks for more complex operations."
            :field-type :native)))
 
 (s/defn filter$ :- m/Filter$
-  [relation expr opts]
+  [expr opts relation]
   (->
     (command :filter relation opts)
     (assoc :expr expr
            :field-type :native)))
 
-(s/defn limit$ :- m/Take$
-  [relation n opts]
+(s/defn take$ :- m/Take$
+  [n opts relation]
   (->
-    (command :limit relation opts)
+    (command :take relation opts)
     (assoc :n n)))
 
 (s/defn sample$ :- m/Sample$
-  [relation p opts]
+  [p opts relation]
   (->
     (command :sample relation opts)
     (assoc :p p)))
@@ -228,14 +234,14 @@ building blocks for more complex operations."
 ;; ********** Set **********
 
 (s/defn distinct$ :- m/Distinct$
-  [relation opts]
+  [opts relation]
   (command :distinct relation opts))
 
-(s/defn union$ :- (s/either m/Concat$ m/Op)
-  [ancestors opts]
+(s/defn concat$ :- (s/either m/Concat$ m/Op)
+  [opts ancestors]
   (if-not (next ancestors)
     (first ancestors)
-    (command :union
+    (command :concat
              ancestors
              (->> ancestors
                first
@@ -246,7 +252,7 @@ building blocks for more complex operations."
 ;; ********** Join **********
 
 (s/defn reduce$ :- m/Reduce$
-  [relation opts]
+  [opts relation]
   (->
     (command :reduce relation opts)
     (assoc :fields [(-> relation :fields first)])
@@ -262,7 +268,7 @@ building blocks for more complex operations."
     type))
 
 (s/defn group$ :- m/Group$
-  [ancestors field-dispatch join-types opts]
+  [field-dispatch join-types opts ancestors]
   (let [{id :id, :as c} (command :group ancestors [] opts)
         fields (ancestors->fields field-dispatch id ancestors)]
     (-> c
@@ -272,7 +278,7 @@ building blocks for more complex operations."
              :join-types (vec join-types)))))
 
 (s/defn join$ :- m/Join$
-  [ancestors field-dispatch join-types opts]
+  [field-dispatch join-types opts ancestors]
   {:pre [(< 1 (count ancestors))
          (or (every? #{:required} join-types) (= 2 (count ancestors)))
          (sequential? ancestors)
@@ -289,13 +295,7 @@ building blocks for more complex operations."
 ;; ********** Script **********
 
 (s/defn noop$ :- m/NoOp$
-  [relation opts]
+  [opts relation]
   (->
     (command :noop relation opts)
     (assoc :args (:fields relation))))
-
-(s/defn script$ :- m/StoreMany$
-  [outputs]
-  ^:pig {:type :script
-         :id (pigsym "script")
-         :ancestors (vec outputs)})

@@ -108,9 +108,9 @@
    :flatten s/Bool
    :alias [Field]})
 
-(defop-one Mapcat
+(defop-one Project
   (merge Op
-         {:type (s/eq :generate)
+         {:type (s/eq :project)
           :projections [Projection]}))
 
 (defop-one Bind
@@ -125,7 +125,7 @@
 
 (defop-one Sort
   (merge Op
-         {:type (s/eq :order)
+         {:type (s/eq :sort)
           :key Field
           :comp (s/enum :asc :desc)}))
 
@@ -141,7 +141,7 @@
 
 (defop-one Take
   (merge Op
-         {:type (s/eq :limit)
+         {:type (s/eq :take)
           :n (s/pred (every-pred number? pos?) "positive number")}))
 
 (defop-one Sample
@@ -155,7 +155,7 @@
 
 (defop-many Concat
   (merge Op
-         {:type (s/eq :union)}))
+         {:type (s/eq :concat)}))
 
 (defop-one Reduce
   (merge Op
@@ -182,11 +182,11 @@
           :args [Field]}))
 
 (s/defschema StoreMany$
-  {:type (s/eq :script)
+  {:type (s/eq :store-many)
    :id s/Symbol
    :ancestors [(s/either Store$ (s/recursive #'StoreMany$))]})
 
 (s/defschema StoreMany
-  {:type (s/eq :script)
+  {:type (s/eq :store-many)
    :id s/Symbol
    :ancestors [s/Symbol]})

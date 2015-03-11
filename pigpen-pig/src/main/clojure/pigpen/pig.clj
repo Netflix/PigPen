@@ -30,7 +30,7 @@ how you 'use' a PigPen query.
   "Generates a Pig script from the relation specified and returns it as a string.
 You can pass any relation to this and it will generate a Pig script - it doesn't
 have to be an output. However, if there are no store commands, the script won't
-do much. If you have more than one store command, use pigpen.core/script to
+do much. If you have more than one store command, use pigpen.core/store-many to
 combine them. Optionally takes a map of options.
 
   Example:
@@ -48,12 +48,12 @@ combine them. Optionally takes a map of options.
     :pigpen-jar-location - The location where your uberjar resides.
                            Defaults to 'pigpen.jar'.
 
-  See also: pigpen.core/write-script, pigpen.core/script
+  See also: pigpen.core/write-script, pigpen.core/store-many
 "
   {:added "0.1.0"}
   ([query] (generate-script {} query))
   ([opts query]
-    (-> query
+    (->> query
       (oven/bake opts)
       script/commands->script)))
 
@@ -61,7 +61,7 @@ combine them. Optionally takes a map of options.
   "Generates a Pig script from the relation specified and writes it to location.
 You can pass any relation to this and it will generate a Pig script - it doesn't
 have to be an output. However, if there are no store commands, the script won't
-do much. If you have more than one store command, use pigpen.core/script to
+do much. If you have more than one store command, use pigpen.core/store-many to
 combine them. Optionally takes a map of options.
 
   Example:
@@ -79,7 +79,7 @@ combine them. Optionally takes a map of options.
     :pigpen-jar-location - The location where your uberjar resides.
                            Defaults to 'pigpen.jar'.
 
-  See also: pigpen.core/generate-script, pigpen.core/script
+  See also: pigpen.core/generate-script, pigpen.core/store-many
 "
   {:added "0.1.0"}
   ([location query] (write-script location {} query))

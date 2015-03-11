@@ -64,7 +64,7 @@ number of optimizations and transforms to the graph.
   "Updates command-specific fields"
   [command update-fn]
   (case (:type command)
-    :generate      (update-in command [:projections] (partial mapv #(update-command-fields % update-fn)))
+    :project       (update-in command [:projections] (partial mapv #(update-command-fields % update-fn)))
     :projection    (-> command
                      (update-in [:expr] #(update-command-fields % update-fn))
                      (update-in [:alias] (partial mapv update-fn)))
@@ -73,7 +73,7 @@ number of optimizations and transforms to the graph.
 
     :bind          (update-in command [:args] (partial mapv update-fn))
     :store         (update-in command [:args] (partial mapv update-fn))
-    :order         (update-in command [:key] update-fn)
+    :sort          (update-in command [:key] update-fn)
     :reduce        (update-in command [:arg] update-fn)
     (:group :join) (update-in command [:keys] (partial mapv update-fn))
     :noop          (update-in command [:args] (partial mapv update-fn))
@@ -112,7 +112,7 @@ number of optimizations and transforms to the graph.
    and this returns the list of that node and its ancestors, in the order
    they'll need to be executed. This also calls tree->edge on each node, such
    that it will now refer to the id of the node instead of the actual node."
-  [command _]
+  [_ command]
   (->> command
     (ancestors)
     (map tree->command)
@@ -145,18 +145,18 @@ number of optimizations and transforms to the graph.
   "Applies a mapping of command ids to a set of commands. This updates the id
    and ancestor keys of each command map. There will remain duplicates in the
    result - this just updates the id space."
-  [commands mapping]
+  [mapping commands]
   (map (fn [c] (update-ids c mapping)) commands))
 
 (defn ^:private dedupe
   "Collapses duplicate commands in a graph. The strategy is to take the set of
    distinct commands, find the first two that can be merged, and merge them to
    produce graph'. Rinse & repeat until there are no more duplicate commands."
-  [commands _]
+  [_ commands]
   (let [distinct-commands (vec (distinct commands))
         next-merge (next-match distinct-commands)]
     (if next-merge
-      (recur (merge-command distinct-commands next-merge) _)
+      (recur _ (merge-command next-merge distinct-commands))
       distinct-commands)))
 
 ;; **********
@@ -167,23 +167,23 @@ number of optimizations and transforms to the graph.
   [location command]
   (when-let [field-type (or (:field-type command) (:field-type command))]
     (when-not (get-in command [:opts :implicit-schema])
-      (-> command
+      (->> command
         (raw/bind$ [] `(pigpen.runtime/map->bind pigpen.runtime/debug)
                    {:args (:fields command), :field-type-in field-type, :field-type :native})
-        ;; TODO Fix the location of store commands to match generates instead of binds
+        ;; TODO Fix the location of store commands to match projects instead of binds
         (raw/store$ (str location (:id command)) :string {})))))
 
 ;; TODO add a debug-lite version
 (defn ^:private debug
   "Creates a debug version of a script. This adds a store command after every command."
-  [command {:keys [debug]}]
+  [{:keys [debug]} command]
   (when debug
     (->> command
       (ancestors)
       (map (partial command->debug debug))
       (filter identity)
       (cons command)
-      (raw/script$))))
+      (raw/store-many$))))
 
 ;; **********
 
@@ -206,7 +206,7 @@ number of optimizations and transforms to the graph.
                   [before binds (conj after command)])))
             [[] [] []] commands)))
 
-(defn ^:private bind->generate [commands platform]
+(defn ^:private bind->project [commands platform]
   ;; TODO make sure all inner field types are :frozen
   (let [first-relation   (-> commands first :ancestors first)
         first-args       (-> commands first :args)
@@ -231,21 +231,24 @@ number of optimizations and transforms to the graph.
 
         description (->> commands (map :description) (clojure.string/join))]
 
-    (raw/generate$* first-relation [projection] {:field-type last-field-type
-                                                 :description description
-                                                 :implicit-schema implicit-schema})))
+    (raw/project$*
+      [projection]
+      {:field-type last-field-type
+       :description description
+       :implicit-schema implicit-schema}
+      first-relation)))
 
 (defn ^:private optimize-binds
-  [commands {:keys [platform] :as opts}]
+  [{:keys [platform] :as opts} commands]
   (if (= 1 (count commands))
     commands
     (let [[before binds after] (find-bind-sequence commands)]
       (if (empty? binds)
         commands
-        (let [generate (bind->generate binds platform)
-              next (concat before [generate] after)
-              next (merge-command next {(-> binds last :id) (:id generate)})]
-          (recur next opts))))))
+        (let [project (bind->project binds platform)
+              next (concat before [project] after)
+              next (merge-command {(-> binds last :id) (:id project)} next)]
+          (recur opts next))))))
 
 ;; **********
 
@@ -254,7 +257,7 @@ number of optimizations and transforms to the graph.
   [command-lookup {:keys [type id ancestors field-dispatch] :as join}]
   ;; For each ancestor of a join, create a no-op with a new id
   (let [ancestors' (->> ancestors
-                     (mapv #(-> %
+                     (mapv #(->> %
                               command-lookup
                               (raw/noop$ {})
                               tree->command)))
@@ -272,7 +275,7 @@ number of optimizations and transforms to the graph.
 (defn ^:private alias-self-joins
   "Self-joins create ambiguous fields. This introduces a no-op for each
    key-selector so that they are unique."
-  [commands _]
+  [_ commands]
   (let [command-lookup (->> commands
                          (map (juxt :id identity))
                          (into {}))
@@ -312,7 +315,7 @@ number of optimizations and transforms to the graph.
 
 (defn ^:private clean
   "Some optimizations produce unused commands. This prunes them from the graph."
-  [commands _]
+  [_ commands]
   (let [referenced-commands (->> commands
                               (mapcat :ancestors) ;; Get all referenced commands
                               (cons (-> commands last :id)) ;; Add the last command
@@ -322,11 +325,11 @@ number of optimizations and transforms to the graph.
                              (referenced-commands id)))]
     (if (every? command-valid? commands)
       commands
-      (recur (filter command-valid? commands) _))))
+      (recur _ (filter command-valid? commands)))))
 
 ;; **********
 
-(defn mark-baked [commands _]
+(defn mark-baked [_ commands]
   (with-meta commands {:baked true}))
 
 (defn default-operations []
@@ -361,7 +364,7 @@ produces a non-pigpen output.
             pigpen.core/dump, pigpen.core/show
 "
 
-  [query platform operations opts]
+  [platform operations opts query]
   {:pre [(map? opts)]}
   (assert (->> query meta keys (some #{:pig :baked})) "Query was not a pigpen query")
   (if (-> query meta :baked)
@@ -370,7 +373,7 @@ produces a non-pigpen output.
       (merge (default-operations) operations)
       (sort-by second)
       (reduce (fn [commands [op _]]
-                (if-let [commands' (op commands (assoc opts :platform platform))]
+                (if-let [commands' (op (assoc opts :platform platform) commands)]
                   commands'
                   commands))
               query))))

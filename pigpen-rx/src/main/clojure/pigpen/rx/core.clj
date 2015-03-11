@@ -85,11 +85,11 @@ sequence. This command is very useful for unit tests.
              [2 4 6])))
 
   Note: pig/store commands return an empty set
-        pig/script commands merge their results
+        pig/store-many commands merge their results
 "
   {:added "0.1.0"}
   [query]
-  (let [graph (oven/bake query :rx {} {})
+  (let [graph (oven/bake :rx {} {} query)
         last-command (:id (last graph))]
     (->> graph
       (reduce graph->observable+ {})
@@ -145,8 +145,8 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Map **********
 
-(s/defmethod graph->observable :generate
-  [[data] {:keys [projections]} :- m/Mapcat]
+(s/defmethod graph->observable :project
+  [[data] {:keys [projections]} :- m/Project]
   (rx/flatmap
     (fn [values]
       (->> projections
@@ -161,7 +161,7 @@ sequence. This command is very useful for unit tests.
     (rx/map-indexed (fn [i v] (assoc v 'index i)))
     (rx/map (local/update-field-ids id))))
 
-(s/defmethod graph->observable :order
+(s/defmethod graph->observable :sort
   [[data] {:keys [id key comp]} :- m/Sort]
   (->> data
     (rx/sort-by key (local/pigpen-comparator comp))
@@ -170,7 +170,7 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Filter **********
 
-(s/defmethod graph->observable :limit
+(s/defmethod graph->observable :take
   [[data] {:keys [id n]} :- m/Take]
   (->> data
     (rx/take n)
@@ -274,7 +274,7 @@ sequence. This command is very useful for unit tests.
     (rx/distinct)
     (rx/map (local/update-field-ids id))))
 
-(s/defmethod graph->observable :union
+(s/defmethod graph->observable :concat
   [data {:keys [id]} :- m/Concat]
   (->> data
     (apply rx/merge)
@@ -286,6 +286,6 @@ sequence. This command is very useful for unit tests.
   [[data] {:keys [id]} :- m/NoOp]
   (rx/map (local/update-field-ids id) data))
 
-(s/defmethod graph->observable :script
+(s/defmethod graph->observable :store-many
   [data _]
   (apply rx/merge (vec data)))

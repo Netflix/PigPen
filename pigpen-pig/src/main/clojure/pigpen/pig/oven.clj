@@ -52,19 +52,19 @@
 (defn ^:private extract-references
   "Extract all references from commands and create new reference commands at
    the head of the list."
-  [commands {:keys [extract-references?]}]
+  [{:keys [extract-references?]} commands]
   (when extract-references?
     (extract-* command->references pig-raw/register$ commands)))
 
 (defn ^:private extract-options
   "Extract all options from commands and create new option commands at
    the head of the list."
-  [commands {:keys [extract-options?]}]
+  [{:keys [extract-options?]} commands]
   (when extract-options?
     (extract-* command->options (fn [[o v]] (pig-raw/option$ o v)) commands)))
 
 (defn ^:private add-pigpen-jar
-  [commands {:keys [add-pigpen-jar? pigpen-jar-location]}]
+  [{:keys [add-pigpen-jar? pigpen-jar-location]} commands]
   (when add-pigpen-jar?
     (cons
       (pig-raw/register$ pigpen-jar-location)
@@ -72,39 +72,40 @@
 
 ;; **********
 
-(defn ^:private next-order-rank
+(defn ^:private next-sort-rank
   "Finds a pig/sort or pig/sort-by followed by a pig/map-indexed."
   [commands lookup]
   (->> commands
     ;; Look for rank commands
     (filter (comp #{:rank} :type))
-    ;; Find the first that's after an order & has no sort of its own
+    ;; Find the first that's after an sort & has no sort of its own
     (some (fn [rank]
             ;; rank will only ever have a single ancestor
             (let [sort (-> rank :ancestors first lookup)]
-              (when (-> sort :type #{:order})
-                ;; Return both the rank & order commands
+              (when (-> sort :type #{:sort})
+                ;; Return both the rank & sort commands
                 [rank sort]))))))
 
-(defn ^:private merge-order-rank
+(defn ^:private merge-sort-rank
   "Looks for a pig/sort or pig/sort-by followed by a pig/map-indexed. Moves the
-   order operation into the rank command."
-  [commands _]
+   sort operation into the rank command."
+  [_ commands]
   ;; Build an id > command lookup
   (let [lookup (->> commands (map (juxt :id identity)) (into {}))]
     ;; Try to find the next potential rank command.
-    (if-let [[next-rank {:keys [key comp ancestors]}] (next-order-rank commands lookup)]
+    (if-let [[next-rank {:keys [key comp ancestors]}] (next-sort-rank commands lookup)]
       ;; If we find one, update the rank & recur
       (recur
+         _
         (for [command commands]
           (if-not (= command next-rank)
             command
             ;; When we find the rank command, add the sort-keys to it and update it
-            ;; to point at the sort's generate command.
+            ;; to point at the sort's project command.
             (assoc command
                    :key key
                    :comp comp
-                   :ancestors ancestors))) _)
+                   :ancestors ancestors))))
       ;; If we don't find one, we're done
       commands)))
 
@@ -114,7 +115,7 @@
   "Load commands can specify a native filter. This filter must be defined with
    the load command because of some nuances in Pig. This expands that into an
    actual command."
-  [commands _]
+  [_ commands]
   ;; TODO possibly make expansion available to all commands?
   (->> commands
     (mapcat (fn [{:keys [type id opts fields] :as c}]
@@ -122,8 +123,8 @@
                 (let [filter (:filter opts)
                       id' (symbol (str id "_0"))]
                   [(assoc c :id id')
-                   (-> id'
-                     (raw/filter$* fields filter {})
+                   (->
+                     (raw/filter$* fields filter {} id')
                      (assoc :id id))])
                 [c])))))
 
@@ -131,17 +132,17 @@
 
 (defn ^:private dec-rank
   "Pig starts rank at 1. This decrements every rank to match clojure."
-  [commands _]
+  [_ commands]
   (->> commands
     (mapcat (fn [{:keys [type id opts fields] :as c}]
               (if (= type :rank)
                 (let [id-str (str id "_0")
                       id' (symbol id-str)]
                   [(assoc c :id id')
-                   (-> id'
+                   (->
                      (raw/bind$* '(fn [[i v]]
                                     [[(dec i) v]])
-                                 {})
+                                 {} id')
                      (assoc :id id)
                      (assoc :args [(symbol id-str "$0") (symbol id-str "value")])
                      (assoc :fields [(symbol (str id) "$0") (symbol (str id) "value")]))])
@@ -149,12 +150,12 @@
 
 ;; **********
 
-(defn ^:private split-generate
-  "Splits every generate command into two so that column pruning works"
-  [commands _]
+(defn ^:private split-project
+  "Splits every project command into two so that column pruning works"
+  [_ commands]
   (->> commands
     (mapcat (fn [{:keys [type id fields field-type projections opts] :as c}]
-              (if (= type :generate)
+              (if (= type :project)
                 (let [id' (symbol (str id "_0"))
                       projections-a (map-indexed
                                       (fn [i p]
@@ -173,8 +174,8 @@
                      (assoc :id id')
                      (assoc :projections (vec projections-a))
                      (assoc :fields (mapcat :alias projections-a)))
-                   (-> id'
-                     (raw/generate$* projections-b {})
+                   (->
+                     (raw/project$* projections-b {} id')
                      (assoc :id id)
                      (assoc :projections projections-b)
                      (assoc :fields (mapcat :alias projections-b)))])
@@ -205,20 +206,20 @@ produces a non-pigpen output.
             pigpen.core/dump, pigpen.core/show
 "
   {:added "0.3.0"}
-  ([query] (bake query {}))
-  ([query opts]
+  ([query] (bake {} query))
+  ([opts query]
     (pigpen.oven/bake
-      query
       :pig
       {extract-options     1.1
        extract-references  1.2
        add-pigpen-jar      1.3
-       merge-order-rank    1.4
+       merge-sort-rank     1.4
        expand-load-filters 2.1
        dec-rank            2.2
-       split-generate      4.5}
+       split-project       4.5}
       (merge {:extract-references? true
               :extract-options?    true
               :add-pigpen-jar?     true
               :pigpen-jar-location "pigpen.jar"}
-             opts))))
+             opts)
+      query)))
