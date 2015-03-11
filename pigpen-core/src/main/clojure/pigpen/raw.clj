@@ -96,6 +96,12 @@ building blocks for more complex operations."
            :description location
            :args (:fields relation))))
 
+(s/defn store-many$ :- m/StoreMany$
+  [outputs]
+  ^:pig {:type :store-many
+         :id (pigsym "store-many")
+         :ancestors (vec outputs)})
+
 (s/defn return$ :- m/Return$
   [fields data]
   (let [id (pigsym "return")]
@@ -293,9 +299,3 @@ building blocks for more complex operations."
   (->
     (command :noop relation opts)
     (assoc :args (:fields relation))))
-
-(s/defn store-many$ :- m/StoreMany$
-  [outputs]
-  ^:pig {:type :store-many
-         :id (pigsym "store-many")
-         :ancestors (vec outputs)})

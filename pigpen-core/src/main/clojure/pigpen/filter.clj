@@ -30,10 +30,12 @@
 
 (defn filter*
   "See #'pigpen.core/filter"
-  [pred opts relation]
-  {:pre [(map? relation) pred]}
-  (code/assert-arity pred (-> relation :fields count))
-  (raw/bind$ `(pigpen.runtime/filter->bind ~pred) opts relation))
+  ([pred relation]
+    (filter* pred {} relation))
+  ([pred opts relation]
+    {:pre [(map? relation) pred]}
+    (code/assert-arity pred (-> relation :fields count))
+    (raw/bind$ `(pigpen.runtime/filter->bind ~pred) opts relation)))
 
 (defmacro filter
   "Returns a relation that only contains the items for which (pred item)

@@ -27,8 +27,7 @@
             [pigpen.io :as pig-io]
             [pigpen.map :as pig-map]
             [pigpen.filter :as pig-filter]
-            [pigpen.join :as pig-join]
-            [pigpen.query :as pig-query]))
+            [pigpen.join :as pig-join]))
 
 (use-fixtures :once schema.test/validate-schemas)
 
@@ -65,7 +64,7 @@
                (pig-raw/store$ "bar2" :string {}))]
 
       (test-diff
-        (->> (pig-query/store-many s1 s2)
+        (->> (pig-io/store-many s1 s2)
           (#'pigpen.oven/braise {})
           (#'pigpen.oven/next-match))
         ;; Should match the load commands
@@ -78,7 +77,7 @@
           s1 (pig-raw/store$ "bar" :string {} l1)
           l2 (pig-raw/load$ "foo" :string '[foo] {})
           s2 (pig-raw/store$ "bar2" :string {} l2)
-          s (pig-query/store-many s1 s2)
+          s (pig-io/store-many s1 s2)
 
           mapping {(:id l1) (:id l2)}
           commands (#'pigpen.oven/braise {} s)]
@@ -145,7 +144,7 @@
                (pig-raw/store$ "bar2" :string {}))]
 
       (test-diff
-        (->> (pig-query/store-many s1 s2)
+        (->> (pig-io/store-many s1 s2)
           (#'pigpen.oven/braise {})
           (#'pigpen.oven/dedupe {})
           (map #(select-keys % [:type :id :ancestors])))
@@ -216,7 +215,7 @@
                               (pig-filter/filter (constantly false))
                               (pig-io/store-clj "out1"))]
                      (->>
-                       (pig-query/store-many p1 p2)
+                       (pig-io/store-many p1 p2)
                        (#'pigpen.oven/braise {})
                        (#'pigpen.oven/dedupe {}))))
 
@@ -360,7 +359,7 @@
 
       (test-diff
         (->>
-          (pig-query/store-many s1 s2)
+          (pig-io/store-many s1 s2)
           (#'pigpen.oven/bake :pig {} {})
           (map #(select-keys % [:type :id :ancestors])))
         '[{:type :load,       :id load3}

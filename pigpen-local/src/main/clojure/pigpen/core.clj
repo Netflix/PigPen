@@ -25,7 +25,6 @@
             [pigpen.filter]
             [pigpen.set]
             [pigpen.join]
-            [pigpen.query]
             [pigpen.local]))
 
 (set! *warn-on-reflection* true)
@@ -41,6 +40,7 @@
 (intern *ns* (with-meta 'store-tsv (meta #'pigpen.io/store-tsv)) @#'pigpen.io/store-tsv)
 (intern *ns* (with-meta 'store-clj (meta #'pigpen.io/store-clj)) @#'pigpen.io/store-clj)
 (intern *ns* (with-meta 'store-json (meta #'pigpen.io/store-json)) @#'pigpen.io/store-json)
+(intern *ns* (with-meta 'store-many (meta #'pigpen.io/store-many)) @#'pigpen.io/store-many)
 (intern *ns* (with-meta 'constantly (meta #'pigpen.io/constantly)) @#'pigpen.io/constantly)
 (intern *ns* (with-meta 'return (meta #'pigpen.io/return)) @#'pigpen.io/return)
 
@@ -81,7 +81,6 @@
 (intern *ns* (with-meta 'filter-by (meta #'pigpen.join/filter-by)) @#'pigpen.join/filter-by)
 (intern *ns* (with-meta 'remove-by (meta #'pigpen.join/remove-by)) @#'pigpen.join/remove-by)
 
-;; ********** Script **********
+;; ********** Local **********
 
-(intern *ns* (with-meta 'store-many (meta #'pigpen.query/store-many)) @#'pigpen.query/store-many)
 (intern *ns* (with-meta 'dump (meta #'pigpen.local/dump)) @#'pigpen.local/dump)

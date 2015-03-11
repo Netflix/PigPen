@@ -48,7 +48,7 @@
   [_ fields]
   (next fields))
 
-(defn ^:private set-operation
+(defn set-op*
   "Common base for most set operations"
   [f opts-relations]
   (let [[opts relations] (split-opts-relations opts-relations)
@@ -199,7 +199,7 @@ results. Optionally takes a map of options as the first parameter.
   {:arglists '([opts? relations+])
    :added "0.1.0"}
   [& opts-relations]
-  (set-operation 'pigpen.set/pig-intersection opts-relations))
+  (set-op* 'pigpen.set/pig-intersection opts-relations))
 
 (defn intersection-multiset
   "Performs a multiset intersection on all relations provided and returns all
@@ -223,7 +223,7 @@ results. Optionally takes a map of options as the first parameter.
   {:arglists '([opts? relations+])
    :added "0.1.0"}
   [& opts-relations]
-  (set-operation 'pigpen.set/pig-intersection-multiset opts-relations))
+  (set-op* 'pigpen.set/pig-intersection-multiset opts-relations))
 
 (defn difference
   "Performs a set difference on all relations provided and returns the distinct
@@ -247,7 +247,7 @@ results. Optionally takes a map of options as the first parameter.
   {:arglists '([opts? relations+])
    :added "0.1.0"}
   [& opts-relations]
-  (set-operation 'pigpen.set/pig-difference opts-relations))
+  (set-op* 'pigpen.set/pig-difference opts-relations))
 
 (defn difference-multiset
   "Performs a multiset difference on all relations provided and returns all
@@ -271,4 +271,4 @@ results. Optionally takes a map of options as the first parameter.
   {:arglists '([opts? relations+])
    :added "0.1.0"}
   [& opts-relations]
-  (set-operation 'pigpen.set/pig-difference-multiset opts-relations))
+  (set-op* 'pigpen.set/pig-difference-multiset opts-relations))
