@@ -34,19 +34,19 @@
 
 (deftest test-tree->command
   (s/validate m/Store
-              (->
-                (pig-raw/load$ "foo" '[foo] :string {})
+              (->>
+                (pig-raw/load$ "foo" :string '[foo] {})
                 (pig-raw/store$ "bar" :string {})
                 (#'pigpen.oven/tree->command))))
 
 (deftest test-braise
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (as-> nil %
-        (pig-raw/load$ "foo" '[foo] :string {})
-        (pig-raw/store$ % "bar" :string {})
-        (#'pigpen.oven/braise % {})
-        (map #(select-keys % [:type :id :ancestors :fields]) %))
+      (->>
+        (pig-raw/load$ "foo" :string '[foo] {})
+        (pig-raw/store$ "bar" :string {})
+        (#'pigpen.oven/braise {})
+        (map #(select-keys % [:type :id :ancestors :fields])))
       '[{:type :load
          :id load1
          :fields [load1/foo]}
@@ -56,37 +56,37 @@
 
 (deftest test-next-match
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [s1 (->
-               (pig-raw/load$ "foo" '[foo] :string {})
+    (let [s1 (->>
+               (pig-raw/load$ "foo" :string '[foo] {})
                (pig-raw/store$ "bar" :string {}))
 
-          s2 (->
-               (pig-raw/load$ "foo" '[foo] :string {})
+          s2 (->>
+               (pig-raw/load$ "foo" :string '[foo] {})
                (pig-raw/store$ "bar2" :string {}))]
 
       (test-diff
-        (as-> (pig-query/script s1 s2) %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.oven/next-match %))
+        (->> (pig-query/script s1 s2)
+          (#'pigpen.oven/braise {})
+          (#'pigpen.oven/next-match))
         ;; Should match the load commands
         '{load1 load3}))))
 
 (deftest test-merge-command
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [l1 (pig-raw/load$ "foo" '[foo] :string {})
-          s1 (pig-raw/store$ l1 "bar" :string {})
-          l2 (pig-raw/load$ "foo" '[foo] :string {})
-          s2 (pig-raw/store$ l2 "bar2" :string {})
+    (let [l1 (pig-raw/load$ "foo" :string '[foo] {})
+          s1 (pig-raw/store$ "bar" :string {} l1)
+          l2 (pig-raw/load$ "foo" :string '[foo] {})
+          s2 (pig-raw/store$ "bar2" :string {} l2)
           s (pig-query/script s1 s2)
 
           mapping {(:id l1) (:id l2)}
-          commands (#'pigpen.oven/braise s {})]
+          commands (#'pigpen.oven/braise {} s)]
 
       (test-diff
-        (as-> commands %
-          (#'pigpen.oven/merge-command % mapping)
-          (map #(select-keys % [:type :id :ancestors]) %))
+        (->> commands
+          (#'pigpen.oven/merge-command mapping)
+          (map #(select-keys % [:type :id :ancestors])))
         ;; Should make the ids of the load commands the same
         '[{:type :load,   :id load3}
           {:type :store,  :id store4,  :ancestors [load3]}
@@ -102,12 +102,12 @@
                             (s :on identity)]
                            merge)
           mapping '{r r0, s s0, bind1 b1, bind2 b2, join3 j3, bind4 b4}
-          commands (#'pigpen.oven/braise c {})]
+          commands (#'pigpen.oven/braise {} c)]
 
       (test-diff
-        (as-> commands %
-          (#'pigpen.oven/merge-command % mapping)
-          (map #(select-keys % [:type :id :ancestors :keys :fields :args]) %))
+        (->> commands
+          (#'pigpen.oven/merge-command mapping)
+          (map #(select-keys % [:type :id :ancestors :keys :fields :args])))
         '[{:id s0
            :fields [s0/value]}
           {:type :bind
@@ -136,19 +136,19 @@
 (deftest test-dedupe
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [s1 (->
-               (pig-raw/load$ "foo" '[foo] :string {})
+    (let [s1 (->>
+               (pig-raw/load$ "foo" :string '[foo] {})
                (pig-raw/store$ "bar" :string {}))
 
-          s2 (->
-               (pig-raw/load$ "foo" '[foo] :string {})
+          s2 (->>
+               (pig-raw/load$ "foo" :string '[foo] {})
                (pig-raw/store$ "bar2" :string {}))]
 
       (test-diff
-        (as-> (pig-query/script s1 s2) %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.oven/dedupe % {})
-          (map #(select-keys % [:type :id :ancestors]) %))
+        (->> (pig-query/script s1 s2)
+          (#'pigpen.oven/braise {})
+          (#'pigpen.oven/dedupe {})
+          (map #(select-keys % [:type :id :ancestors])))
         ;; Should merge the load commands
         '[{:type :load,   :id load3}
           {:type :store,  :id store4,  :ancestors [load3]}
@@ -158,17 +158,17 @@
 (deftest test-debug
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [script (->
-                   (pig-raw/load$ "foo" '[foo] :string {})
+    (let [script (->>
+                   (pig-raw/load$ "foo" :string '[foo] {})
                    (pig-raw/project$ [(pig-raw/projection-field$ 'load1/foo ['bar])] {})
                    (pig-raw/store$ "bar" :string {})
                    (vector)
                    (pig-raw/script$))]
 
       (test-diff
-        (as-> script %
-          (bake % :pig {} {:debug "/out/"})
-          (map #(select-keys % [:type :id :ancestors :location]) %))
+        (->> script
+          (bake :pig {} {:debug "/out/"})
+          (map #(select-keys % [:type :id :ancestors :location])))
         '[{:type :load,    :id load1,                             :location "foo"}
           {:type :project, :id project10, :ancestors [load1]}
           {:type :store,   :id store9,    :ancestors [project10], :location "/out/load1"}
@@ -183,22 +183,22 @@
   (mapv #(mapv (juxt :id :description) %) commands))
 
 (let [^:local s0 (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-                   (as-> nil %
+                   (->>
                      (pig-io/load-clj "in")
-                     (pig-map/map identity %)
-                     (pig-io/store-clj "out" %)
-                     (#'pigpen.oven/braise % {})
-                     (#'pigpen.oven/dedupe % {})))
+                     (pig-map/map identity)
+                     (pig-io/store-clj "out")
+                     (#'pigpen.oven/braise {})
+                     (#'pigpen.oven/dedupe {})))
 
       ^:local s1 (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-                   (as-> nil %
+                   (->>
                      (pig-io/load-clj "in")
-                     (pig-map/map identity %)
-                     (pig-filter/filter (constantly true) %)
-                     (pig-map/mapcat vector %)
-                     (pig-io/store-clj "out" %)
-                     (#'pigpen.oven/braise % {})
-                     (#'pigpen.oven/dedupe % {})))
+                     (pig-map/map identity)
+                     (pig-filter/filter (constantly true))
+                     (pig-map/mapcat vector)
+                     (pig-io/store-clj "out")
+                     (#'pigpen.oven/braise {})
+                     (#'pigpen.oven/dedupe {})))
 
       ^:local s2 (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
                    (let [p0 (->>
@@ -215,9 +215,10 @@
                               (pig-map/map dec)
                               (pig-filter/filter (constantly false))
                               (pig-io/store-clj "out1"))]
-                     (as-> (pig-query/script p1 p2) %
-                       (#'pigpen.oven/braise % {})
-                       (#'pigpen.oven/dedupe % {}))))
+                     (->>
+                       (pig-query/script p1 p2)
+                       (#'pigpen.oven/braise {})
+                       (#'pigpen.oven/dedupe {}))))
 
       ^:local s3 (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
                    (let [p0 (->>
@@ -227,14 +228,14 @@
                          p1 (->>
                               (pig-io/load-clj "in1")
                               (pig-map/map dec))]
-                     (as-> nil %
+                     (->>
                        (pig-join/join [(p0 :on identity)
                                        (p1 :on identity)]
                                       merge)
-                       (pig-filter/filter (constantly true) %)
-                       (pig-io/store-clj "out" %)
-                       (#'pigpen.oven/braise % {})
-                       (#'pigpen.oven/dedupe % {}))))]
+                       (pig-filter/filter (constantly true))
+                       (pig-io/store-clj "out")
+                       (#'pigpen.oven/braise {})
+                       (#'pigpen.oven/dedupe {}))))]
 
   (deftest test-find-bind-sequence
     (testing "s0"
@@ -298,21 +299,21 @@
 
     (testing "s0"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s0 :pig))
+        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds {:platform :pig} s0))
                    '[[load1 "in"]
                      [project1 "identity\n"]
                      [store5 "out"]])))
 
     (testing "s1"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s1 :pig))
+        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds {:platform :pig} s1))
                    '[[load1 "in"]
                      [project1 "identity\n(constantly true)\nvector\n"]
                      [store7 "out"]])))
 
     (testing "s2"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s2 :pig))
+        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds {:platform :pig} s2))
                    '[[load1 "in"]
                      [project1 "identity\nidentity\n"]
                      [project2 "dec\n(constantly false)\n"]
@@ -323,7 +324,7 @@
 
     (testing "s3"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds s3 :pig))
+        (test-diff (map (juxt :id :description) (#'pigpen.oven/optimize-binds {:platform :pig} s3))
                    '[[load4 "in1"]
                      [project1 "dec\n"]
                      [load1 "in0"]
@@ -336,7 +337,8 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (let [data (pig-io/return [1 2 3])
           command (pig-join/join [(data) (data)] vector)]
-      (test-diff (->> (bake command :pig {} {})
+      (test-diff (->> command
+                   (bake :pig {} {})
                    (map #(select-keys % [:fields :ancestors :id :type])))
                  '[{:type :return,  :id return1,                            :fields [return1/value]}
                    {:type :project, :id project6, :ancestors [return1],     :fields [project6/key project6/value]}
@@ -348,18 +350,19 @@
 (deftest test-bake
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
-    (let [s1 (->
-               (pig-raw/load$ "foo" '[foo] :test-storage {})
+    (let [s1 (->>
+               (pig-raw/load$ "foo" :test-storage '[foo] {})
                (pig-raw/store$ "bar" :test-storage {}))
 
-          s2 (->
-               (pig-raw/load$ "foo" '[foo] :test-storage {})
+          s2 (->>
+               (pig-raw/load$ "foo" :test-storage '[foo] {})
                (pig-raw/store$ "bar2" :test-storage {}))]
 
       (test-diff
-        (as-> (pig-query/script s1 s2) %
-          (#'pigpen.oven/bake % :pig {} {})
-          (map #(select-keys % [:type :id :ancestors]) %))
+        (->>
+          (pig-query/script s1 s2)
+          (#'pigpen.oven/bake :pig {} {})
+          (map #(select-keys % [:type :id :ancestors])))
         '[{:type :load,   :id load3}
           {:type :store,  :id store4,  :ancestors [load3]}
           {:type :store,  :id store2,  :ancestors [load3]}

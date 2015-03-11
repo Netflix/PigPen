@@ -54,7 +54,7 @@
   (let [[opts relations] (split-opts-relations opts-relations)
         fields     (mapcat :fields relations)
         join-types (repeat (count relations) :optional)]
-    (-> relations
+    (->> relations
       (raw/group$ :set join-types opts)
       (raw/bind$ '[pigpen.set] `(pigpen.runtime/mapcat->bind ~f) {:args fields}))))
 
@@ -103,7 +103,7 @@ map of options.
   {:added "0.1.0"}
   ([relation] `(distinct {} ~relation))
   ([opts relation]
-    `(raw/distinct$ ~relation ~(code/trap-values #{:partition-by} opts))))
+    `(raw/distinct$ ~(code/trap-values #{:partition-by} opts) ~relation)))
 
 (defn union
   "Performs a union on all relations provided and returns the distinct results.
@@ -128,7 +128,10 @@ Optionally takes a map of options as the first parameter.
    :added "0.1.0"}
   [& opts-relations]
   (let [[opts relations] (split-opts-relations opts-relations)]
-    (raw/distinct$ (raw/concat$ (filter identity relations) {}) opts)))
+    (->> relations
+      (filter identity)
+      (raw/concat$ {})
+      (raw/distinct$ opts))))
 
 (defn concat
   "Concatenates all relations provided. Does not guarantee any ordering of the
@@ -148,7 +151,9 @@ relations. Identical to pigpen.core/union-multiset.
   {:arglists '([relations+])
    :added "0.1.0"}
   [& relations]
-  (raw/concat$ (filter identity relations) {}))
+  (->> relations
+    (filter identity)
+    (raw/concat$ {})))
 
 (defn union-multiset
   "Performs a union on all relations provided and returns all results.
@@ -168,7 +173,9 @@ Identical to pigpen.core/concat.
   {:arglists '([relations+])
    :added "0.1.0"}
   [& relations]
-  (raw/concat$ (filter identity relations) {}))
+  (->> relations
+    (filter identity)
+    (raw/concat$ {})))
 
 (defn intersection
   "Performs an intersection on all relations provided and returns the distinct

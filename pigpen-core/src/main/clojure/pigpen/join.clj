@@ -36,12 +36,13 @@ coerced to ::nil so they can be differentiated from outer joins later."
   ;; TODO - If this is an inner join, we can filter nil keys before the join
   [{:keys [join-nils sentinel-nil]} {:keys [from key-selector on by]}]
   (let [key-selector (or key-selector on by 'identity)]
-    (raw/bind$ from
-               (if sentinel-nil
-                 `(pigpen.runtime/key-selector->bind (comp pigpen.runtime/sentinel-nil ~key-selector))
-                 `(pigpen.runtime/key-selector->bind ~key-selector))
-               {:field-type (if join-nils :frozen :frozen-with-nils)
-                :alias ['key 'value]})))
+    (raw/bind$
+      (if sentinel-nil
+        `(pigpen.runtime/key-selector->bind (comp pigpen.runtime/sentinel-nil ~key-selector))
+        `(pigpen.runtime/key-selector->bind ~key-selector))
+      {:field-type (if join-nils :frozen :frozen-with-nils)
+       :alias ['key 'value]}
+      from)))
 
 ;; TODO verify these are vetted at compile time
 (defn fold-fn*
@@ -84,7 +85,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
   (let [relations  (mapv (partial select->bind opts) selects)
         join-types (mapv #(get % :type :optional) selects)
         fields     (mapcat :fields relations)
-        {:keys [fields], :as c} (raw/group$ relations :group join-types (dissoc opts :fold))
+        {:keys [fields], :as c} (raw/group$ :group join-types (dissoc opts :fold) relations)
         values     (filter (comp '#{group value} symbol name) fields)]
     (code/assert-arity f (count values))
     (if (some :fold selects)
@@ -92,12 +93,12 @@ coerced to ::nil so they can be differentiated from outer joins later."
                         (cons nil (map :fold selects))
                         values
                         (map #(vector (symbol (str "value" %))) (range)))]
-        (-> c
+        (->> c
           (raw/project$ folds {})
           (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f)) {})))
 
       ; no folds
-      (-> c
+      (->> c
         (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f))
                    {:args values})))))
 
@@ -105,15 +106,15 @@ coerced to ::nil so they can be differentiated from outer joins later."
   "See pigpen.core/into, pigpen.core/reduce"
   [relation f opts]
   (code/assert-arity f 1)
-  (-> relation
+  (->> relation
     (raw/reduce$ opts)
     (raw/bind$ `(pigpen.runtime/map->bind ~f) {})))
 
 (defn fold*
   "See pigpen.core/fold"
   [relation fold opts]
-  (let [{:keys [fields], :as c} (raw/reduce$ relation opts)]
-    (-> c
+  (let [{:keys [fields], :as c} (raw/reduce$ opts relation)]
+    (->> c
       (raw/project$ [(projection-fold fold (first fields) '[value])] {}))))
 
 (defmethod raw/ancestors->fields :join
@@ -134,7 +135,7 @@ coerced to ::nil so they can be differentiated from outer joins later."
                      fields
                      (filter (comp '#{value} symbol name) fields))]
     (code/assert-arity f (count values))
-    (-> relations
+    (->> relations
       (raw/join$ :join join-types opts)
       (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args values}))))
 
@@ -417,7 +418,7 @@ referred to as an anti-join in relational databases.
   ([key-selector keys relation] `(remove-by ~key-selector ~keys {} ~relation))
   ([key-selector keys opts relation]
     (let [f '(fn [[k _ _ v]] (when (nil? k) [v]))]
-      `(->
+      `(->>
          (join* [{:from ~keys :key-selector 'identity :type :optional}
                  {:from ~relation :key-selector (code/trap ~key-selector)}]
                 'vector

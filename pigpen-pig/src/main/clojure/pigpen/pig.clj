@@ -53,7 +53,7 @@ combine them. Optionally takes a map of options.
   {:added "0.1.0"}
   ([query] (generate-script {} query))
   ([opts query]
-    (-> query
+    (->> query
       (oven/bake opts)
       script/commands->script)))
 

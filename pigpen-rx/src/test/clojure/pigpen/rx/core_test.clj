@@ -46,19 +46,19 @@
 
 (deftest test-load-exception-handling
   (testing "normal"
-    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail nil})]
+    (let [command (raw/load$ "nothing" :bad-storage ['value] {:fail nil})]
       (is (= (rx/dump command) [1 2 3 1 2 3]))))
   (testing "fail locations"
-    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail :locations})]
+    (let [command (raw/load$ "nothing" :bad-storage ['value] {:fail :locations})]
       (is (thrown? Exception (rx/dump command)))))
   (testing "fail init-reader"
-    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail :init-reader})]
+    (let [command (raw/load$ "nothing" :bad-storage ['value] {:fail :init-reader})]
       (is (thrown? Exception (rx/dump command)))))
   (testing "fail read"
-    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail :read})]
+    (let [command (raw/load$ "nothing" :bad-storage ['value] {:fail :read})]
       (is (thrown? Exception (rx/dump command)))))
   (testing "fail close"
-    (let [command (raw/load$ "nothing" ['value] :bad-storage {:fail :close})]
+    (let [command (raw/load$ "nothing" :bad-storage ['value] {:fail :close})]
       (is (thrown? Exception (rx/dump command))))))
 
 (deftest test-exception-handling

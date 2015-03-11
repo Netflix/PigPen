@@ -55,7 +55,7 @@
 (deftest test-load$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (load$ "foo" ['value] :string {})
+      (load$ "foo" :string ['value] {})
       '{:type :load
         :id load0
         :description "foo"
@@ -68,7 +68,7 @@
 (deftest test-store$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (store$ r0 "foo" :string {})
+      (store$ "foo" :string {} r0)
       '{:type :store
         :id store0
         :description "foo"
@@ -83,7 +83,7 @@
 (deftest test-return$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (return$ [{'value "foo"}] ['value])
+      (return$ ['value] [{'value "foo"}])
       '{:type :return
         :id return0
         :field-type :frozen
@@ -120,7 +120,7 @@
 (deftest test-project$*
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (project$* 'r0 [(projection-field$ 'r0/value)] {})
+      (project$* [(projection-field$ 'r0/value)] {} 'r0)
       '{:type :project
         :id project0
         :description nil
@@ -137,7 +137,7 @@
 (deftest test-project$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (project$ r0 [(projection-field$ 'r0/value)] {})
+      (project$ [(projection-field$ 'r0/value)] {} r0)
       '{:type :project
         :id project0
         :description nil
@@ -156,7 +156,7 @@
 (deftest test-bind$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (bind$ r0 '[pigpen.raw-test] `identity {})
+      (bind$ '[pigpen.raw-test] `identity {} r0)
       '{:type :bind
         :id bind0
         :description nil
@@ -172,11 +172,12 @@
         :opts {:type :bind-opts}})
 
     (test-diff
-      (bind$ r1 ['my-ns] `identity
+      (bind$ ['my-ns] `identity
              {:args '[r0/key r0/value]
               :alias '[val]
               :field-type-in :native
-              :field-type :native})
+              :field-type :native}
+              r1)
       '{:type :bind
         :id bind0
         :description nil
@@ -194,7 +195,7 @@
 (deftest test-sort$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (sort$ r1 'key :asc {})
+      (sort$ 'key :asc {} r1)
       '{:type :sort
         :id sort0
         :description nil
@@ -210,7 +211,7 @@
 (deftest test-rank$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (rank$ r1 {})
+      (rank$ {} r1)
       '{:type :rank
         :id rank0
         :description nil
@@ -226,9 +227,9 @@
 (deftest test-filter$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (filter$ r0
-               '(and (= foo "a") (> bar 2))
-               {})
+      (filter$ '(and (= foo "a") (> bar 2))
+               {}
+               r0)
       '{:type :filter
         :id filter0
         :description nil
@@ -243,7 +244,7 @@
 (deftest test-take$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (take$ r0 1000 {})
+      (take$ 1000 {} r0)
       '{:type :take
         :id take0
         :description nil
@@ -258,7 +259,7 @@
 (deftest test-sample$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (sample$ r0 0.001 {})
+      (sample$ 0.001 {} r0)
       '{:type :sample
         :id sample0
         :description nil
@@ -275,7 +276,7 @@
 (deftest test-distinct$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (distinct$ r0 {:parallel 20})
+      (distinct$ {:parallel 20} r0)
       '{:type :distinct
         :id distinct0
         :description nil
@@ -290,8 +291,9 @@
 (deftest test-concat$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (concat$ '[{:id r0, :fields [r0/value], :field-type :frozen}
-                {:id r1, :fields [r1/value], :field-type :frozen}] {})
+      (concat$ {}
+               '[{:id r0, :fields [r0/value], :field-type :frozen}
+                 {:id r1, :fields [r1/value], :field-type :frozen}])
       '{:type :concat
         :id concat0
         :description nil
@@ -306,7 +308,7 @@
 (deftest test-reduce$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (reduce$ r0 {})
+      (reduce$ {} r0)
       '{:type :reduce
         :id reduce0
         :description nil
@@ -321,11 +323,11 @@
 (deftest test-group$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (group$ [{:id 'g1, :fields '[g1/key g1/value], :field-type :frozen}
-               {:id 'g2, :fields '[g2/key g2/value], :field-type :frozen}]
-              :group
+      (group$ :group
               [:optional :optional]
-              {})
+              {}
+              [{:id 'g1, :fields '[g1/key g1/value], :field-type :frozen}
+               {:id 'g2, :fields '[g2/key g2/value], :field-type :frozen}])
       '{:type :group
         :id group0
         :description nil
@@ -341,11 +343,11 @@
 (deftest test-join$
   (with-redefs [pigpen.raw/pigsym pigsym-zero]
     (test-diff
-      (join$ [{:id 'g1, :fields '[g1/key g1/value], :field-type :frozen}
-              {:id 'g2, :fields '[g2/key g2/value], :field-type :frozen}]
-             :join
+      (join$ :join
              [:required :required]
-             {})
+             {}
+             [{:id 'g1, :fields '[g1/key g1/value], :field-type :frozen}
+              {:id 'g2, :fields '[g2/key g2/value], :field-type :frozen}])
       '{:type :join
         :id join0
         :description nil
@@ -363,7 +365,7 @@
 (deftest test-noop$
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (noop$ r0 {})
+      (noop$ {} r0)
       '{:type :noop
         :id noop1
         :description nil
@@ -378,8 +380,8 @@
 (deftest test-script$
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (script$ [(store$ r0 "foo" :string {})
-                (store$ r0 "foo" :string {})])
+      (script$ [(store$ "foo" :string {} r0)
+                (store$ "foo" :string {} r0)])
       '{:type :script
         :id script3
         :ancestors [{:storage :string

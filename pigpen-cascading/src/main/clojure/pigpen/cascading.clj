@@ -69,8 +69,8 @@
     (load-tap tap 'clojure.core/vector))
   ([^Tap tap bind-fn]
     (let [fields (mapv symbol (.getSourceFields tap))]
-      (-> (.toString tap)
-        (raw/load$ fields :tap {:tap tap})
+      (->>
+        (raw/load$ (.toString tap) :tap fields {:tap tap})
         (raw/bind$
           `(pigpen.runtime/map->bind ~bind-fn)
           {:field-type-in :native})))))
@@ -282,7 +282,7 @@
 
 (defn commands->flow
   "Transforms a series of commands into a Cascading flow"
-  [commands ^FlowConnector connector]
+  [^FlowConnector connector commands]
   (let [[flowdef _] (reduce command->flowdef+ [(FlowDef/flowDef) {}] commands)]
     (.connect connector flowdef)))
 
@@ -290,6 +290,6 @@
   "Transforms the relation specified into a Cascading flow that is ready to be executed."
   ([query] (generate-flow (HadoopFlowConnector.) query))
   ([connector query]
-    (-> query
+    (->> query
       (oven/bake {})
       (commands->flow connector))))

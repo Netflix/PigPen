@@ -89,7 +89,7 @@ sequence. This command is very useful for unit tests.
 "
   {:added "0.1.0"}
   [query]
-  (let [graph (oven/bake query :rx {} {})
+  (let [graph (oven/bake :rx {} {} query)
         last-command (:id (last graph))]
     (->> graph
       (reduce graph->observable+ {})

@@ -57,8 +57,8 @@ parquet column names.
   [location schema]
   (let [fields (->> schema keys (mapv (comp symbol name)))
         pig-schema (schema->pig-schema schema)
-        {:keys [id] :as load} (raw/load$ location fields :parquet {:schema pig-schema})]
-    (-> load
+        {:keys [id] :as load} (raw/load$ location :parquet fields {:schema pig-schema})]
+    (->> load
       (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig.runtime/native->clojure))
                  {:args (clojure.core/mapcat (juxt str #(symbol (name id) (name %))) fields), :field-type-in :native}))))
 
@@ -89,7 +89,7 @@ with keywords matching the parquet columns to be stored.
   {:added "0.2.7"}
   [location schema relation]
   (let [fields (mapv (comp symbol name) (keys schema))]
-    (-> relation
+    (->> relation
       (raw/bind$ [] `(pigpen.runtime/keyword-field-selector->bind ~(mapv keyword fields))
                  {:field-type-out :native
                   :alias fields})

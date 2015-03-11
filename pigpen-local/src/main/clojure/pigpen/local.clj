@@ -165,7 +165,7 @@ sequence. This command is very useful for unit tests.
   {:added "0.3.0"}
   ([query] (dump {} query))
   ([opts query]
-    (let [graph (oven/bake query :local {} opts)
+    (let [graph (oven/bake :local {} opts query)
           last-command (:id (last graph))]
       (->> graph
         (reduce graph->local+ {})

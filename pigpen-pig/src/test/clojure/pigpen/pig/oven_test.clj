@@ -32,12 +32,12 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
     (test-diff
-      (as-> nil %
-        (raw/load$ "foo" '[foo] :test-storage {})
-        (raw/store$ % "bar" :test-storage {})
-        (#'pigpen.oven/braise % {})
-        (#'pigpen.pig.oven/extract-references % {:extract-references? true})
-        (map #(select-keys % [:type :id :ancestors :references :jar]) %))
+      (->>
+        (raw/load$ "foo" :test-storage '[foo] {})
+        (raw/store$ "bar" :test-storage {})
+        (#'pigpen.oven/braise {})
+        (#'pigpen.pig.oven/extract-references {:extract-references? true})
+        (map #(select-keys % [:type :id :ancestors :references :jar])))
       '[{:type :register
          :jar "ref.jar"}
         {:type :load
@@ -50,12 +50,12 @@
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
     (test-diff
-      (as-> nil %
-        (raw/load$ "foo" '[foo] :string {:pig-options {"pig.maxCombinedSplitSize" 1000000}})
-        (raw/store$ % "bar" :string {})
-        (#'pigpen.oven/braise % {})
-        (#'pigpen.pig.oven/extract-options % {:extract-options? true})
-        (map #(select-keys % [:type :id :ancestors :references :option :value]) %))
+      (->>
+        (raw/load$ "foo" :string '[foo] {:pig-options {"pig.maxCombinedSplitSize" 1000000}})
+        (raw/store$ "bar" :string {})
+        (#'pigpen.oven/braise {})
+        (#'pigpen.pig.oven/extract-options {:extract-options? true})
+        (map #(select-keys % [:type :id :ancestors :references :option :value])))
       '[{:type :option
          :option "pig.maxCombinedSplitSize"
          :value 1000000}
@@ -73,10 +73,10 @@
               (pig-map/map-indexed vector))]
 
       (test-diff
-        (as-> s %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.pig.oven/merge-sort-rank % {})
-          (map #(select-keys % [:comp :key :ancestors :id :type]) %))
+        (->> s
+          (#'pigpen.oven/braise {})
+          (#'pigpen.pig.oven/merge-sort-rank {})
+          (map #(select-keys % [:comp :key :ancestors :id :type])))
         '[{:type :return, :id return1}
           {:type :bind,   :id bind2,  :ancestors [return1]}
           {:type :sort,   :id sort3,  :ancestors [bind2], :key bind2/key, :comp :asc}
@@ -85,7 +85,7 @@
 
 (deftest test-expand-load-filters
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (let [command (raw/load$ "foo" '[foo] :string {:filter '(= foo 2)})]
+    (let [command (raw/load$ "foo" :string '[foo] {:filter '(= foo 2)})]
       (test-diff (pig-oven/bake command)
                  '[{:type :register
                     :jar "pigpen.jar"}
@@ -115,11 +115,11 @@
               (pig-map/map-indexed vector))]
 
       (test-diff
-        (as-> s %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.pig.oven/merge-sort-rank % {})
-          (#'pigpen.oven/clean % {})
-          (map #(select-keys % [:comp :key :ancestors :id :type]) %))
+        (->> s
+          (#'pigpen.oven/braise {})
+          (#'pigpen.pig.oven/merge-sort-rank {})
+          (#'pigpen.oven/clean {})
+          (map #(select-keys % [:comp :key :ancestors :id :type])))
         '[{:type :return, :id return1}
           {:type :bind,   :id bind2, :ancestors [return1]}
           {:type :rank,   :id rank4, :ancestors [bind2], :key bind2/key, :comp :asc}
@@ -132,11 +132,11 @@
               (pig-map/map-indexed vector))]
 
       (test-diff
-        (as-> s %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.pig.oven/dec-rank % {})
-          (#'pigpen.oven/optimize-binds % {})
-          (map #(select-keys % [:projections :ancestors :fields :id :type]) %))
+        (->> s
+          (#'pigpen.oven/braise {})
+          (#'pigpen.pig.oven/dec-rank {})
+          (#'pigpen.oven/optimize-binds {})
+          (map #(select-keys % [:projections :ancestors :fields :id :type])))
         '[{:type :return, :id return1, :fields [return1/value]}
           {:type :rank, :id rank2_0, :fields [rank2/index rank2/value], :ancestors [return1]}
           {:type :project
@@ -162,11 +162,11 @@
               (pig-map/map inc))]
 
       (test-diff
-        (as-> s %
-          (#'pigpen.oven/braise % {})
-          (#'pigpen.oven/optimize-binds % {})
-          (#'pigpen.pig.oven/split-project % {})
-          (map #(select-keys % [:projections :ancestors :fields :id :type]) %))
+        (->> s
+          (#'pigpen.oven/braise {})
+          (#'pigpen.oven/optimize-binds {})
+          (#'pigpen.pig.oven/split-project {})
+          (map #(select-keys % [:projections :ancestors :fields :id :type])))
         '[{:type :return
            :id return1
            :fields [return1/value]}

@@ -33,7 +33,7 @@
   [f opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.runtime/map->bind ~f) opts))
+  (raw/bind$ `(pigpen.runtime/map->bind ~f) opts relation))
 
 (defmacro map
   "Returns a relation of f applied to every item in the source relation.
@@ -60,7 +60,7 @@ pig/cogroup, and pig/union for combining sets of data.
   [f opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.runtime/mapcat->bind ~f) opts))
+  (raw/bind$ `(pigpen.runtime/mapcat->bind ~f) opts relation))
 
 (defmacro mapcat
   "Returns the result of applying concat, or flattening, the result of applying
@@ -80,7 +80,7 @@ f to each item in relation. Thus f should return a collection.
   [f opts relation]
   {:pre [(map? relation) f]}
   (code/assert-arity f 2)
-  (-> relation
+  (->> relation
     (raw/rank$ opts)
     (raw/bind$ `(pigpen.runtime/map->bind ~f) {})))
 
@@ -113,7 +113,7 @@ and the value. If you require sequential ids, use option {:dense true}.
   "See pigpen.core/sort, pigpen.core/sort-by"
   [key-selector comp opts relation]
   {:pre [(map? relation) (#{:asc :desc} comp)]}
-  (-> relation
+  (->> relation
     (raw/bind$ `(pigpen.runtime/key-selector->bind ~key-selector)
                {:field-type :native-key-frozen-val
                 :alias ['key 'value]})

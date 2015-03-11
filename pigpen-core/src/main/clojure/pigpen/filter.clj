@@ -33,7 +33,7 @@
   [pred opts relation]
   {:pre [(map? relation) pred]}
   (code/assert-arity pred (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.runtime/filter->bind ~pred) opts))
+  (raw/bind$ `(pigpen.runtime/filter->bind ~pred) opts relation))
 
 (defmacro filter
   "Returns a relation that only contains the items for which (pred item)
@@ -79,7 +79,7 @@ returns true.
 "
   {:added "0.1.0"}
   [n relation]
-  (raw/take$ relation n {}))
+  (raw/take$ n {} relation))
 
 (defn sample
   "Samples the input records by p percentage. This is non-deterministic;
@@ -96,4 +96,4 @@ between 0.0 and 1.0
 "
   {:added "0.1.0"}
   [p relation]
-  (raw/sample$ relation p {}))
+  (raw/sample$ p {} relation))
