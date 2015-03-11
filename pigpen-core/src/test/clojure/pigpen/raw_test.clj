@@ -377,13 +377,13 @@
                      :field-type :frozen}]
         :opts {:type :noop-opts}})))
 
-(deftest test-script$
+(deftest test-store-many$
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (script$ [(store$ "foo" :string {} r0)
-                (store$ "foo" :string {} r0)])
-      '{:type :script
-        :id script3
+      (store-many$ [(store$ "foo" :string {} r0)
+                    (store$ "foo" :string {} r0)])
+      '{:type :store-many
+        :id store-many3
         :ancestors [{:storage :string
                      :location "foo"
                      :args [r0/value]

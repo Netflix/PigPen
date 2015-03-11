@@ -160,7 +160,7 @@ sequence. This command is very useful for unit tests.
              [2 4 6])))
 
   Note: pig/store commands return an empty set
-        pig/script commands merge their results
+        pig/store-many commands merge their results
 "
   {:added "0.3.0"}
   ([query] (dump {} query))
@@ -413,6 +413,6 @@ sequence. This command is very useful for unit tests.
   [[data] {:keys [id]} :- m/NoOp]
   (map (update-field-ids id) data))
 
-(s/defmethod graph->local :script
+(s/defmethod graph->local :store-many
   [data _]
   (apply concat data))

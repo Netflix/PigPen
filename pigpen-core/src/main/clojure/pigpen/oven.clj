@@ -183,7 +183,7 @@ number of optimizations and transforms to the graph.
       (map (partial command->debug debug))
       (filter identity)
       (cons command)
-      (raw/script$))))
+      (raw/store-many$))))
 
 ;; **********
 

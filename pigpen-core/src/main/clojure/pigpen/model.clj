@@ -182,11 +182,11 @@
           :args [Field]}))
 
 (s/defschema StoreMany$
-  {:type (s/eq :script)
+  {:type (s/eq :store-many)
    :id s/Symbol
    :ancestors [(s/either Store$ (s/recursive #'StoreMany$))]})
 
 (s/defschema StoreMany
-  {:type (s/eq :script)
+  {:type (s/eq :store-many)
    :id s/Symbol
    :ancestors [s/Symbol]})

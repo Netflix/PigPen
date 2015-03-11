@@ -65,7 +65,7 @@
                (pig-raw/store$ "bar2" :string {}))]
 
       (test-diff
-        (->> (pig-query/script s1 s2)
+        (->> (pig-query/store-many s1 s2)
           (#'pigpen.oven/braise {})
           (#'pigpen.oven/next-match))
         ;; Should match the load commands
@@ -78,7 +78,7 @@
           s1 (pig-raw/store$ "bar" :string {} l1)
           l2 (pig-raw/load$ "foo" :string '[foo] {})
           s2 (pig-raw/store$ "bar2" :string {} l2)
-          s (pig-query/script s1 s2)
+          s (pig-query/store-many s1 s2)
 
           mapping {(:id l1) (:id l2)}
           commands (#'pigpen.oven/braise {} s)]
@@ -88,11 +88,11 @@
           (#'pigpen.oven/merge-command mapping)
           (map #(select-keys % [:type :id :ancestors])))
         ;; Should make the ids of the load commands the same
-        '[{:type :load,   :id load3}
-          {:type :store,  :id store4,  :ancestors [load3]}
-          {:type :load,   :id load3}
-          {:type :store,  :id store2,  :ancestors [load3]}
-          {:type :script, :id script5, :ancestors [store2 store4]}])))
+        '[{:type :load,       :id load3}
+          {:type :store,      :id store4,      :ancestors [load3]}
+          {:type :load,       :id load3}
+          {:type :store,      :id store2,      :ancestors [load3]}
+          {:type :store-many, :id store-many5, :ancestors [store2 store4]}])))
 
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
 
@@ -145,15 +145,15 @@
                (pig-raw/store$ "bar2" :string {}))]
 
       (test-diff
-        (->> (pig-query/script s1 s2)
+        (->> (pig-query/store-many s1 s2)
           (#'pigpen.oven/braise {})
           (#'pigpen.oven/dedupe {})
           (map #(select-keys % [:type :id :ancestors])))
         ;; Should merge the load commands
-        '[{:type :load,   :id load3}
-          {:type :store,  :id store4,  :ancestors [load3]}
-          {:type :store,  :id store2,  :ancestors [load3]}
-          {:type :script, :id script5, :ancestors [store2 store4]}]))))
+        '[{:type :load,       :id load3}
+          {:type :store,      :id store4,      :ancestors [load3]}
+          {:type :store,      :id store2,      :ancestors [load3]}
+          {:type :store-many, :id store-many5, :ancestors [store2 store4]}]))))
 
 (deftest test-debug
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -163,21 +163,21 @@
                    (pig-raw/project$ [(pig-raw/projection-field$ 'load1/foo ['bar])] {})
                    (pig-raw/store$ "bar" :string {})
                    (vector)
-                   (pig-raw/script$))]
+                   (pig-raw/store-many$))]
 
       (test-diff
         (->> script
           (bake :pig {} {:debug "/out/"})
           (map #(select-keys % [:type :id :ancestors :location])))
-        '[{:type :load,    :id load1,                             :location "foo"}
-          {:type :project, :id project10, :ancestors [load1]}
-          {:type :store,   :id store9,    :ancestors [project10], :location "/out/load1"}
-          {:type :project, :id project2,  :ancestors [load1]}
-          {:type :project, :id project11, :ancestors [project2]}
-          {:type :store,   :id store7,    :ancestors [project11], :location "/out/project2"}
-          {:type :store,   :id store3,    :ancestors [project2],  :location "bar"}
-          {:type :script,  :id script4,   :ancestors [store3]}
-          {:type :script,  :id script5,   :ancestors [script4 store7 store9]}]))))
+        '[{:type :load,       :id load1,                               :location "foo"}
+          {:type :project,    :id project10,   :ancestors [load1]}
+          {:type :store,      :id store9,      :ancestors [project10], :location "/out/load1"}
+          {:type :project,    :id project2,    :ancestors [load1]}
+          {:type :project,    :id project11,   :ancestors [project2]}
+          {:type :store,      :id store7,      :ancestors [project11], :location "/out/project2"}
+          {:type :store,      :id store3,      :ancestors [project2],  :location "bar"}
+          {:type :store-many, :id store-many4, :ancestors [store3]}
+          {:type :store-many, :id store-many5, :ancestors [store-many4 store7 store9]}]))))
 
 (defn clean-bind-sequence [commands]
   (mapv #(mapv (juxt :id :description) %) commands))
@@ -216,7 +216,7 @@
                               (pig-filter/filter (constantly false))
                               (pig-io/store-clj "out1"))]
                      (->>
-                       (pig-query/script p1 p2)
+                       (pig-query/store-many p1 p2)
                        (#'pigpen.oven/braise {})
                        (#'pigpen.oven/dedupe {}))))
 
@@ -257,7 +257,7 @@
                    (#'pigpen.oven/find-bind-sequence s2))
                  '[[[load1 "in"]]
                    [[bind2 nil] [bind3 "identity\n"] [bind4 "identity\n"]]
-                   [[bind9 "dec\n"] [bind10 "(constantly false)\n"] [bind11 nil] [store12 "out1"] [bind5 "(constantly true)\n"] [bind6 "inc\n"] [bind7 nil] [store8 "out0"] [script13 nil]]]))
+                   [[bind9 "dec\n"] [bind10 "(constantly false)\n"] [bind11 nil] [store12 "out1"] [bind5 "(constantly true)\n"] [bind6 "inc\n"] [bind7 nil] [store8 "out0"] [store-many13 nil]]]))
 
     (testing "s3"
       (test-diff (clean-bind-sequence
@@ -320,7 +320,7 @@
                      [store12 "out1"]
                      [project3 "(constantly true)\ninc\n"]
                      [store8 "out0"]
-                     [script13 nil]])))
+                     [store-many13 nil]])))
 
     (testing "s3"
       (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -360,10 +360,10 @@
 
       (test-diff
         (->>
-          (pig-query/script s1 s2)
+          (pig-query/store-many s1 s2)
           (#'pigpen.oven/bake :pig {} {})
           (map #(select-keys % [:type :id :ancestors])))
-        '[{:type :load,   :id load3}
-          {:type :store,  :id store4,  :ancestors [load3]}
-          {:type :store,  :id store2,  :ancestors [load3]}
-          {:type :script, :id script5, :ancestors [store2 store4]}]))))
+        '[{:type :load,       :id load3}
+          {:type :store,      :id store4,      :ancestors [load3]}
+          {:type :store,      :id store2,      :ancestors [load3]}
+          {:type :store-many, :id store-many5, :ancestors [store2 store4]}]))))

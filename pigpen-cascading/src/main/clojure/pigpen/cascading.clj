@@ -258,7 +258,7 @@
     (GroupBy. Fields/NONE)
     (Every. (RankBuffer. (cfields fields)) Fields/RESULTS)))
 
-(s/defmethod command->flowdef :script
+(s/defmethod command->flowdef :store-many
   [_ _ _]
   ; No-op, since the flowdef already contains everything needed to handle multiple outputs.
   nil)

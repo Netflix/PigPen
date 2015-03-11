@@ -83,5 +83,5 @@
 
 ;; ********** Script **********
 
-(intern *ns* (with-meta 'script (meta #'pigpen.query/script)) @#'pigpen.query/script)
+(intern *ns* (with-meta 'store-many (meta #'pigpen.query/store-many)) @#'pigpen.query/store-many)
 (intern *ns* (with-meta 'dump (meta #'pigpen.local/dump)) @#'pigpen.local/dump)

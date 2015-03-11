@@ -126,7 +126,7 @@
         c2 (pigpen/map (fn [x] (* x 3)) data)
         o1 (pigpen/store-clj output1 c1)
         o2 (pigpen/store-clj output2 c2)
-        s (pigpen/script o1 o2)]
+        s (pigpen/store-many o1 o2)]
     (.complete (cascading/generate-flow s))
     (is (= '(2 4 6) (read-output output1)))
     (is (= '(3 6 9) (read-output output2)))))

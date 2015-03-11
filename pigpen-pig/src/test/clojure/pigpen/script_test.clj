@@ -231,7 +231,7 @@ project0 = FOREACH relation0 GENERATE
                             :field-type :frozen
                             :ancestors [relation0]
                             :n 100
-                            :opts {:mode #{:script}}}
+                            :opts {}}
                           {}))))
 
 (deftest test-sample
@@ -242,7 +242,7 @@ project0 = FOREACH relation0 GENERATE
                             :field-type :frozen
                             :ancestors [relation0]
                             :p 0.01
-                            :opts {:mode #{:script}}}
+                            :opts {}}
                           {}))))
 
 ;; ********** Join **********
@@ -394,4 +394,4 @@ distinct0 = DISTINCT relation0 PARTITION BY pigpen.PigPenPartitioner1;\n\n"
 
 ;; ********** Script **********
 
-;; TODO test-script
+;; TODO test-store-many

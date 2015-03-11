@@ -294,8 +294,8 @@ building blocks for more complex operations."
     (command :noop relation opts)
     (assoc :args (:fields relation))))
 
-(s/defn script$ :- m/StoreMany$
+(s/defn store-many$ :- m/StoreMany$
   [outputs]
-  ^:pig {:type :script
-         :id (pigsym "script")
+  ^:pig {:type :store-many
+         :id (pigsym "store-many")
          :ancestors (vec outputs)})
