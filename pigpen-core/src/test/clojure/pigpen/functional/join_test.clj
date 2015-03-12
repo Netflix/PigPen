@@ -26,7 +26,7 @@
   (let [data (pig/return [{:a 1 :b 2}
                          {:a 1 :b 3}
                          {:a 2 :b 4}])
-          
+
         command (pig/group-by :a data)]
 
     (test-diff
@@ -41,7 +41,7 @@
     (test-diff
       (pig/dump command)
       '[[2 4 6]]))
-  
+
   (testing "empty seq returns nothing"
     (let [data (pig/return [])
           command (pig/into {} data)]
@@ -58,7 +58,7 @@
       (test-diff
         (pig/dump command)
         '[[2 4 6]])))
-  
+
   (testing "+"
     (let [data (pig/return [2 4 6])
           command (pig/reduce + data)]
@@ -66,7 +66,7 @@
       (test-diff
         (pig/dump command)
         '[12])))
-  
+
   (testing "empty seq returns nothing"
     (let [data (pig/return [])
           command (pig/reduce + data)]
@@ -81,7 +81,7 @@
                           {:k :foo, :v 3}
                           {:k :bar, :v 4}
                           {:k :bar, :v 5}])]
-    
+
     (testing "inline sum"
       (let [command (->> data
                       (pig/group-by :k
@@ -91,7 +91,7 @@
         (is (= (set (pig/dump command))
                '#{[:foo 6]
                   [:bar 9]}))))
-    
+
     (testing "inline count"
       (let [command (->> data
                       (pig/group-by :k
@@ -101,7 +101,7 @@
         (is (= (set (pig/dump command))
                '#{[:bar 2]
                   [:foo 3]}))))
-    
+
     (testing "using fold/count"
       (let [command (->> data
                       (pig/group-by :k
@@ -109,7 +109,7 @@
         (is (= (set (pig/dump command))
                '#{[:bar 2]
                   [:foo 3]})))))
-  
+
   (testing "dual fold co-group"
     (let [data0 (pig/return [{:k :foo, :a 1}
                             {:k :foo, :a 2}
@@ -127,19 +127,19 @@
       (is (= (set (pig/dump command))
              '#{[:foo 6 3]
                 [:bar 9 12]}))))
-  
-  (testing "fold all sum" 
+
+  (testing "fold all sum"
     (let [data (pig/return [1 2 3 4])
           command (pig/fold + data)]
       (is (= (pig/dump command)
              '[10]))))
-  
+
   (testing "fold all count"
     (let [data (pig/return [1 2 3 4])
           command (pig/fold (fold/count) data)]
      (is (= (pig/dump command)
             '[4]))))
-  
+
   (testing "empty seq returns nothing"
     (let [data (pig/return [])
           command (pig/fold (fold/count) data)]
@@ -175,7 +175,7 @@
         '#{[nil [{:k nil, :v 1} {:k nil, :v 3}] nil]
            [:i  [{:k :i, :v 5} {:k :i, :v 7}]   [{:k :i, :v 6} {:k :i, :v 8}]]
            [:l  [{:k :l, :v 9} {:k :l, :v 11}]  nil]}))
-    
+
     (testing "right outer"
       (test-diff
         (set (pig/dump (pig/cogroup [(data1 :on :k :type :optional)
@@ -184,7 +184,7 @@
         '#{[nil nil                           [{:k nil, :v 2} {:k nil, :v 4}]]
            [:i  [{:k :i, :v 5} {:k :i, :v 7}] [{:k :i, :v 6} {:k :i, :v 8}]]
            [:r  nil                           [{:k :r, :v 10} {:k :r, :v 12}]]}))
-    
+
     (testing "full outer"
       (test-diff
         (set (pig/dump (pig/cogroup [(data1 :on :k :type :optional)
@@ -195,7 +195,7 @@
            [:i  [{:k :i, :v 5} {:k :i, :v 7}]   [{:k :i, :v 6} {:k :i, :v 8}]]
            [:l  [{:k :l, :v 9} {:k :l, :v 11}]  nil]
            [:r  nil                             [{:k :r, :v 10} {:k :r, :v 12}]]}))
-    
+
     (testing "inner join nils"
       (test-diff
         (set (pig/dump (pig/cogroup [(data1 :on :k :type :required)
@@ -204,7 +204,7 @@
                                     {:join-nils true})))
         '#{[nil [{:k nil, :v 1} {:k nil, :v 3}] [{:k nil, :v 2} {:k nil, :v 4}]]
            [:i  [{:k :i, :v 5} {:k :i, :v 7}]   [{:k :i, :v 6} {:k :i, :v 8}]]}))
-    
+
     (testing "left outer join nils"
       (test-diff
         (set (pig/dump (pig/cogroup [(data1 :on :k :type :required)
@@ -214,7 +214,7 @@
         '#{[nil [{:k nil, :v 1} {:k nil, :v 3}] [{:k nil, :v 2} {:k nil, :v 4}]]
            [:i  [{:k :i, :v 5} {:k :i, :v 7}]   [{:k :i, :v 6} {:k :i, :v 8}]]
            [:l  [{:k :l, :v 9} {:k :l, :v 11}]  nil]}))
-    
+
     (testing "right outer join nils"
       (test-diff
         (set (pig/dump (pig/cogroup [(data1 :on :k :type :optional)
@@ -224,7 +224,7 @@
         '#{[nil [{:k nil, :v 1} {:k nil, :v 3}] [{:k nil, :v 2} {:k nil, :v 4}]]
            [:i  [{:k :i, :v 5} {:k :i, :v 7}]   [{:k :i, :v 6} {:k :i, :v 8}]]
            [:r  nil                             [{:k :r, :v 10} {:k :r, :v 12}]]}))
-    
+
     (testing "full outer join nils"
       (test-diff
         (set (pig/dump (pig/cogroup [(data1 :on :k :type :optional)
@@ -235,22 +235,22 @@
            [:i  [{:k :i, :v 5} {:k :i, :v 7}]   [{:k :i, :v 6} {:k :i, :v 8}]]
            [:l  [{:k :l, :v 9} {:k :l, :v 11}]  nil]
            [:r  nil                             [{:k :r, :v 10} {:k :r, :v 12}]]}))
-    
+
     (testing "self cogroup"
       (let [data (pig/return [0 1 2])
           command (pig/cogroup [(data)
                                 (data)]
                                vector)]
-        (is (= (pig/dump command)
-               '[[2 (2) (2)] [0 (0) (0)] [1 (1) (1)]]))))
-    
+        (is (= (set (pig/dump command))
+               '#{[2 (2) (2)] [0 (0) (0)] [1 (1) (1)]}))))
+
     (testing "self cogroup with fold"
       (let [data (pig/return [0 1 2])
           command (pig/cogroup [(data :fold (fold/count))
                                 (data :fold (fold/count))]
                                vector)]
-        (is (= (pig/dump command)
-               '[[2 1 1] [0 1 1] [1 1 1]]))))))
+        (is (= (set (pig/dump command))
+               '#{[2 1 1] [0 1 1] [1 1 1]}))))))
 
 (deftest test-join
   (let [data1 (pig/return [{:k nil, :v 1}
@@ -266,7 +266,7 @@
                           {:k :r, :v 10}
                           {:k :r, :v 12}])]
 
-    (testing "inner join - implicit :required" 
+    (testing "inner join - implicit :required"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k)
                                   (data2 :on :k)]
@@ -274,8 +274,8 @@
         '#{[{:k :i, :v 5} {:k :i, :v 6}]
            [{:k :i, :v 5} {:k :i, :v 8}]
            [{:k :i, :v 7} {:k :i, :v 6}]
-           [{:k :i, :v 7} {:k :i, :v 8}]})) 
-  
+           [{:k :i, :v 7} {:k :i, :v 8}]}))
+
     (testing "inner"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k :type :required)
@@ -285,7 +285,7 @@
            [{:k :i, :v 5} {:k :i, :v 8}]
            [{:k :i, :v 7} {:k :i, :v 6}]
            [{:k :i, :v 7} {:k :i, :v 8}]}))
-    
+
     (testing "left outer"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k :type :required)
@@ -299,7 +299,7 @@
            [{:k :i, :v 7} {:k :i, :v 8}]
            [{:k :l, :v 9} nil]
            [{:k :l, :v 11} nil]}))
-    
+
     (testing "right outer"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k :type :optional)
@@ -313,7 +313,7 @@
            [{:k :i, :v 7} {:k :i, :v 8}]
            [nil {:k :r, :v 10}]
            [nil {:k :r, :v 12}]}))
-    
+
     (testing "full outer"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k :type :optional)
@@ -331,7 +331,7 @@
            [{:k :l, :v 11} nil]
            [nil {:k :r, :v 10}]
            [nil {:k :r, :v 12}]}))
-    
+
     (testing "inner join nils"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k :type :required)
@@ -346,7 +346,7 @@
            [{:k :i, :v 5} {:k :i, :v 8}]
            [{:k :i, :v 7} {:k :i, :v 6}]
            [{:k :i, :v 7} {:k :i, :v 8}]}))
-    
+
     (testing "left outer join nils"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k :type :required)
@@ -363,7 +363,7 @@
            [{:k :i, :v 7} {:k :i, :v 8}]
            [{:k :l, :v 9} nil]
            [{:k :l, :v 11} nil]}))
-    
+
     (testing "right outer join nils"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k :type :optional)
@@ -380,7 +380,7 @@
            [{:k :i, :v 7} {:k :i, :v 8}]
            [nil {:k :r, :v 10}]
            [nil {:k :r, :v 12}]}))
-    
+
     (testing "full outer join nils"
       (test-diff
         (set (pig/dump (pig/join [(data1 :on :k :type :optional)
@@ -399,19 +399,19 @@
            [{:k :l, :v 11} nil]
            [nil {:k :r, :v 10}]
            [nil {:k :r, :v 12}]}))
-      
+
   (testing "self join"
     (let [data (pig/return [0 1 2])
           command (pig/join [(data)
                                   (data)]
                                  vector)]
-      (is (= (pig/dump command)
-             [[2 2] [0 0] [1 1]]))))
-  
+      (is (= (set (pig/dump command))
+             #{[2 2] [0 0] [1 1]}))))
+
   (testing "key-selector defaults to identity"
     (let [data1 (pig/return [1 2])
           data2 (pig/return [2 3])
-          
+
           command (pig/join [(data1)
                              (data2)]
                             vector)]
@@ -433,7 +433,7 @@
           (set (pig/dump (pig/filter-by :k keys data)))
           '#{{:k :i, :v 5}
              {:k :i, :v 7}})))
-    
+
     (testing "Nil keys"
       (let [keys (pig/return [:i nil])]
         (test-diff
@@ -442,7 +442,7 @@
              {:k nil, :v 3}
              {:k :i, :v 5}
              {:k :i, :v 7}})))
-    
+
     (testing "Duplicate keys"
       (let [keys (pig/return [:i :i])]
         (test-diff
@@ -468,14 +468,14 @@
                {:k nil, :v 3}
                {:k :l, :v 9}
                {:k :l, :v 11}})))
-    
+
     (testing "Nil keys"
       (let [keys (pig/return [:i nil])]
         (test-diff
           (set (pig/dump (pig/remove-by :k keys data)))
           '#{{:k :l, :v 9}
              {:k :l, :v 11}})))
-    
+
     (testing "Duplicate keys"
       (let [keys (pig/return [:i :i])]
         (test-diff
