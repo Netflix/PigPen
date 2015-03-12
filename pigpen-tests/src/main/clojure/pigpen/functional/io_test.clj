@@ -69,6 +69,42 @@
       '#{["a\tb\tc"]
          ["1\t2\t3"]})))
 
+(t/deftest test-load-csv-default-seperator-quotes
+  "Normal csv with default separator and quotes"
+  [harness]
+  (let [file (t/write harness ["\"a string\",123,5.0" "\"a \"\"complex\"\" string\",-532,23.7"])]
+    (test-diff
+      (->>
+        (pig/load-csv file)
+        (t/dump harness)
+        (set))
+      '#{["a string" "123" "5.0"]
+         ["a \"complex\" string" "-532" "23.7"]})))
+
+(t/deftest test-load-csv-non-comma-seperator-different-quotes
+  "Normal csv with non-comma separator and different quoting"
+  [harness]
+  (let [file (t/write harness ["\"a string\",123,5.0" "\"another string\",-532,23.7"])]
+    (test-diff
+      (->>
+        (pig/load-csv file \; \')
+        (t/dump harness)
+        (set))
+      '#{["\"a string\",123,5.0"]
+         ["\"another string\",-532,23.7"]})))
+
+(t/deftest test-load-csv-semicolon-delimiter-single-quotor
+  "Non-csv with semicolon delimiter and single-quote quotor"
+  [harness]
+  (let [file (t/write harness ["'a string';123;5.0" "'another string';-532;23.7"])]
+    (test-diff
+      (->>
+        (pig/load-csv file \; \')
+        (t/dump harness)
+        (set))
+      '#{["a string" "123" "5.0"]
+         ["another string" "-532" "23.7"]})))
+
 (t/deftest test-load-clj
   "normal load clj"
   [harness]

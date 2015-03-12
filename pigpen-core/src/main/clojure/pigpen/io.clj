@@ -73,6 +73,24 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
   ([location delimiter]
     (load-string* location '[pigpen.extensions.core] `(fn [~'s] (if ~'s (pigpen.extensions.core/structured-split ~'s ~delimiter))))))
 
+(defn load-csv
+  "Loads data from a csv file. Each line is returned as a vector of strings,
+split according to RFC4180(*). The default separator is \\, and quote is \\\".
+
+*) new lines within cells are not supported due to line-based splitting of files.
+
+  Example:
+
+    (pig/load-csv \"input.csv\")
+    (pig/load-tsv \"input.csv\" \\, \\\")
+
+  See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-clj, pigpen.core/load-json
+"
+  {:added "0.2.12"}
+  ([location] (load-csv location \, \"))
+  ([location separator quotor]
+    (load-string* location '[clojure.data.csv] `(fn [~'s] (if ~'s (first (clojure.data.csv/read-csv ~'s :separator ~separator :quote ~quotor)))))))
+
 (defn load-clj
   "Loads clojure data from a file. Each line should contain one value and will
 be parsed using clojure.edn/read-string into a value.

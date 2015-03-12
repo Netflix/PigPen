@@ -33,6 +33,7 @@
 
 (intern *ns* (with-meta 'load-string (meta #'pigpen.io/load-string)) @#'pigpen.io/load-string)
 (intern *ns* (with-meta 'load-tsv (meta #'pigpen.io/load-tsv)) @#'pigpen.io/load-tsv)
+(intern *ns* (with-meta 'load-csv (meta #'pigpen.io/load-csv)) @#'pigpen.io/load-csv)
 (intern *ns* (with-meta 'load-clj (meta #'pigpen.io/load-clj)) @#'pigpen.io/load-clj)
 (intern *ns* (with-meta 'load-json (meta #'pigpen.io/load-json)) @#'pigpen.io/load-json)
 (intern *ns* (with-meta 'load-lazy (meta #'pigpen.io/load-lazy)) @#'pigpen.io/load-lazy)
