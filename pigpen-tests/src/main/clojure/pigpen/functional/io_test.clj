@@ -75,7 +75,7 @@
   (let [file (t/write harness ["\"a string\",123,5.0" "\"a \"\"complex\"\" string\",-532,23.7"])]
     (test-diff
       (->>
-        (pig/load-csv file)
+        (pig-io/load-csv file)
         (t/dump harness)
         (set))
       '#{["a string" "123" "5.0"]
@@ -87,7 +87,7 @@
   (let [file (t/write harness ["\"a string\",123,5.0" "\"another string\",-532,23.7"])]
     (test-diff
       (->>
-        (pig/load-csv file \; \')
+        (pig-io/load-csv file \; \')
         (t/dump harness)
         (set))
       '#{["\"a string\",123,5.0"]
@@ -99,7 +99,7 @@
   (let [file (t/write harness ["'a string';123;5.0" "'another string';-532;23.7"])]
     (test-diff
       (->>
-        (pig/load-csv file \; \')
+        (pig-io/load-csv file \; \')
         (t/dump harness)
         (set))
       '#{["a string" "123" "5.0"]
