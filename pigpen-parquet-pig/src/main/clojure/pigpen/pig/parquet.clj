@@ -16,7 +16,13 @@
 ;;
 ;;
 
-(ns pigpen.parquet.core-test
-  (:require [clojure.test :refer :all]
-            [pigpen.parquet.core]))
+(ns pigpen.pig.parquet
+  (:require [pigpen.pig.script]))
 
+(defmethod pigpen.pig.script/storage->script [:load :parquet]
+  [command]
+  (str "parquet.pig.ParquetLoader(" (get-in command [:opts :schema]) ")"))
+
+(defmethod pigpen.pig.script/storage->script [:store :parquet]
+  [_]
+  "parquet.pig.ParquetStorer()")

@@ -16,7 +16,7 @@
 ;;
 ;;
 
-(ns pigpen.parquet.core-test
+(ns pigpen.core.fn-test
   (:require [clojure.test :refer :all]
-            [pigpen.parquet.core]))
+            [pigpen.core.fn]))
 

@@ -21,8 +21,7 @@
 how you 'use' a PigPen query.
 "
   (:require [pigpen.pig.oven :as oven]
-            [pigpen.script :as script]
-            [pigpen.viz :as viz]))
+            [pigpen.pig.script :as script]))
 
 (set! *warn-on-reflection* true)
 
@@ -85,37 +84,3 @@ combine them. Optionally takes a map of options.
   ([location query] (write-script location {} query))
   ([location opts query]
     (spit location (generate-script opts query))))
-
-(defn show
-  "Generates a graph image for a PigPen query. This allows you to see what steps
-will be executed when the script is run. The image is opened in another window.
-This command uses a terse description for each operation.
-
-  Example:
-
-    (pigpen.core/show foo)
-
-  See also: pigpen.core/show+, pigpen.core/dump&show
-"
-  {:added "0.1.0"}
-  [query]
-  (->> query
-    (oven/bake)
-    (viz/view-graph viz/command->description)))
-
-(defn show+
-  "Generates a graph image for a PigPen query. This allows you to see what steps
-will be executed when the script is run. The image is opened in another window.
-This command uses a verbose description for each operation, including user code.
-
-  Example:
-
-    (pigpen.core/show+ foo)
-
-  See also: pigpen.core/show, pigpen.core/dump&show+
-"
-  {:added "0.1.0"}
-  [query]
-  (->> query
-    (oven/bake)
-    (viz/view-graph viz/command->description+)))

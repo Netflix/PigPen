@@ -16,7 +16,19 @@
 ;;
 ;;
 
-(ns pigpen.parquet.core-test
-  (:require [clojure.test :refer :all]
-            [pigpen.parquet.core]))
+(ns pigpen.local.parquet
+  (:require [pigpen.local]
+            [pigpen.parquet.core :as pq]
+            [pigpen.pig.local])
+  (:import [parquet.pig ParquetLoader ParquetStorer]
+           [pigpen.pig.local LoadFuncLoader StoreFuncStorage]))
 
+(defmethod pigpen.local/load :parquet
+  [{:keys [location fields storage]}]
+  (let [schema (first (:args storage))]
+    (LoadFuncLoader. (ParquetLoader. schema) {} location fields)))
+
+(defmethod pigpen.local/store :parquet
+  [{:keys [location args opts]}]
+  (let [schema (pq/schema->pig-schema (:schema opts))]
+    (StoreFuncStorage. (ParquetStorer.) schema location args)))

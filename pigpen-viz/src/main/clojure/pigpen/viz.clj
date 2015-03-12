@@ -22,15 +22,16 @@
 Nothing in here will be used directly with normal PigPen usage.
 See pigpen.core and pigpen.pig
 "
-  (:require [rhizome.viz :as viz]))
+  (:require [rhizome.viz :as viz]
+            [pigpen.oven :as oven]))
 
 (set! *warn-on-reflection* true)
 
-(defn command->description [{:keys [id]}]
+(defn ^:private command->description [{:keys [id]}]
   "Returns a simple human readable description of a command"
   (str id))
 
-(defn command->description+ [{:keys [id description]}]
+(defn ^:private command->description+ [{:keys [id description]}]
   "Returns a verbose human readable description of a command"
   (if description
    (str id "\n\n" description)
@@ -49,8 +50,42 @@ See pigpen.core and pigpen.pig
       (str label' "\\l...")
       label')))
 
-(defn view-graph [command->description commands]
+(defn ^:private view-graph [command->description commands]
   (viz/view-graph (filter #(contains? % :id) commands)
                   (fn [parent] (filter (fn [child] ((-> child :ancestors set) (:id parent))) commands))
                   :node->descriptor (fn [c] {:label (fix-label (command->description c))
                                              :shape :box})))
+
+(defn show
+  "Generates a graph image for a PigPen query. This allows you to see what steps
+will be executed when the script is run. The image is opened in another window.
+This command uses a terse description for each operation.
+
+  Example:
+
+    (pigpen.core/show foo)
+
+  See also: pigpen.core/show+, pigpen.core/dump&show
+"
+  {:added "0.1.0"}
+  [query]
+  (->> query
+    (oven/bake :viz {} {})
+    (view-graph command->description)))
+
+(defn show+
+  "Generates a graph image for a PigPen query. This allows you to see what steps
+will be executed when the script is run. The image is opened in another window.
+This command uses a verbose description for each operation, including user code.
+
+  Example:
+
+    (pigpen.core/show+ foo)
+
+  See also: pigpen.core/show, pigpen.core/dump&show+
+"
+  {:added "0.1.0"}
+  [query]
+  (->> query
+    (oven/bake :viz {} {})
+    (view-graph command->description+)))

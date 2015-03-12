@@ -18,7 +18,7 @@
 
 (ns pigpen.rx.core-test
   (:require [clojure.test :refer :all]
-            [pigpen.rx.core :as rx]
+            [pigpen.rx :as rx]
             [pigpen.raw :as raw]
             [pigpen.core :as pig]
             [pigpen.local :as local :refer [PigPenLocalLoader]]))

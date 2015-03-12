@@ -17,6 +17,43 @@
 ;;
 
 (ns pigpen.rx
-  (:require [pigpen.rx.core]))
+  (:require [pigpen.rx.core :as rx]
+            [pigpen.rx.extensions :refer [multicast->observable]]
+            [rx.lang.clojure.blocking :as rx-blocking]
+            [pigpen.oven :as oven]))
 
-(intern *ns* (with-meta 'dump (meta #'pigpen.rx.core/dump)) @#'pigpen.rx.core/dump)
+(defn dump
+  "Executes a script locally and returns the resulting values as a clojure
+sequence. This command is very useful for unit tests.
+
+  Example:
+
+    (->>
+      (pig/load-clj \"input.clj\")
+      (pig/map inc)
+      (pig/filter even?)
+      (pig-rx/dump)
+      (clojure.core/map #(* % %))
+      (clojure.core/filter even?))
+
+    (deftest test-script
+      (is (= (->>
+               (pig/load-clj \"input.clj\")
+               (pig/map inc)
+               (pig/filter even?)
+               (pig-rx/dump))
+             [2 4 6])))
+
+  Note: pig/store commands return an empty set
+        pig/store-many commands merge their results
+"
+  {:added "0.1.0"}
+  [query]
+  (let [graph (oven/bake :rx {} {} query)
+        last-command (:id (last graph))]
+    (->> graph
+      (reduce rx/graph->observable+ {})
+      (last-command)
+      (multicast->observable)
+      (rx-blocking/into [])
+      (map (comp val first)))))

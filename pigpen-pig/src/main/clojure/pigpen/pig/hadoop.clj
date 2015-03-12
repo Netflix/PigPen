@@ -16,7 +16,7 @@
 ;;
 ;;
 
-(ns pigpen.hadoop.local
+(ns pigpen.pig.hadoop
   (:require [pigpen.local :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
             [pigpen.extensions.io :as io])
   (:import [java.io File]

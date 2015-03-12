@@ -21,12 +21,10 @@
             [pigpen.model :as m]
             [pigpen.runtime]
             [pigpen.local :as local]
-            [pigpen.oven :as oven]
             [clojure.java.io :as io]
             [clojure.core.reducers :as reducers]
             [rx.lang.clojure.core :as rx]
             [rx.lang.clojure.interop :as rx-interop]
-            [rx.lang.clojure.blocking :as rx-blocking]
             [pigpen.rx.extensions :refer [multicast multicast->observable]]
             [pigpen.extensions.io :refer [list-files]]
             [pigpen.extensions.core :refer [forcat zipv]])
@@ -61,42 +59,6 @@
         result (graph->observable ancestor-data command)]
     ;(prn 'result result)
     (assoc data id (multicast result))))
-
-(defn dump
-  "Executes a script locally and returns the resulting values as a clojure
-sequence. This command is very useful for unit tests.
-
-  Example:
-
-    (->>
-      (pig/load-clj \"input.clj\")
-      (pig/map inc)
-      (pig/filter even?)
-      (pig-rx/dump)
-      (clojure.core/map #(* % %))
-      (clojure.core/filter even?))
-
-    (deftest test-script
-      (is (= (->>
-               (pig/load-clj \"input.clj\")
-               (pig/map inc)
-               (pig/filter even?)
-               (pig-rx/dump))
-             [2 4 6])))
-
-  Note: pig/store commands return an empty set
-        pig/store-many commands merge their results
-"
-  {:added "0.1.0"}
-  [query]
-  (let [graph (oven/bake :rx {} {} query)
-        last-command (:id (last graph))]
-    (->> graph
-      (reduce graph->observable+ {})
-      (last-command)
-      (multicast->observable)
-      (rx-blocking/into [])
-      (map (comp val first)))))
 
 ;; ********** IO **********
 

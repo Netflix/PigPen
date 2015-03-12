@@ -1,8 +1,6 @@
 dependencies {
-	compile project(':pigpen')
-	testCompile project(':pigpen-tests')
-
-    provided 'org.clojure:clojure:1.6.0'
+    compile project(':pigpen')
+    testCompile project(':pigpen-tests')
 
     // Should these be provided?
     compile 'cascading:cascading-core:2.5.1'

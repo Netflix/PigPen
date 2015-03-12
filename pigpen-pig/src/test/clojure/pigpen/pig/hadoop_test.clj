@@ -16,9 +16,9 @@
 ;;
 ;;
 
-(ns pigpen.hadoop.local-test
+(ns pigpen.pig.hadoop-test
   (:require [clojure.test :refer :all]
-            [pigpen.hadoop.local :as hadoop])
+            [pigpen.pig.hadoop :as hadoop])
   (:import [org.apache.hadoop.conf Configuration]
            [org.apache.hadoop.mapreduce Job JobContext TaskAttemptContext]
            [org.apache.hadoop.mapreduce.lib.input TextInputFormat]
