@@ -16,15 +16,15 @@
 ;;
 ;;
 
-(ns pigpen.parquet.core-test
+(ns pigpen.parquet-test
   (:require [clojure.test :refer :all]
             [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc regex->string]]
-            [pigpen.parquet.core :as pig-parquet]))
+            [pigpen.parquet :as pq]))
 
 (deftest test-load-parquet
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (pig-parquet/load-parquet "foo" {:x :chararray, :y :int})
+      (pq/load-parquet "foo" {:x :chararray, :y :int})
       '{:type :bind
         :id bind2
         :description nil
@@ -48,7 +48,7 @@
 (deftest test-store-parquet
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
     (test-diff
-      (pig-parquet/store-parquet "foo" {:x :chararray, :y :int} {:fields '[value]})
+      (pq/store-parquet "foo" {:x :chararray, :y :int} {:fields '[value]})
       '{:type :store
         :id store2
         :description "foo"

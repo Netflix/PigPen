@@ -16,27 +16,27 @@
 ;;
 ;;
 
-(ns pigpen.script-test
+(ns pigpen.pig.script-test
   (:require [clojure.test :refer :all]
             [schema.test]
             [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
-            [pigpen.script :refer :all]))
+            [pigpen.pig.script :refer :all]))
 
 (use-fixtures :once schema.test/validate-schemas)
 
 (deftest test-format-field
-  (is (= (#'pigpen.script/format-field "abc") "'abc'"))
-  (is (= (#'pigpen.script/format-field "a'b'c") "'a\\'b\\'c'"))
-  (is (= (#'pigpen.script/format-field 'r0/foo) "foo")))
+  (is (= (#'pigpen.pig.script/format-field "abc") "'abc'"))
+  (is (= (#'pigpen.pig.script/format-field "a'b'c") "'a\\'b\\'c'"))
+  (is (= (#'pigpen.pig.script/format-field 'r0/foo) "foo")))
 
 (deftest test-expr->script
-  (is (= (#'pigpen.script/expr->script nil) nil))
-  (is (= (#'pigpen.script/expr->script "a'b\\c") "'a\\'b\\\\c'"))
-  (is (= (#'pigpen.script/expr->script 42) "42"))
-  (is (= (#'pigpen.script/expr->script 2147483648) "2147483648L"))
-  (is (= (#'pigpen.script/expr->script 'foo) "foo"))
-  (is (= (#'pigpen.script/expr->script '(clojure.core/let [foo '2] foo)) "2"))
-  (is (= (#'pigpen.script/expr->script '(clojure.core/let [foo '2] (and (= bar foo) (> baz 3)))) "((bar == 2) AND (baz > 3))")))
+  (is (= (#'pigpen.pig.script/expr->script nil) nil))
+  (is (= (#'pigpen.pig.script/expr->script "a'b\\c") "'a\\'b\\\\c'"))
+  (is (= (#'pigpen.pig.script/expr->script 42) "42"))
+  (is (= (#'pigpen.pig.script/expr->script 2147483648) "2147483648L"))
+  (is (= (#'pigpen.pig.script/expr->script 'foo) "foo"))
+  (is (= (#'pigpen.pig.script/expr->script '(clojure.core/let [foo '2] foo)) "2"))
+  (is (= (#'pigpen.pig.script/expr->script '(clojure.core/let [foo '2] (and (= bar foo) (> baz 3)))) "((bar == 2) AND (baz > 3))")))
 
 ;; ********** Util **********
 

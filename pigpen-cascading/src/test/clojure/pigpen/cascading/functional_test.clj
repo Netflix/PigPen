@@ -22,7 +22,7 @@
             [pigpen.functional-suite :refer [def-functional-tests]]
             [pigpen.core :as pig]
             [pigpen.extensions.io :as io]
-            [pigpen.cascading.core :as cascading]))
+            [pigpen.cascading :as cascading]))
 
 (def prefix "build/functional/cascading/")
 

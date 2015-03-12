@@ -1,6 +1,5 @@
-(ns pigpen.cascading
+(ns pigpen.cascading.core
   (:import (cascading.flow FlowDef FlowConnector)
-           (cascading.flow.hadoop HadoopFlowConnector)
            (cascading.operation Identity)
            (cascading.operation.filter Limit Sample)
            (cascading.pipe Pipe Each Every Merge GroupBy CoGroup)
@@ -14,8 +13,7 @@
            (pigpen.cascading PigPenFunction PigPenAggregateBy
                              ReduceBuffer GroupBuffer
                              RankBuffer InduceSentinelNils))
-  (:require [pigpen.cascading.oven :as oven]
-            [pigpen.raw :as raw]
+  (:require [pigpen.raw :as raw]
             [schema.core :as s]
             [pigpen.model :as m]
             [pigpen.extensions.core :refer [zip]]))
@@ -59,21 +57,6 @@
 
 (defn prepare-projections [ps]
   (mapv #(update-in % [:expr] prepare-expr) ps))
-
-(defn load-tap
-  "This is a thin wrapper around a tap. By default a vector of
-  the tap's source fields is created and returned as a single field.
-  A custom function bind-fn can be provided to map the tap's
-  source fields onto a single value in some other way."
-  ([^Tap tap]
-    (load-tap tap 'clojure.core/vector))
-  ([^Tap tap bind-fn]
-    (let [fields (mapv symbol (.getSourceFields tap))]
-      (->>
-        (raw/load$ (.toString tap) :tap fields {:tap tap})
-        (raw/bind$
-          `(pigpen.runtime/map->bind ~bind-fn)
-          {:field-type-in :native})))))
 
 ;; can these always be used for both load and store?
 (defmulti get-tap :storage)
@@ -286,10 +269,3 @@
   (let [[flowdef _] (reduce command->flowdef+ [(FlowDef/flowDef) {}] commands)]
     (.connect connector flowdef)))
 
-(defn generate-flow
-  "Transforms the relation specified into a Cascading flow that is ready to be executed."
-  ([query] (generate-flow (HadoopFlowConnector.) query))
-  ([connector query]
-    (->> query
-      (oven/bake {})
-      (commands->flow connector))))

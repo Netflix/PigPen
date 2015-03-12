@@ -1,4 +1,4 @@
-(ns pigpen.cascading-test
+(ns pigpen.cascading.core-test
   (:import (java.io File)
            (org.apache.hadoop.fs FileSystem Path)
            (org.apache.hadoop.conf Configuration)
@@ -10,7 +10,7 @@
   (:require [clojure.test :refer :all]
             [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.core :as pigpen]
-            [pigpen.cascading.core :as cascading]
+            [pigpen.cascading :as cascading]
             [pigpen.cascading.runtime :as runtime]
             [pigpen.oven :as oven]
             [clojure.pprint :as pp]

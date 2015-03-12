@@ -16,7 +16,7 @@
 ;;
 ;;
 
-(ns pigpen.script
+(ns pigpen.pig.script
   "Contains functions for converting an expression graph into a Pig script
 
 Nothing in here will be used directly with normal PigPen usage.

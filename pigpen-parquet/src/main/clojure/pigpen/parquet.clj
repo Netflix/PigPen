@@ -16,26 +16,24 @@
 ;;
 ;;
 
-(ns pigpen.parquet.core
+(ns pigpen.parquet
   (:require [pigpen.raw :as raw]
-            [pigpen.local]
-            [pigpen.script]
-            [pigpen.hadoop.local :as hadoop]
-            [pigpen.pig.local :as pig-local])
-  (:import [parquet.pig ParquetLoader ParquetStorer]
-           [pigpen.pig.local LoadFuncLoader StoreFuncStorage]))
+            [pigpen.parquet.core :as pq]))
 
 (set! *warn-on-reflection* true)
 
-(defn ^:private schema->pig-schema
-  ([schema] (schema->pig-schema (keys schema) schema))
-  ([fields schema]
-    (->> fields
-      (map (fn [field]
-             (when-let [type (schema (keyword field))]
-               (str (name field) ":" (name type)))))
-      (filter identity)
-      (clojure.string/join ","))))
+;; These namespaces need to be loaded to register multimethods. They are loaded
+;; in a try/catch becasue not all of them are always available.
+(def ^:private known-impls
+  ['pigpen.local.parquet
+   'pigpen.pig.parquet])
+
+(doseq [ns known-impls]
+  (try
+    (require ns)
+    (println (str "Loaded " ns))
+    (catch Exception e
+      #_(prn e))))
 
 ; TODO get rid of schema
 (defn load-parquet
@@ -56,20 +54,11 @@ parquet column names.
   {:added "0.2.7"}
   [location schema]
   (let [fields (->> schema keys (mapv (comp symbol name)))
-        pig-schema (schema->pig-schema schema)
+        pig-schema (pq/schema->pig-schema schema)
         {:keys [id] :as load} (raw/load$ location :parquet fields {:schema pig-schema})]
     (->> load
       (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig.runtime/native->clojure))
                  {:args (clojure.core/mapcat (juxt str #(symbol (name id) (name %))) fields), :field-type-in :native}))))
-
-(defmethod pigpen.local/load :parquet
-  [{:keys [location fields storage]}]
-  (let [schema (first (:args storage))]
-    (LoadFuncLoader. (ParquetLoader. schema) {} location fields)))
-
-(defmethod pigpen.script/storage->script [:load :parquet]
-  [command]
-  (str "parquet.pig.ParquetLoader(" (get-in command [:opts :schema]) ")"))
 
 (defn store-parquet
   "*** ALPHA - Subject to change ***
@@ -94,12 +83,3 @@ with keywords matching the parquet columns to be stored.
                  {:field-type-out :native
                   :alias fields})
       (raw/store$ location :parquet {:schema schema}))))
-
-(defmethod pigpen.local/store :parquet
-  [{:keys [location args opts]}]
-  (let [schema (schema->pig-schema (:schema opts))]
-    (StoreFuncStorage. (ParquetStorer.) schema location args)))
-
-(defmethod pigpen.script/storage->script [:store :parquet]
-  [_]
-  "parquet.pig.ParquetStorer()")

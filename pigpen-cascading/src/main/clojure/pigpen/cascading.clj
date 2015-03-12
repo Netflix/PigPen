@@ -1,10 +1,34 @@
-(ns pigpen.cascading.core
+(ns pigpen.cascading
   "Contains the operators for generating cascading flows in PigPen"
-  (:require [pigpen.cascading]))
+  (:require [pigpen.cascading.core :as cascading]
+            [pigpen.raw :as raw]
+            [pigpen.cascading.oven :as oven])
+  (:import [cascading.tap Tap]
+           [cascading.flow.hadoop HadoopFlowConnector]))
 
 ;; ********** Flow **********
-(intern *ns* (with-meta 'generate-flow (meta #'pigpen.cascading/generate-flow)) @#'pigpen.cascading/generate-flow)
+
+(defn generate-flow
+  "Transforms the relation specified into a Cascading flow that is ready to be executed."
+  ([query] (generate-flow (HadoopFlowConnector.) query))
+  ([connector query]
+    (->> query
+      (oven/bake {})
+      (cascading/commands->flow connector))))
 
 ;; ********** Customer loaders **********
-(intern *ns* (with-meta 'load-tap (meta #'pigpen.cascading/load-tap)) @#'pigpen.cascading/load-tap)
 
+(defn load-tap
+  "This is a thin wrapper around a tap. By default a vector of
+  the tap's source fields is created and returned as a single field.
+  A custom function bind-fn can be provided to map the tap's
+  source fields onto a single value in some other way."
+  ([^Tap tap]
+    (load-tap tap 'clojure.core/vector))
+  ([^Tap tap bind-fn]
+    (let [fields (mapv symbol (.getSourceFields tap))]
+      (->>
+        (raw/load$ (.toString tap) :tap fields {:tap tap})
+        (raw/bind$
+          `(pigpen.runtime/map->bind ~bind-fn)
+          {:field-type-in :native})))))
