@@ -225,7 +225,9 @@ See pigpen.core and pigpen.exec
 (defmulti load-reader (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
 
 (defmethod load-reader :default [location]
-  (io/reader location))
+  (if (.endsWith location ".gz")
+    (io/reader (java.util.zip.GZIPInputStream. (io/input-stream location)))
+    (io/reader (io/input-stream location))))
 
 (defn ^:private parse-delimiter [d]
   (case d
