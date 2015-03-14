@@ -34,11 +34,18 @@ subprojects {
         mapping('clj', 'SEMICOLON_STYLE')
     }
 
+    jar {
+       from 'src/main/clojure'
+    }
+
     apply plugin: 'clojure'
     tasks.uberjar.enabled=true
     clojure.aotCompile = true
 
     compileClojure {
+        jvmOptions {
+            jvmArgs '-Djava.awt.headless=true'
+        }
         classpath = project.files(
             project.compileJava.outputs,
             classpath
@@ -74,5 +81,27 @@ subprojects {
             plusConfigurations += configurations.provided
         }
     }
-}
 
+    ////////////////////////////////////////////////////////////////////////////////
+    // Define a task that runs an nrepl server. The port is given with the nreplPort
+    // property:
+    //    gradlew nrepl -PnreplPort=9999
+    // or put the property in ~/.gradle/gradle.properties
+    configurations { nrepl }
+    dependencies {
+      nrepl 'org.clojure:tools.nrepl:0.2.7'
+      nrepl 'org.clojure:clojure:1.6.0'
+    }
+    task nrepl(type: JavaExec) {
+        classpath project.sourceSets.main.clojure.srcDirs,
+                  project.sourceSets.test.clojure.srcDirs,
+                  sourceSets.test.runtimeClasspath,
+                  sourceSets.main.runtimeClasspath,
+                  configurations.nrepl
+
+        main = "clojure.main"
+        args '--eval', "(ns gradle-nrepl (:require [clojure.tools.nrepl.server :refer (start-server stop-server)]))",
+             '--eval', "(println \"Starting nrepl server on port $nreplPort\")",
+             '--eval', "(def server (start-server :port $nreplPort))"
+    }
+}

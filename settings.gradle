@@ -7,5 +7,7 @@ include 'pigpen-core', \
         'pigpen-cascading', \
         'pigpen-parquet', \
         'pigpen-parquet-pig', \
+        'pigpen-avro', \
+        'pigpen-avro-pig', \
         'pigpen-viz'
 project(':pigpen-local').name = 'pigpen'

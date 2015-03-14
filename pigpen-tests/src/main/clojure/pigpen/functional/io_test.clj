@@ -19,7 +19,9 @@
 (ns pigpen.functional.io-test
   (:require [pigpen.functional-test :as t]
             [pigpen.extensions.test :refer [test-diff]]
-            [pigpen.io :as pig-io]))
+            [pigpen.io :as pig-io]
+            [clojure.java.io :as io])
+  (:import [java.util.zip GZIPOutputStream]))
 
 (t/deftest test-load-string
   "normal load string"
@@ -109,6 +111,20 @@
   "normal load clj"
   [harness]
   (let [file (t/write harness ["{:a 1, :b \"foo\"}" "{:a 2, :b \"bar\"}"])]
+    (test-diff
+      (->>
+        (pig-io/load-clj file)
+        (t/dump harness)
+        (set))
+      '#{{:a 2, :b "bar"}
+         {:a 1, :b "foo"}})))
+
+(t/deftest test-load-gz
+  "gz input"
+  [harness]
+  (let [file (str (t/file harness) ".gz")]
+    (with-open [o (GZIPOutputStream. (io/output-stream file))]
+      (.write o (.getBytes "{:a 1, :b \"foo\"}\n{:a 2, :b \"bar\"}")))
     (test-diff
       (->>
         (pig-io/load-clj file)

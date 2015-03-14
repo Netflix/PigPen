@@ -6,7 +6,7 @@
            (cascading.tuple Fields Tuple TupleEntry TupleEntryCollector)
            (pigpen.cascading OperationUtil SingleIterationSeq))
   (:require [taoensso.nippy :refer [freeze thaw]]
-            [pigpen.runtime]
+            [pigpen.runtime :as rt]
             [schema.core :as s]
             [pigpen.model :as m]))
 
@@ -14,10 +14,8 @@
 
 ;; ******** Serialization ********
 
-(defn hybrid->clojure [value]
-  (if (instance? BytesWritable value)
-    (-> value (OperationUtil/getBytes) thaw)
-    value))
+(defmethod rt/hybrid->clojure BytesWritable [value]
+  (-> value (OperationUtil/getBytes) thaw))
 
 (defn cs-freeze [value]
   (BytesWritable. (freeze value {:skip-header? true, :legacy-mode true})))
@@ -117,7 +115,7 @@
   (let [{:keys [projections fields]} (.getContext function-call)
         tuple-entry (.getArguments function-call)
         values (fn [f]
-                 (hybrid->clojure
+                 (rt/hybrid->clojure
                    (.getObject tuple-entry (pr-str f))))]
     (doseq [r (->> projections
                 (map (partial eval-projections values))
@@ -176,7 +174,7 @@ Called from pigpen.cascading.InduceSentinelNils"
         (.getIterator % iterator-index)
         (SingleIterationSeq/create %)
         (map #(.getObject ^Tuple % field-index) %)
-        (map hybrid->clojure %)
+        (map rt/hybrid->clojure %)
         (fold-selector %))
 
       ;else group
@@ -185,7 +183,7 @@ Called from pigpen.cascading.InduceSentinelNils"
         (.getTuple)
         (some identity)
         remove-sentinel-nil
-        hybrid->clojure))))
+        rt/hybrid->clojure))))
 
 (defn group-operate
   "Called from pigpen.cascading.GroupBuffer"
@@ -255,7 +253,7 @@ Called from pigpen.cascading.InduceSentinelNils"
                  (.getArgumentsIterator)
                  (SingleIterationSeq/create)
                  (map (fn [^TupleEntry e]
-                        (hybrid->clojure (.getObject e 0)))))]
+                        (rt/hybrid->clojure (.getObject e 0)))))]
     (doseq [r (->>
                 (eval-projections {(:arg ancestor) values} (first projections))
                 (map #(mapv % fields)))]
@@ -281,7 +279,7 @@ Called from pigpen.cascading.InduceSentinelNils"
           agg (.getObject agg 0)]
       (->>
         (.getObject args 0)
-        hybrid->clojure
+        rt/hybrid->clojure
         vector
         pre
         (reduce reducef agg)))))
@@ -306,7 +304,7 @@ Called from pigpen.cascading.InduceSentinelNils"
         arg (-> aggregator-call
               (.getArguments)
               (.getObject 0)
-              hybrid->clojure)]
+              rt/hybrid->clojure)]
     (combinef agg arg)))
 
 (defn aggregate-final-complete

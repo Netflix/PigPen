@@ -57,7 +57,7 @@ parquet column names.
         pig-schema (pq/schema->pig-schema schema)
         {:keys [id] :as load} (raw/load$ location :parquet fields {:schema pig-schema})]
     (->> load
-      (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.pig.runtime/native->clojure))
+      (raw/bind$ [] '(pigpen.runtime/map->bind (pigpen.runtime/args->map pigpen.runtime/native->clojure))
                  {:args (clojure.core/mapcat (juxt str #(symbol (name id) (name %))) fields), :field-type-in :native}))))
 
 (defn store-parquet

@@ -1,0 +1,103 @@
+{
+  "browserTimestamp": 1417997369042,
+  "rawHash": {
+    "uId": "14125918269",
+    "bNo": "15959",
+    "rallyRequestId": "qs-app-04144pliuzkfbmu1aiwzrecc81s5.qs-app-049893092",
+    "queryParams": "",
+    "sId": "12850"
+  },
+  "metadata": {
+    "schema_id": "e48b9786fd4598fa27c1de354f735"
+  },
+  "requestSpan": {
+    "metadata": {
+      "schema_id": "7d8d87ef3315c672a28b6ae2d31bd9fa"
+    },
+    "unhandledException": {"null": null},
+    "handledExceptions": {"null": null},
+    "spanId": "2873f846-c867-4e08-8aa8-530f63bbee2b",
+    "parentSpanId": {"string": "0baef555-47ef-48a3-b218-6bfd33094ecd"}
+  },
+  "panel": null
+}
+{
+  "browserTimestamp": 1417997368078,
+  "rawHash": {
+    "uId": "14125918269",
+    "bNo": "15959",
+    "queryParams": "",
+    "sId": "12850"
+  },
+  "metadata": {
+    "schema_id": "e48b9786fd4598fa27c1de354f735"
+  },
+  "requestSpan": {
+    "metadata": {
+      "schema_id": "7d8d87ef3315c672a28b6ae2d31bd9fa"
+    },
+    "unhandledException": {"null": null},
+    "handledExceptions": {"null": null},
+    "spanId": "3e313af4-76b8-48cf-abc8-92033f225126",
+    "parentSpanId": {"string": "7673ed70-cfd0-4fb3-9722-33ae8a977301"}
+  },
+  "panel": {"null": null }
+}
+{
+  "browserTimestamp": 1417997392079,
+  "rawHash": {
+    "uId": "14125918269",
+    "bNo": "15959",
+    "queryParams": "",
+    "sId": "12850"
+  },
+  "metadata": {
+    "schema_id": "e48b9786fd4598fa27c1de354f735"
+  },
+  "requestSpan": {
+    "metadata": {
+      "schema_id": "7d8d87ef3315c672a28b6ae2d31bd9fa"
+    },
+    "unhandledException": {"null": null},
+    "handledExceptions": {"null": null},
+    "spanId": "3e313af4-76b8-48cf-abc8-92033f225126",
+    "parentSpanId": null
+  },
+  "panel": {
+    "com.example.PanelInfo": {
+      "defOid": {"long": 29991883477},
+      "entityType": {"com.example.PanelType": "PANEL_B"}
+    }
+  }
+}
+{
+  "browserTimestamp": 1417997392079,
+  "rawHash": {
+    "uId": "14125918269",
+    "bNo": "15959",
+    "queryParams": "",
+    "sId": "12850"
+  },
+  "metadata": {
+    "schema_id": "e48b9786fd4598fa27c1de354f735"
+  },
+  "requestSpan": {
+    "metadata": {
+      "schema_id": "7d8d87ef3315c672a28b6ae2d31bd9fa"
+    },
+    "unhandledException": {"null": null},
+      "handledExceptions": {"array": [
+          {"exceptionClass": "FooExeption",
+           "exceptionMessage": {"string": "foomessage"},
+           "exceptionStack": "prod"}
+      ]},
+    "spanId": "3e313af4-76b8-48cf-abc8-92033f225126",
+    "parentSpanId": null
+  },
+  "panel": {
+    "com.example.PanelInfo": {
+      "defOid": {"long": 29991883477},
+      "entityType": {"com.example.PanelType": "PANEL_A"}
+    }
+  }
+}

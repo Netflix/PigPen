@@ -1,0 +1,7 @@
+dependencies {
+    compile project(':pigpen')
+
+    compile 'org.apache.avro:avro:1.7.7'
+    compile 'com.googlecode.json-simple:json-simple:1.1.1'
+    compile 'org.xerial.snappy:snappy-java:1.1.1.6'
+}

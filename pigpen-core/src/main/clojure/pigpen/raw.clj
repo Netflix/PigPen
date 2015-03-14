@@ -179,7 +179,15 @@ building blocks for more complex operations."
       (-> c
         (dissoc :field-type)
         (assoc :func func
-               :args (vec (get opts :args (get relation :fields)))
+               :args (vec
+                       (or (->>
+                             (get opts :args)
+                             (map (fn [a]
+                                    (if (string? a)
+                                      a
+                                      (update-ns+ (:id relation) a))))
+                             seq)
+                           (get relation :fields)))
                :requires (vec (concat requires (:requires opts)))
                :fields (mapv (partial update-ns+ id) (get opts :alias ['value]))
                :field-type-in (get opts :field-type-in :frozen)

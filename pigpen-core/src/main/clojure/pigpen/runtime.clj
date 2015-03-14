@@ -110,6 +110,34 @@ single arg, which is sequential. Applies f to the remaining args."
       (catch Throwable z
         (throw (RuntimeException. (str "Exception evaluating: " f) z))))))
 
+(defmulti hybrid->clojure
+  "Converts a hybrid data structure into 100% clojure. Platforms should add
+methods for any types they expect to see."
+  type)
+
+(defmethod hybrid->clojure :default
+  [value]
+  value)
+
+(defmethod hybrid->clojure java.util.Map [value]
+  (->> value
+    (map (fn [[k v]] [(hybrid->clojure k) (hybrid->clojure v)]))
+    (into {})))
+
+(defmulti native->clojure
+  "Converts native data structures into 100% clojure. Platforms should add
+methods for any types they expect to see. No clojure should be seen here."
+  type)
+
+(defmethod native->clojure :default
+  [value]
+  value)
+
+(defmethod native->clojure java.util.Map [value]
+  (->> value
+    (map (fn [[k v]] [(native->clojure k) (native->clojure v)]))
+    (into {})))
+
 (defmulti pre-process
   "Optionally deserializes incoming data. Should return a fn that takes a single
 'args' param and returns a seq of processed args. 'platform' is what will be

@@ -188,8 +188,10 @@ sequence. This command is very useful for unit tests.
 
 (defmulti load-reader (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
 
-(defmethod load-reader :default [location]
-  (io/reader location))
+(defmethod load-reader :default [^String location]
+  (if (.endsWith location ".gz")
+    (io/reader (java.util.zip.GZIPInputStream. (io/input-stream location)))
+    (io/reader (io/input-stream location))))
 
 (defmulti store-writer (fn [location] (second (re-find #"^([a-z0-9]+)://" location))))
 

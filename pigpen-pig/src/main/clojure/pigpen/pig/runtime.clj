@@ -25,7 +25,7 @@ possible as it's used at runtime."
             [clojure.edn :as edn]
             [clojure.data.json :as json]
             [clojure.core.async :as a]
-            [pigpen.runtime]
+            [pigpen.runtime :as rt]
             [pigpen.extensions.core-async :as ae]
             [taoensso.nippy :refer [freeze thaw]])
   (:import [pigpen PigPenException]
@@ -62,46 +62,6 @@ possible as it's used at runtime."
     (pig-freeze value)))
 
 ;; **********
-
-(defn byte->hex-digit
-  "Converts an ascii char into its hex value"
-  [b]
-  ;; See ascii table for magic numbers
-  (if (<= b 57) (- b 48) (- b 87)))
-
-(defn bytes->string->bytes
-  "More efficient version of (comp pig/string->bytes pig/bytes->string)"
-  [value]
-  (->> value
-    (map byte->hex-digit)
-    (partition 2)
-    (map (fn [[i1 i0]] (unchecked-byte (+ (* i1 16) i0))))
-    (byte-array)))
-
-(defn string->bytes
-  "Converts a pig string representation of bytes into an actual byte array.
-
-   For example: \"303132\" > [0x30 0x31 0x32]
-"
-  [value]
-  (->> value
-    (partition 2)
-    (map (partial apply str))
-    (map #(Long/parseLong % 16))
-    (map unchecked-byte)
-    (byte-array)))
-
-(defn string->DataByteArray
-  "Converts a string representation of bytes into what pig produces.
-
-   For example: \"303132\" [0x33 0x30 0x33 0x31 0x33 0x32]
-"
-  [value]
-  (->> value
-    (map byte)
-    (byte-array)
-    (bytes)
-    (DataByteArray.)))
 
 (defn bytes->int
   "Convert bytes into an int"
@@ -141,137 +101,29 @@ possible as it's used at runtime."
 
 ;; **********
 
-(defmulti hybrid->pig
-  "Converts a hybrid pig/clojure data structure into 100% pig.
-
-   DataByteArrays are assumed to be frozen clojure structures."
-  type)
-
-(defmethod hybrid->pig nil [value]
-  value)
-
-(defmethod hybrid->pig String [value]
-  value)
-
-(defmethod hybrid->pig Number [value]
-  value)
-
-(defmethod hybrid->pig Boolean [value]
-  value)
-
-(defmethod hybrid->pig Keyword [value]
-  (name value))
-
-(defmethod hybrid->pig List [value]
-  (->> value
-    (map hybrid->pig)
-    (apply tuple)))
-
-(defmethod hybrid->pig Map [value]
-  (->> value
-    (map (fn [[k v]] [(hybrid->pig k) (hybrid->pig v)]))
-    (into {})))
-
-(defmethod hybrid->pig DataByteArray [^DataByteArray value]
-  (->> value (.get) thaw hybrid->pig))
-
-(defmethod hybrid->pig Tuple [^Tuple value]
-  (->> value (.getAll) (map hybrid->pig) (apply tuple)))
-
-(defmethod hybrid->pig DataBag [^DataBag value]
-  (->> value (.iterator) iterator-seq (map hybrid->pig) (apply bag)))
-
-;; **********
-
-(defmulti pig->string
-  "Serializes pig data structures into a string"
-  type)
-
-(defmethod pig->string :default [value]
-  (str value))
-
-(defmethod pig->string String [value]
-  value)
-
-(defmethod pig->string Map [value]
-  (as-> value %
-    (map (fn [[k v]] (str (pig->string k) "#" (pig->string v))) %)
-    (string/join "," %)
-    (str "[" % "]")))
-
-(defmethod pig->string DataByteArray [^DataByteArray value]
-  (bytes->debug (.get value)))
-
-;; **********
-
-(defmulti hybrid->clojure
-  "Converts a hybrid pig/clojure data structure into 100% clojure.
-
-   DataByteArrays are assumed to be frozen clojure structures.
-
-   Only raw pig types are expected here - anything normal (Boolean, String, etc)
-   should be frozen."
-  type)
-
-(defmethod hybrid->clojure :default [value]
-  (throw (IllegalStateException. (str "Unexpected value:" value))))
-
-(defmethod hybrid->clojure nil [value]
-  ;; nils are allowed because they occur in joins
-  nil)
-
-(defmethod hybrid->clojure Number [value]
-  ;; Numbers are allowed because RANK produces them
-  value)
-
-(defmethod hybrid->clojure DataByteArray [^DataByteArray value]
+(defmethod rt/hybrid->clojure DataByteArray [^DataByteArray value]
   (-> value (.get) thaw))
 
-(defmethod hybrid->clojure Tuple [^Tuple value]
-  (->> value (.getAll) (mapv hybrid->clojure)))
+(defmethod rt/hybrid->clojure Tuple [^Tuple value]
+  (->> value (.getAll) (mapv rt/hybrid->clojure)))
 
-(defmethod hybrid->clojure DataBag [^DataBag value]
+(defmethod rt/hybrid->clojure DataBag [^DataBag value]
   ;; This is flattened to help with dereferenced fields that result in a bag of a single tuple
-  (->> value (.iterator) iterator-seq (mapcat hybrid->clojure)))
+  (->> value (.iterator) iterator-seq (mapcat rt/hybrid->clojure)))
 
-(defmethod hybrid->clojure Channel [value]
-  (->> value ae/safe-<!! (map hybrid->clojure)))
+(defmethod rt/hybrid->clojure Channel [value]
+  (->> value ae/safe-<!! (map rt/hybrid->clojure)))
 
 ;; **********
 
-(defmulti native->clojure
-  "Converts native pig data structures into 100% clojure.
-
-   No clojure should be seen here.
-
-   DataByteArrays are converted to byte arrays."
-  type)
-
-(defmethod native->clojure nil [value]
-  value)
-
-(defmethod native->clojure String [value]
-  value)
-
-(defmethod native->clojure Number [value]
-  value)
-
-(defmethod native->clojure Boolean [value]
-  value)
-
-(defmethod native->clojure Map [value]
-  (->> value
-    (map (fn [[k v]] [(native->clojure k) (native->clojure v)]))
-    (into {})))
-
-(defmethod native->clojure DataByteArray [^DataByteArray value]
+(defmethod rt/native->clojure DataByteArray [^DataByteArray value]
   (.get value))
 
-(defmethod native->clojure Tuple [^Tuple value]
-  (->> value (.getAll) (mapv native->clojure)))
+(defmethod rt/native->clojure Tuple [^Tuple value]
+  (->> value (.getAll) (mapv rt/native->clojure)))
 
-(defmethod native->clojure DataBag [^DataBag value]
-  (->> value (.iterator) iterator-seq (map native->clojure)))
+(defmethod rt/native->clojure DataBag [^DataBag value]
+  (->> value (.iterator) iterator-seq (map rt/native->clojure)))
 
 ;; **********
 
@@ -464,7 +316,7 @@ as the initial state for the next accumulation."
 (defmethod pigpen.runtime/pre-process [:pig :frozen]
   [_ _]
   (fn [args]
-    (mapv hybrid->clojure args)))
+    (mapv rt/hybrid->clojure args)))
 
 (defmethod pigpen.runtime/post-process [:pig :native]
   [_ _]
@@ -495,7 +347,7 @@ as the initial state for the next accumulation."
   [pre seed reducef args]
   (->> args
     first
-    hybrid->clojure
+    rt/hybrid->clojure
     pre
     (reduce reducef seed)
     pig-freeze
@@ -506,7 +358,7 @@ as the initial state for the next accumulation."
   [combinef args]
   (->> args
     first
-    hybrid->clojure
+    rt/hybrid->clojure
     (reduce combinef)
     pig-freeze
     tuple))
@@ -516,7 +368,7 @@ as the initial state for the next accumulation."
   [combinef post args]
   (->> args
     first
-    hybrid->clojure
+    rt/hybrid->clojure
     (reduce combinef)
     post
     pig-freeze))
@@ -567,7 +419,7 @@ initial reduce, a combiner, and a final stage."
 (defn pre-process*
   [type value]
   (case type
-    :frozen (hybrid->clojure value)
+    :frozen (rt/hybrid->clojure value)
     :native value))
 
 (defn get-partition
