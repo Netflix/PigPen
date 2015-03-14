@@ -160,7 +160,7 @@ Optionally takes a map of options, including :parallel and :fold.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/cogroup
 
@@ -296,7 +296,7 @@ info on fold functions.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
     :join-nils - Whether nil keys from each relation should be treated as equal
 
   See also: pigpen.core/join, pigpen.core/group-by
@@ -339,7 +339,7 @@ options.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
     :join-nils - Whether nil keys from each relation should be treated as equal
 
   See also: pigpen.core/cogroup, pigpen.core/union
@@ -379,7 +379,7 @@ as a semi-join in relational databases.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   Note: keys must be distinct before this is used or you will get duplicate values.
   Note: Unlike filter, this joins relation with keys and can be potentially expensive.
@@ -418,7 +418,7 @@ referred to as an anti-join in relational databases.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   Note: Unlike remove, this joins relation with keys and can be potentially expensive.
 

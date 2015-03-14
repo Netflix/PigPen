@@ -17,8 +17,7 @@
 ;;
 
 (ns pigpen.pig
-  "Contains functions related to script generation and manipulation. These are
-how you 'use' a PigPen query.
+  "Functions to convert a PigPen query into a Pig script.
 "
   (:require [pigpen.pig.oven :as oven]
             [pigpen.pig.script :as script]))
@@ -34,8 +33,8 @@ combine them. Optionally takes a map of options.
 
   Example:
 
-    (pig/generate-script (pig/store-clj \"output.clj\" foo))
-    (pig/generate-script {:debug \"/temp/\"} (pig/store-clj \"output.clj\" foo))
+    (generate-script (pig/store-clj \"output.clj\" foo))
+    (generate-script {:debug \"/temp/\"} (pig/store-clj \"output.clj\" foo))
 
   Options:
 
@@ -47,7 +46,7 @@ combine them. Optionally takes a map of options.
     :pigpen-jar-location - The location where your uberjar resides.
                            Defaults to 'pigpen.jar'.
 
-  See also: pigpen.core/write-script, pigpen.core/store-many
+  See also: pigpen.pig/write-script, pigpen.core/store-many
 "
   {:added "0.1.0"}
   ([query] (generate-script {} query))
@@ -65,8 +64,8 @@ combine them. Optionally takes a map of options.
 
   Example:
 
-    (pig/write-script \"my-script.pig\" (pig/store-clj \"output.clj\" foo))
-    (pig/write-script \"my-script.pig\" {:debug \"/temp/\"} (pig/store-clj \"output.clj\" foo))
+    (write-script \"my-script.pig\" (pig/store-clj \"output.clj\" foo))
+    (write-script \"my-script.pig\" {:debug \"/temp/\"} (pig/store-clj \"output.clj\" foo))
 
   Options:
 
@@ -78,7 +77,7 @@ combine them. Optionally takes a map of options.
     :pigpen-jar-location - The location where your uberjar resides.
                            Defaults to 'pigpen.jar'.
 
-  See also: pigpen.core/generate-script, pigpen.core/store-many
+  See also: pigpen.pig/generate-script, pigpen.core/store-many
 "
   {:added "0.1.0"}
   ([location query] (write-script location {} query))

@@ -102,10 +102,15 @@ and the value. If you require sequential ids, use option {:dense true}.
 
   Options:
 
-    :dense - force sequential ids
+    :dense - force sequential ids (pig only)
 
   Note: If you require sorted data, use sort or sort-by immediately before
         this command.
+
+  Note: Pig will assign the same index to any equal values, regardless of how
+        many times they appear.
+
+  Note: The cascading implementation of map-indexed uses a single reducer
 
   See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core/map, pigpen.core/mapcat
 "
@@ -143,7 +148,9 @@ and the value. If you require sequential ids, use option {:dense true}.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
+
+  Note: The cascading implementation of sort uses a single reducer
 
   See also: pigpen.core/sort-by
 "
@@ -171,7 +178,9 @@ optional map of options.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
+
+  Note: The cascading implementation of sort-by uses a single reducer
 
   See also: pigpen.core/sort
 "

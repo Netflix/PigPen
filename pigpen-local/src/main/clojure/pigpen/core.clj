@@ -17,7 +17,8 @@
 ;;
 
 (ns pigpen.core
-  "Contains the operators for PigPen."
+  "The core PigPen operations.
+"
   (:refer-clojure :exclude [load-string constantly map mapcat map-indexed sort sort-by filter remove distinct concat take group-by into reduce])
   (:require [pigpen.raw :as raw]
             [pigpen.io]
