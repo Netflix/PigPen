@@ -17,6 +17,10 @@
 ;;
 
 (ns pigpen.rx
+  "A high performance dump operator. The default implementation in pigpen.core
+uses lazy seqs, which can be inefficient on larger data. The rx implementation
+uses rx-java to deliver a slightly more performance for large local datasets.
+"
   (:require [pigpen.rx.core :as rx]
             [pigpen.rx.extensions :refer [multicast->observable]]
             [rx.lang.clojure.blocking :as rx-blocking]
@@ -44,7 +48,7 @@ sequence. This command is very useful for unit tests.
                (pig-rx/dump))
              [2 4 6])))
 
-  Note: pig/store commands return an empty set
+  Note: pig/store commands return the output data
         pig/store-many commands merge their results
 "
   {:added "0.1.0"}

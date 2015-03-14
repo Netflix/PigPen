@@ -4,7 +4,7 @@ dependencies {
 
     compile 'com.twitter:parquet-pig:1.5.0'
 
-    provided 'org.apache.pig:pig:0.11.1'
+    provided 'org.apache.pig:pig:0.13.0'
     provided 'org.apache.hadoop:hadoop-core:1.1.2'
     provided 'org.antlr:antlr:3.5.2'
     provided 'log4j:log4j:1.2.17'

@@ -17,7 +17,7 @@
 ;;
 
 (ns pigpen.fold
-  "Contains fold operations for use with pig/fold, pig/group-by, and pig/cogroup.
+  "Fold operations for use with pig/fold, pig/group-by, and pig/cogroup.
 
 See https://github.com/Netflix/PigPen/wiki/Folding-Data
 "

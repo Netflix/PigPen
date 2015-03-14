@@ -17,6 +17,14 @@
 ;;
 
 (ns pigpen.parquet
+  "*** ALPHA - Subject to change ***
+
+  Functions for reading and writing parquet data.
+
+  See: http://parquet.incubator.apache.org/
+
+  Note: These are currently only supported by the local, rx, and pig platforms
+"
   (:require [pigpen.raw :as raw]
             [pigpen.parquet.core :as pq]))
 

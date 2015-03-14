@@ -1,5 +1,6 @@
 (ns pigpen.cascading
-  "Contains the operators for generating cascading flows in PigPen"
+    "Functions to convert a PigPen query into a Cascading flow.
+"
   (:require [pigpen.cascading.core :as cascading]
             [pigpen.raw :as raw]
             [pigpen.cascading.oven :as oven])
@@ -9,7 +10,16 @@
 ;; ********** Flow **********
 
 (defn generate-flow
-  "Transforms the relation specified into a Cascading flow that is ready to be executed."
+  "Transforms the relation specified into a Cascading flow that is ready to be
+executed.
+
+Optionally takes a Cascading FlowConnector (defaults to HadoopFlowConnector)
+
+  Example:
+
+    (generate-flow (pig/store-clj \"output.clj\" foo))
+"
+  {:added "0.3.0"}
   ([query] (generate-flow (HadoopFlowConnector.) query))
   ([connector query]
     (->> query
@@ -18,24 +28,34 @@
 
 ;; ********** Customer loaders **********
 
+;; TODO this needs to be a macro
 (defn load-tap
-  "This is a thin wrapper around a tap. By default a vector of
-  the tap's source fields is created and returned as a single field.
-  A custom function bind-fn can be provided to map the tap's
-  source fields onto a single value in some other way."
+  "A thin wrapper around a tap. By default a vector of the tap's source fields
+is created and returned as a single field. A custom function can be provided to
+map the tap's source fields onto a single value.
+
+  Example:
+
+    (load-tap tap)
+    (load-tap tap (partial zipmap [:a :b :c]))
+
+"
+  {:added "0.3.0"}
   ([^Tap tap]
     (load-tap tap 'clojure.core/vector))
-  ([^Tap tap bind-fn]
+  ([^Tap tap f]
     (let [fields (mapv symbol (.getSourceFields tap))]
       (->>
         (raw/load$ (.toString tap) :tap fields {:tap tap})
         (raw/bind$
-          `(pigpen.runtime/map->bind ~bind-fn)
+          `(pigpen.runtime/map->bind ~f)
           {:field-type-in :native})))))
 
+;; TODO take a list of field names to project from a map
 (defn store-tap
-  "This is a thin wrapper around a sink tap. The tap must accept
-  a single sink field since PigPen always deals with just one value"
+  "A thin wrapper around a sink tap. The tap must accept a single sink field
+which is the value to store."
+  {:added "0.3.0"}
   [^Tap tap relation]
   {:pre [(<= (.size (.getSinkFields tap)) 1)]}
   (->> relation

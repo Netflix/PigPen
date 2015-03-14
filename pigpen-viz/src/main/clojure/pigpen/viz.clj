@@ -17,10 +17,7 @@
 ;;
 
 (ns pigpen.viz
-  "Functions to create graph-viz graphs from PigPen expression graphs
-
-Nothing in here will be used directly with normal PigPen usage.
-See pigpen.core and pigpen.pig
+  "Functions to create graph-viz graphs from PigPen queries.
 "
   (:require [rhizome.viz :as viz]
             [pigpen.oven :as oven]))
@@ -65,7 +62,7 @@ This command uses a terse description for each operation.
 
     (pigpen.core/show foo)
 
-  See also: pigpen.core/show+, pigpen.core/dump&show
+  See also: pigpen.core/show+
 "
   {:added "0.1.0"}
   [query]
@@ -82,7 +79,7 @@ This command uses a verbose description for each operation, including user code.
 
     (pigpen.core/show+ foo)
 
-  See also: pigpen.core/show, pigpen.core/dump&show+
+  See also: pigpen.core/show
 "
   {:added "0.1.0"}
   [query]

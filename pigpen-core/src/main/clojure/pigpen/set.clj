@@ -93,7 +93,7 @@ map of options.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
     :partition-by - A partition function to use. Should take the form:
       (fn [n key] (mod (hash key) n)) Where n is the number of partitions and
       key is the key to partition.
@@ -120,7 +120,7 @@ Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel n - the degree of parallelism to use
+    :parallel - the degree of parallelism to use (pig only)
 
   See also: pigpen.core/union-multiset, pigpen.core/distinct
 "
@@ -192,7 +192,7 @@ results. Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/intersection-multiset, pigpen.core/difference
 "
@@ -216,7 +216,7 @@ results. Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/intersection, pigpen.core/difference
 "
@@ -240,7 +240,7 @@ results. Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/difference-multiset, pigpen.core/intersection
 "
@@ -264,7 +264,7 @@ results. Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/difference, pigpen.core/intersection
 "

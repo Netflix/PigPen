@@ -159,7 +159,7 @@ sequence. This command is very useful for unit tests.
                (pig/dump))
              [2 4 6])))
 
-  Note: pig/store commands return an empty set
+  Note: pig/store commands return the output data
         pig/store-many commands merge their results
 "
   {:added "0.3.0"}
