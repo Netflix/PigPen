@@ -51,6 +51,14 @@
     (-> cmd (cascading/generate-flow) (.complete))
     (is (= ["line1" "line2"] (read-output output1)))))
 
+(deftest test-store-tap
+  (write-input input1 ["line1" "line2"])
+  (let [tap (Hfs. (TextLine. (Fields. (into-array (map str ["line"])))) output1)
+        cmd (->> (pigpen/load-clj input1)
+                 (cascading/store-tap tap))]
+    (-> cmd (cascading/generate-flow) (.complete))
+    (is (= ['line1 'line2] (read-output output1)))))
+
 (deftest test-simple-flow
   (write-input input1 [["1" "2" "foo"] ["4" "5" "bar"]])
   (letfn

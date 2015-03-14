@@ -32,3 +32,15 @@
         (raw/bind$
           `(pigpen.runtime/map->bind ~bind-fn)
           {:field-type-in :native})))))
+
+(defn store-tap
+  "This is a thin wrapper around a sink tap. The tap must accept
+  a single sink field since PigPen always deals with just one value"
+  [^Tap tap relation]
+  {:pre [(<= (.size (.getSinkFields tap)) 1)]}
+  (->> relation
+    (raw/bind$ `(pigpen.runtime/map->bind identity)
+               {:alias (or (seq (map symbol (.getSinkFields tap)))
+                           (:fields relation))
+                :field-type :native})
+    (raw/store$ (.toString tap) :tap {:tap tap})))
