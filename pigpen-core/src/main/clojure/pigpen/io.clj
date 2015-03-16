@@ -35,8 +35,20 @@ unless debugging scripts."
     `(raw/load$ ~location :binary '~fields {})))
 
 (defn load-string*
-  "The base for load-string, load-clj, and load-json. The parameters requires
-and f specify a conversion function to apply to each input row."
+  "The base for load-string, load-clj, load-json, etc. The parameters `requires`
+and `f` specify a conversion function to apply to each input row. `f` must be
+quoted prior to calling load-string*.
+
+  Examples:
+
+    (oad-string*
+      \"input.txt\"
+      (trap (fn [x] (subs x 42)))
+      data)
+
+  See also: pigpen.core/load-string, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([location f]
     (load-string* location [] f))
   ([location requires f]
@@ -143,8 +155,20 @@ unless debugging scripts."
   (raw/store$ location :binary {} relation))
 
 (defn store-string*
-  "The base for store-string, store-clj, and store-json. The parameters requires
-and f specify a conversion function to apply to each output row."
+  "The base for store-string, store-clj, store-json, etc. The parameters
+`requires` and `f` specify a conversion function to apply to each input row.
+`f` must be quoted prior to calling store-string*.
+
+  Examples:
+
+    (store-string*
+      \"input.txt\"
+      (trap (fn [x] (with-out-str (clojure.pprint/pprint x))))
+      data)
+
+  See also: pigpen.core/store-string, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([location f relation]
     (store-string* location [] f relation))
   ([location requires f relation]

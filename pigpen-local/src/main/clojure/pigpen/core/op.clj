@@ -17,7 +17,15 @@
 ;;
 
 (ns pigpen.core.op
-  (:require [pigpen.raw]))
+  "*** ALPHA - Subject to change ***
+
+  The raw pigpen operators. These are the basic building blocks that platforms
+implement. All higher level operators are defined in terms of these operators.
+These should be used to build custom PigPen operators. In these examples, fields
+refers to the fields that the underlying platform is aware of. Usually this is a
+single user field that represents arbitrary Clojure data."
+  (:require [pigpen.raw]
+            [pigpen.runtime]))
 
 (intern *ns* (with-meta 'noop$ (meta #'pigpen.raw/noop$)) @#'pigpen.raw/noop$)
 
@@ -34,6 +42,14 @@
 (intern *ns* (with-meta 'projection-field$ (meta #'pigpen.raw/projection-field$)) @#'pigpen.raw/projection-field$)
 (intern *ns* (with-meta 'projection-func$ (meta #'pigpen.raw/projection-func$)) @#'pigpen.raw/projection-func$)
 (intern *ns* (with-meta 'project$ (meta #'pigpen.raw/project$)) @#'pigpen.raw/project$)
+
+(intern *ns* (with-meta 'map->bind (meta #'pigpen.runtime/map->bind)) @#'pigpen.runtime/map->bind)
+(intern *ns* (with-meta 'mapcat->bind (meta #'pigpen.runtime/mapcat->bind)) @#'pigpen.runtime/mapcat->bind)
+(intern *ns* (with-meta 'filter->bind (meta #'pigpen.runtime/filter->bind)) @#'pigpen.runtime/filter->bind)
+(intern *ns* (with-meta 'key-selector->bind (meta #'pigpen.runtime/key-selector->bind)) @#'pigpen.runtime/key-selector->bind)
+(intern *ns* (with-meta 'keyword-field-selector->bind (meta #'pigpen.runtime/keyword-field-selector->bind)) @#'pigpen.runtime/keyword-field-selector->bind)
+(intern *ns* (with-meta 'indexed-field-selector->bind (meta #'pigpen.runtime/indexed-field-selector->bind)) @#'pigpen.runtime/indexed-field-selector->bind)
+
 (intern *ns* (with-meta 'bind$ (meta #'pigpen.raw/bind$)) @#'pigpen.raw/bind$)
 (intern *ns* (with-meta 'sort$ (meta #'pigpen.raw/sort$)) @#'pigpen.raw/sort$)
 (intern *ns* (with-meta 'rank$ (meta #'pigpen.raw/rank$)) @#'pigpen.raw/rank$)

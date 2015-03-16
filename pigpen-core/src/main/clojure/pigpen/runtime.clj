@@ -30,60 +30,120 @@
        (eval '~f))))
 
 (defn map->bind
-  "Wraps a map function so that it can be consumed by PigPen"
+  "For use with pigpen.core.op/bind$
+
+Takes a map-style function (one that takes a single input and returns a
+single output) and returns a bind function that performs the same logic.
+
+  Example:
+
+    (map->bind (fn [x] (* x x)))
+
+  See also: pigpen.core.op/bind$
+"
+  {:added "0.3.0"}
   [f]
   (fn [args]
     [[(apply f args)]])) ;; wrap twice - single value, single arg to next fn
 
 (defn mapcat->bind
-  "Wraps a mapcat function so that it can be consumed by PigPen"
+  "For use with pigpen.core.op/bind$
+
+Takes a mapcat-style function (one that takes a single input and returns zero
+to many outputs) and returns a bind function that performs the same logic.
+
+  Example:
+
+    (mapcat->bind (fn [x] (seq x)))
+
+  See also: pigpen.core.op/bind$
+"
+  {:added "0.3.0"}
   [f]
   (fn [args]
     (map vector (apply f args)))) ;; wrap each value as arg to next fn
 
 (defn filter->bind
-  "Wraps a filter function so that it can be consumed by PigPen"
+  "For use with pigpen.core.op/bind$
+
+Takes a filter-style function (one that takes a single input and returns a
+boolean output) and returns a bind function that performs the same logic.
+
+  Example:
+
+    (filter->bind (fn [x] (even? x)))
+
+  See also: pigpen.core.op/bind$
+"
+  {:added "0.3.0"}
   [f]
   (fn [args]
     (if-let [result (apply f args)]
       [args] ;; wrap as arg to next fn
       [])))
 
-(defn process->bind
-  "Wraps the output of pre- and post-process with a vector."
-  [f]
-  (comp vector f))
-
-(defn sentinel-nil
-  "Coerces nils into a sentinel value. Useful for nil handling in outer joins."
-  [value]
-  (if (nil? value)
-    ::nil
-    value))
-
 (defn key-selector->bind
-  "Returns a tuple of applying f to args and the first arg."
+  "For use with pigpen.core.op/bind$
+
+Creates a key-selector function based on `f`. The resulting bind function
+returns a tuple of [(f x) x]. This is generally used to separate a key for
+subsequent use in a sort, group, or join.
+
+  Example:
+
+    (key-selector->bind (fn [x] (:foo x)))
+
+  See also: pigpen.core.op/bind$
+"
+  {:added "0.3.0"}
   [f]
   (fn [args]
     [[(apply f args) (first args)]])) ;; wrap twice - single value, two args to next fn
 
 (defn keyword-field-selector->bind
-  "Selects a set of fields from a map and projects them as Pig fields. Takes a
-single arg, which is a map with keyword keys."
+  "For use with pigpen.core.op/bind$
+
+Selects a set of fields from a map and projects them as native fields. The
+bind function takes a single arg, which is a map with keyword keys. The
+parameter `fields` is a sequence of keywords to select. The input relation
+should have a single field that is a map value.
+
+  Example:
+
+    (keyword-field-selector->bind [:foo :bar :baz])
+
+  See also: pigpen.core.op/bind$
+"
+  {:added "0.3.0"}
   [fields]
   (fn [args]
     (let [values (first args)]
       [(map values fields)])))
 
 (defn indexed-field-selector->bind
-  "Selects the first n fields and projects them as Pig fields. Takes a
-single arg, which is sequential. Applies f to the remaining args."
+  "For use with pigpen.core.op/bind$
+
+Selects the first n fields and projects them as fields. The input relation
+should have a single field, which is sequential. Applies f to the remaining args.
+
+  Example:
+
+    (indexed-field-selector->bind 2 pr-str)
+
+  See also: pigpen.core.op/bind$
+"
+  {:added "0.3.0"}
   [n f]
   (fn [args]
     (let [values (first args)]
       [(concat
          (take n values)
          [(f (drop n values))])])))
+
+(defn process->bind
+  "Wraps the output of pre- and post-process with a vector."
+  [f]
+  (comp vector f))
 
 (defn args->map
   "Returns a fn that converts a list of args into a map of named parameter
@@ -94,6 +154,13 @@ single arg, which is sequential. Applies f to the remaining args."
       (partition 2)
       (map (fn [[k v]] [(keyword k) (f v)]))
       (into {}))))
+
+(defn sentinel-nil
+  "Coerces nils into a sentinel value. Useful for nil handling in outer joins."
+  [value]
+  (if (nil? value)
+    ::nil
+    value))
 
 (defn debug [& args]
   "Creates a debug string for the tuple"

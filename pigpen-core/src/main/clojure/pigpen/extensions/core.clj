@@ -104,3 +104,45 @@
                          next-vec (conj v (subs s index end))]
                      (recur next-vec next-step))))]
       (step [] 0))))
+
+(defmacro keys-fn
+  "Creates a named anonymous function. Useful as a terse substitute for keys
+destructuring.
+
+Similar to an anonymous function, which uses positional names for arg:
+
+  #(assoc %1 :foo %2 :bar %3)
+
+`keys-fn` uses named variables that are keys in the input map:
+
+  (keys-fn
+    (assoc %
+      :foo-copy %foo
+      :bar-x-2  (* %bar 2)))
+
+To compare, this is the same function using keys destructuring:
+
+  (fn [{:keys [foo bar], :as value}]
+    (assoc value
+      :foo-copy foo
+      :bar-x-2  (* bar 2)))
+
+When using a large number of destructured variables, this can make a noticeable
+difference in code size and readability. This macro simply re-writes the first
+form into the second.
+"
+  {:added "0.3.0"}
+  [& body]
+  (let [syms# (atom #{})
+        body# (clojure.walk/postwalk
+                (fn [s]
+                  (if (and (symbol? s)
+                           (not= s '%)
+                           (.startsWith (name s) "%"))
+                    (let [s' (symbol (subs (name s) 1))]
+                      (swap! syms# conj s')
+                      s')
+                    s))
+                body)]
+    `(fn [{:as ~'%, :keys ~(vec @syms#)}]
+       ~@body#)))

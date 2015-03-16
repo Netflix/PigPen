@@ -30,6 +30,10 @@
 
 (set! *warn-on-reflection* true)
 
+;; ********** Common **********
+
+(intern *ns* (with-meta 'keys-fn (meta #'pigpen.extensions.core/keys-fn)) @#'pigpen.extensions.core/keys-fn)
+
 ;; ********** IO **********
 
 (intern *ns* (with-meta 'load-string (meta #'pigpen.io/load-string)) @#'pigpen.io/load-string)
