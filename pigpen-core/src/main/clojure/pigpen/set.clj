@@ -49,7 +49,26 @@
   (next fields))
 
 (defn set-op*
-  "Common base for most set operations"
+  "Common base for most set operations. Takes a quoted function that should take
+the same number of args as there are relations passed to set-op*. Each of those
+args is a sequence of the same values from that relation, similar to a cogroup
+where the key-fn is identity. `f` should return a sequence which is then
+flattened.
+
+  Example:
+
+    (set-op*
+      (trap
+        (fn [& args] (mapv count args)))
+      data1
+      data2
+      ...
+      dataN)
+
+  See also: pigpen.core/intersection, pigpen.core/difference, pigpen.core.fn/trap
+"
+  {:arglists '([f opts? relations+])
+   :added "0.3.0"}
   [f opts-relations]
   (let [[opts relations] (split-opts-relations opts-relations)
         fields     (mapcat :fields relations)

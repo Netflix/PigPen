@@ -161,6 +161,9 @@ sequence. This command is very useful for unit tests.
 
   Note: pig/store commands return the output data
         pig/store-many commands merge their results
+
+  Note: The original rx pigpen.core/dump command is now pigpen.rx/dump. This
+        implementation uses lazy seqs instead.
 "
   {:added "0.3.0"}
   ([query] (dump {} query))

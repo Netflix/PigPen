@@ -80,7 +80,19 @@ coerced to ::nil so they can be differentiated from outer joins later."
   (filterv (comp '#{key} symbol name) fields))
 
 (defn group*
-  "See pigpen.core/group-by, pigpen.core/cogroup"
+  "Similar to pigpen.core/cogroup, but is a function and takes a quoted function
+as an argument. Also takes select clauses as maps.
+
+  Example:
+
+    (group*
+      [{:from data1, :by (trap (fn [x] (* x x)))}
+       {:from data2, :by 'identity}]
+      (trap (fn [k l r] {:key k, :left l, :right r})))
+
+  See also: pigpen.core/group-by, pigpen.core/cogroup, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([selects f]
     (group* selects f {}))
   ([selects f opts]
@@ -105,7 +117,18 @@ coerced to ::nil so they can be differentiated from outer joins later."
                      {:args values}))))))
 
 (defn reduce*
-  "See pigpen.core/into, pigpen.core/reduce"
+  "Reduces all data into a single collection and applies f to that collection.
+The function `f` must be quoted prior to calling reduce*.
+
+  Example:
+
+    (reduce*
+      (trap (fn [xs] (count xs)))
+      data)
+
+  See also: pigpen.core/into, pigpen.core/reduce, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([f relation]
     (reduce* f {} relation))
   ([f opts relation]
@@ -115,7 +138,16 @@ coerced to ::nil so they can be differentiated from outer joins later."
       (raw/bind$ `(pigpen.runtime/map->bind ~f) {}))))
 
 (defn fold*
-  "See pigpen.core/fold"
+  "Applies the fold function `fold` to the data. Similar to pigpen.core/fold,
+but is a function and `fold` must be quoted.
+
+  Example:
+
+    (fold* '(fold/count) data)
+
+  See also: pigpen.core/fold, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([fold relation]
     (fold* fold {} relation))
   ([fold opts relation]
@@ -132,7 +164,20 @@ coerced to ::nil so they can be differentiated from outer joins later."
   (filterv (comp '#{key} symbol name) fields))
 
 (defn join*
-  "See pigpen.core/join"
+  "Similar to pigpen.core/join, but is a function and takes a quoted function
+as an argument. Also takes select clauses as maps.
+
+  Example:
+
+    (join*
+      [{:from data1, :by (trap (fn [x] (* x x)))}
+       {:from data2, :by 'identity}]
+      (trap (fn [l r] {:left l, :right r})))
+
+  See also: pigpen.core/join, pigpen.core.fn/trap
+"
+  {:arglists '([selects f] [selects f opts])
+   :added "0.3.0"}
   ([selects f]
     (join* selects f {}))
   ([selects f {:keys [all-args] :as opts}]

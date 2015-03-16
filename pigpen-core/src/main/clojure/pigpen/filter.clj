@@ -29,7 +29,18 @@
 (set! *warn-on-reflection* true)
 
 (defn filter*
-  "See #'pigpen.core/filter"
+  "Similar to pigpen.core/filter, but is a function and takes a quoted function
+as an argument.
+
+  Examples:
+
+    (filter*
+      (trap (fn [x] (even? (* x x))))
+      data)
+
+  See also: pigpen.core/filter, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([pred relation]
     (filter* pred {} relation))
   ([pred opts relation]

@@ -131,7 +131,27 @@ or reduce."
 
 (defmacro trap
   "Returns a form that, when evaluated, will reconsitiute f in namespace ns, in
-the presence of any local bindings"
+the presence of any local bindings. If `ns` is not specified, the current
+namespace, *ns*, is used.
+
+  Examples:
+
+    => (trap (fn [x] (* x x)))
+    (pigpen.runtime/with-ns pigpen-demo.core
+      (fn [x] (* x x)))
+
+    => (let [y (* 21 2)]
+         (trap
+           (fn [x] (+ x y))))
+    (pigpen.runtime/with-ns pigpen-demo.core
+      (clojure.core/let [y (quote 42)]
+        (fn [x] (+ x y))))
+
+  Note: `ns` must exist as a file that will be in the final deployed uberjar.
+        If you are in a temporary namespace in a REPL, it will not be included
+        in the rewritten version of the expression.
+"
+  {:added "0.3.0"}
   ([f] `(trap '~(ns-name *ns*) ~f))
   ([ns f]
     (let [keys# (vec (keys &env))]

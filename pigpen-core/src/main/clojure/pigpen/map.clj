@@ -29,7 +29,26 @@
 (set! *warn-on-reflection* true)
 
 (defn map*
-  "See pigpen.core/map"
+  "Similar to pigpen.core/map, but is a function and takes a quoted function as
+an argument.
+
+  Examples:
+
+    (defn do-stuff [f data]
+      (map* f data))
+
+    (do-stuff 'inc)
+
+    (do-stuff
+      (pigpen.core.fn/trap
+        (fn [x] (* x x))))
+
+Note that the above example would not work with pigpen.core/map because f would
+be compiled before do-stuff is called.
+
+  See also: pigpen.core/map, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([f relation]
     (map* f {} relation))
   ([f opts relation]
@@ -58,7 +77,18 @@ pig/cogroup, and pig/union for combining sets of data.
   `(map* (code/trap ~f) {:description ~(pp-str f)} ~relation))
 
 (defn mapcat*
-  "See pigpen.core/mapcat"
+  "Similar to pigpen.core/mapcat, but is a function and takes a quoted function
+as an argument.
+
+  Examples:
+
+    (mapcat*
+      (trap (fn [x] [(dec x) x (inc x)]))
+      data)
+
+  See also: pigpen.core/mapcat, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([f relation]
     (mapcat* f {} relation))
   ([f opts relation]
@@ -81,6 +111,18 @@ f to each item in relation. Thus f should return a collection.
   `(mapcat* (code/trap ~f) {:description ~(pp-str f)} ~relation))
 
 (defn map-indexed*
+  "Similar to pigpen.core/map-indexed, but is a function and takes a quoted
+function as an argument.
+
+  Examples:
+
+    (map-indexed*
+      (trap (fn [i x] (* i x)))
+      data)
+
+  See also: pigpen.core/map-indexed, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
   ([f relation]
     (map-indexed* f {} relation))
   ([f opts relation]
@@ -120,7 +162,21 @@ and the value. If you require sequential ids, use option {:dense true}.
     `(map-indexed* (code/trap ~f) (assoc ~opts :description ~(pp-str f)) ~relation)))
 
 (defn sort*
-  "See pigpen.core/sort, pigpen.core/sort-by"
+    "Similar to pigpen.core/sort-by, but is a function and takes a quoted
+function as an argument.
+
+  Examples:
+
+    (sort*
+      (trap (fn [x] (* x x)))
+      :asc
+      data)
+
+  See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([comp relation]
+    (sort* 'identity comp {} relation))
   ([key-selector comp relation]
     (sort* key-selector comp {} relation))
   ([key-selector comp opts relation]
