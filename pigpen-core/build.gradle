@@ -1,3 +1,5 @@
+apply plugin: 'java'
+
 dependencies {
 
     compile 'org.clojure:clojure:1.6.0'
