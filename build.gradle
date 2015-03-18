@@ -1,33 +1,30 @@
-// Establish version and status
-ext.githubProjectName = rootProject.name // Change if github project name is not the same as the root project's name
-
 buildscript {
     repositories {
-        mavenCentral()
+        jcenter()
         maven { url 'http://clojars.org/repo' }
     }
     dependencies {
-        classpath 'clojuresque:clojuresque:1.7.0'
-    }
-    apply from: file('gradle/buildscript.gradle'), to: buildscript
+        classpath 'com.netflix.nebula:gradle-extra-configurations-plugin:2.2.0'
+        classpath 'com.netflix.nebula:nebula-clojure-plugin:2.2.0'
+    }    
 }
 
-allprojects {
-    repositories {
-        mavenCentral() // maven { url: 'http://jcenter.bintray.com' }
-        maven { url 'http://clojars.org/repo' }
-    }
+plugins {
+    id 'nebula.netflixoss' version '2.2.9'
 }
 
-apply from: file('gradle/convention.gradle')
-apply from: file('gradle/maven.gradle')
-apply from: file('gradle/check.gradle')
-apply from: file('gradle/license.gradle')
-apply from: file('gradle/release.gradle')
+// Establish version and status
+ext.githubProjectName = rootProject.name // Change if github project name is not the same as the root project's name
 
 subprojects {
-
+    apply plugin: 'nebula.provided-base'
+    apply plugin: 'clojure'
     group = 'com.netflix.pigpen'
+
+    repositories {
+        jcenter()
+        maven { url 'http://clojars.org/repo' }
+    }
 
     license {
         mapping('clj', 'SEMICOLON_STYLE')
@@ -37,7 +34,6 @@ subprojects {
        from 'src/main/clojure'
     }
 
-    apply plugin: 'clojure'
     tasks.uberjar.enabled=true
     clojure.aotCompile = true
 
@@ -51,12 +47,6 @@ subprojects {
         )
     }
 
-    clojureTest {
-        // this is here because pig and hadoop are provided dependencies
-        // without this, clojureTest doesn't work
-        classpath = sourceSets.test.runtimeClasspath
-    }
-
     clojuredoc {
         includeNamespace 'pigpen.core'
         includeNamespace 'pigpen.fold'
@@ -64,21 +54,6 @@ subprojects {
             srcDirUri: 'https://github.com/Netflix/PigPen/blob/master/',
             srcLinenumAnchorPrefix: 'L'
         ]
-    }
-
-    javadoc {
-        // this is here because pig and hadoop are provided dependencies
-        // without this, javadoc doesn't work
-        classpath = sourceSets.test.runtimeClasspath
-    }
-
-    apply plugin: 'eclipse'
-    eclipse {
-        // this is here because pig and hadoop are provided dependencies
-        // without this, counterclockwise doesn't work
-        classpath {
-            plusConfigurations += configurations.provided
-        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////
