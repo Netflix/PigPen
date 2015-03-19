@@ -108,9 +108,15 @@
 
 (s/defmethod command->flowdef :store
   [command :- m/Store
-   [{:keys [^Pipe pipe]}]
+   [{:keys [^Pipe pipe ancestor]}]
    ^FlowDef flowdef]
-  (let [^Tap sink (get-tap command)]
+  (let [^Tap sink (get-tap command)
+        fields (:fields ancestor)
+        ; The tap needs the incoming field name to match (without the namespace
+        ; added to all field symbols).
+        pipe (if-let [tap-fields (seq (map symbol (.getSinkFields sink)))]
+               (Rename. pipe (cfields fields) (cfields tap-fields))
+               pipe)]
     ;; side effect
     (.addTailSink flowdef pipe sink)
     nil))
@@ -190,7 +196,7 @@
   [{:keys [id projections fields]} :- m/Project
    [{:keys [^Pipe pipe ancestor]}]
    _]
-  (let [context (pr-str `'{:ancestor ~(update-in ancestor [:opts] dissoc :tap)
+  (let [context (pr-str `'{:ancestor ~(clojure.walk/postwalk #(if (map? %) (dissoc % :tap) %) ancestor)
                            :projections ~(prepare-projections projections)
                            :fields ~fields})]
     (case (:type ancestor)
