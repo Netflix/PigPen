@@ -40,12 +40,12 @@
 
 (deftest test-code$
   (test-diff
-    (code$ :scalar
+    (code$ :seq
            '(require '[pigpen.runtime])
            '(var clojure.core/prn)
            ["a" 'r0/b 'c/d])
     '{:type :code
-      :udf :scalar
+      :udf :seq
       :init (require (quote [pigpen.runtime]))
       :func (var clojure.core/prn)
       :args ["a" r0/b c/d]}))
@@ -104,7 +104,7 @@
 (deftest test-projection-func$
   (test-diff
     (projection-func$ '[value] true
-                      (code$ :scalar
+                      (code$ :seq
                              `(require '[pigpen.runtime])
                              `identity
                              '[r0/value]))
@@ -112,7 +112,7 @@
       :expr {:type :code
              :init (clojure.core/require (quote [pigpen.runtime]))
              :func clojure.core/identity
-             :udf :scalar
+             :udf :seq
              :args [r0/value]}
       :flatten true
       :alias [value]}))

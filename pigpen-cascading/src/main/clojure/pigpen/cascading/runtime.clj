@@ -24,7 +24,7 @@
            (cascading.tuple Fields Tuple TupleEntry TupleEntryCollector)
            (pigpen.cascading OperationUtil SingleIterationSeq))
   (:require [taoensso.nippy :refer [freeze thaw]]
-            [pigpen.runtime :as rt]
+            [pigpen.runtime :as rt :refer [HybridToClojure]]
             [schema.core :as s]
             [pigpen.model :as m]))
 
@@ -32,8 +32,10 @@
 
 ;; ******** Serialization ********
 
-(defmethod rt/hybrid->clojure BytesWritable [value]
-  (-> value (OperationUtil/getBytes) thaw))
+(extend-protocol HybridToClojure
+  BytesWritable
+  (rt/hybrid->clojure [value]
+    (-> value (OperationUtil/getBytes) thaw)))
 
 (defn cs-freeze [value]
   (BytesWritable. (freeze value {:skip-header? true, :legacy-mode true})))
@@ -63,6 +65,12 @@
 (defn ^:private ^Tuple ->tuple [^List l]
   (Tuple. (.toArray l)))
 
+(defn add-tuple
+  "Adds a tuple to the collector; returns the collector."
+  [^TupleEntryCollector collector ^Tuple tuple]
+  (doto collector
+    (.add tuple)))
+
 ;; ******** Prepare ********
 
 (defn prepare-expr [expr]
@@ -72,41 +80,24 @@
             (update-in [:init] pigpen.runtime/eval-string)
             (update-in [:func] pigpen.runtime/eval-string))))
 
+(defn prepare-projection [p]
+  (when p
+    (update-in p [:expr] prepare-expr)))
+
 (defn prepare-projections [ps]
-  (mapv #(update-in % [:expr] prepare-expr) ps))
+  (mapv prepare-projection ps))
 
 (defn prepare
   "Called from UDFs to deserialize clojure data structures"
   [context]
   (-> context
     pigpen.runtime/eval-string
-    (update-in [:projections] prepare-projections)))
+    (update-in [:projections] prepare-projections)
+    (update-in [:func] prepare-projection)))
 
 (def prepare (memoize prepare))
 
 ;; ******** Func ********
-
-(defn cross-product [[head & more]]
-  (if head
-    (for [value head
-          child (cross-product more)]
-      (merge child value))
-    [{}]))
-
-(defmulti eval-func (fn [udf f args] udf))
-
-(defmethod eval-func :seq
-  [_ f args]
-  (f args))
-
-(defmulti eval-expr
-  (fn [expr values]
-    (:type expr)))
-
-(s/defmethod eval-expr :field
-  [{:keys [field]} :- m/FieldExpr
-   values]
-  [(values field)])
 
 (defn field-lookup [values arg]
   (cond
@@ -114,34 +105,38 @@
     (symbol? arg) (values arg)
     :else (throw (ex-info "Unknown arg" {:arg arg, :values values}))))
 
-(s/defmethod eval-expr :code
-  [{:keys [udf func args]} :- m/CodeExpr
-   values]
-  (let [arg-values (mapv (partial field-lookup values) args)]
-    (eval-func udf func arg-values)))
+(s/defn eval-field
+  [values {:keys [alias expr :- m/FieldExpr]} :- m/Projection]
+  (let [{:keys [field]} expr]
+    [alias (values field)]))
 
-(s/defn eval-projections
-  [values {:keys [expr flatten alias]} :- m/Projection]
-  (let [result (eval-expr expr values)]
-    (if flatten
-      (map (partial zipmap alias) result)
-      (zipmap alias result))))
+(s/defn eval-func
+  [values
+   {:keys [expr alias]} :- m/Projection
+   init
+   reducef]
+  (let [{:keys [func args]} expr
+        arg-values (mapv (partial field-lookup values) args)]
+    ((func reducef) init arg-values)))
 
 (defn function-operate
   "Called from pigpen.cascading.PigPenFunction"
   [^FunctionCall function-call]
-  (let [{:keys [projections fields]} (.getContext function-call)
-        tuple-entry (.getArguments function-call)
+  (let [{:keys [field-projections func fields]} (.getContext function-call)
         values (fn [f]
-                 (rt/hybrid->clojure
-                   (.getObject tuple-entry (pr-str f))))]
-    (doseq [r (->> projections
-                (map (partial eval-projections values))
-                (cross-product)
-                (map #(mapv % fields)))]
-      (-> function-call
-        (.getOutputCollector)
-        (.add (->tuple r))))))
+                 (-> function-call
+                   (.getArguments)
+                   (.getObject (pr-str f))
+                   rt/hybrid->clojure))
+        field-values (->> field-projections
+                       (map (partial eval-field values))
+                       (into {}))]
+    (eval-func values func
+               (.getOutputCollector function-call)
+               (fn [collector fn-result]
+                 (let [result (merge field-values (zipmap (:alias func) fn-result))
+                       tuple (->tuple (mapv result fields))]
+                   (add-tuple collector tuple))))))
 
 ;; ******** CoGroup ********
 
@@ -206,12 +201,7 @@ Called from pigpen.cascading.InduceSentinelNils"
 (defn group-operate
   "Called from pigpen.cascading.GroupBuffer"
   [^BufferCall buffer-call]
-  (let [{:keys [projections fields ancestor]} (.getContext buffer-call)
-
-        ;; the list of args required by this projection
-        args (-> projections
-               first
-               (get-in [:expr :args]))
+  (let [{:keys [args required rename-fields folds func fields]} (.getContext buffer-call)
 
         ;; where to find the arg values in the data
         field-indexes (-> buffer-call
@@ -219,65 +209,39 @@ Called from pigpen.cascading.InduceSentinelNils"
                         (.getValueFields)
                         (field-indexes))
 
-        ;; a list of which fields are required. This is to compute inner/outer groups
-        required (mapcat (fn [a j] (when (= j :required) [a]))
-                         (next args)
-                         (:join-types ancestor))
-
-        ;; folds add an extra layer of indirection to field names; this resolves it
-        rename-fields (some->> ancestor
-                        :fold
-                        :projections
-                        (map (fn [p]
-                               [(-> p :alias first)
-                                (or (-> p :expr :field)
-                                    (-> p :expr :args first))]))
-                        (into {}))
-
-        ;; This exists becasue we use this for both fold and non-fold co-groupings.
-        ;; For relations that have been folded already, there will only be one value,
-        ;; so we take the first. This identifies which relations have been folded.
-        folds (some->> ancestor
-                :fold
-                :projections
-                (filter (comp #{:fold} :udf :expr))
-                (map (comp first :alias))
-                (map rename-fields)
-                set)
-
-        ;; fetch the values for these args
-        values (->> args
-                 (map (fn [arg]
-                        (let [arg' (get rename-fields arg arg)]
-                          [arg (arg->value buffer-call folds field-indexes arg')])))
-                 (into {}))]
+        ;; fetch the values for the args
+        values (memoize
+                 (fn [arg]
+                   (let [arg' (get rename-fields arg arg)]
+                     (arg->value buffer-call folds field-indexes arg'))))]
 
     ;; when we have all required values, apply the user function
     (when (every? values required)
-      (doseq [r (->>
-                  (eval-projections values (first projections))
-                  (map #(mapv % fields)))]
-        (-> buffer-call
-          (.getOutputCollector)
-          (.add (->tuple r)))))))
+      (eval-func values func
+                 (.getOutputCollector buffer-call)
+                 (fn [collector fn-result]
+                   (let [result (zipmap (:alias func) fn-result)
+                         tuple (->tuple (mapv result fields))]
+                     (add-tuple collector tuple)))))))
 
 ;; ******** Reduce ********
 
 (defn reduce-operate
   "Called from pigpen.cascading.ReduceBuffer"
   [^BufferCall buffer-call]
-  (let [{:keys [projections fields ancestor]} (.getContext buffer-call)
+  (let [{:keys [func fields]} (.getContext buffer-call)
         values (->> buffer-call
                  (.getArgumentsIterator)
                  (SingleIterationSeq/create)
                  (map (fn [^TupleEntry e]
-                        (rt/hybrid->clojure (.getObject e 0)))))]
-    (doseq [r (->>
-                (eval-projections {(:arg ancestor) values} (first projections))
-                (map #(mapv % fields)))]
-      (-> buffer-call
-        (.getOutputCollector)
-        (.add (->tuple r))))))
+                        (rt/hybrid->clojure (.getObject e 0))))
+                 constantly)]
+    (eval-func values func
+               (.getOutputCollector buffer-call)
+               (fn [collector fn-result]
+                 (let [result (zipmap (:alias func) fn-result)
+                       tuple (->tuple (mapv result fields))]
+                   (add-tuple collector tuple))))))
 
 ;; ******** Fold ********
 

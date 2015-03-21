@@ -42,11 +42,11 @@
 
 (deftest test-code
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (is (= ["DEFINE udf1 pigpen.PigPenFnDataByteArray('(require (quote [pigpen.runtime]))','identity');\n\n" "udf1()"]
+    (is (= ["DEFINE udf1 pigpen.PigPenFn('(require (quote [pigpen.runtime]))','identity');\n\n" "udf1()"]
            (command->script '{:type :code
                               :init (require '[pigpen.runtime])
                               :func identity
-                              :udf :scalar
+                              :udf :seq
                               :args []}
                             {})))))
 
@@ -111,47 +111,20 @@
 
 (deftest test-projection-func
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (is (= ["DEFINE udf1 pigpen.PigPenFnDataByteArray('','(fn [x] (* x x))');\n\n" "udf1('a', a) AS (b)"]
+    (is (= ["DEFINE udf1 pigpen.PigPenFn('','(fn [x] (* x x))');\n\n" "udf1('a', a) AS (b)"]
            (command->script '{:type :projection
                               :expr {:type :code
                                      :init nil
                                      :func (fn [x] (* x x))
-                                     :udf :scalar
+                                     :udf :seq
                                      :args ["a" r0/a]}
                               :flatten false
                               :alias [r1/b]}
                             {})))))
 
-(deftest test-project
-  (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (is (= "DEFINE udf1 pigpen.PigPenFnDataByteArray('','(fn [x] (* x x))');
-
-project0 = FOREACH relation0 GENERATE
-    a AS (b),
-    udf1('a', a) AS (c);\n\n"
-           (command->script '{:type :project
-                              :id project0
-                              :ancestors [relation0]
-                              :fields [r1/b r1/c]
-                              :field-type :frozen
-                              :projections [{:type :projection
-                                             :expr {:type :field
-                                                    :field r0/a}
-                                             :flatten false
-                                             :alias [r1/b]}
-                                            {:type :projection
-                                             :expr {:type :code
-                                                    :init nil
-                                                    :func (fn [x] (* x x))
-                                                    :udf :scalar
-                                                    :args ["a" r0/a]}
-                                             :flatten false
-                                             :alias [r1/c]}]}
-                            {})))))
-
 (deftest test-project-flatten
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
-    (is (= "DEFINE udf1 pigpen.PigPenFnDataBag('','(fn [x] [x x])');
+    (is (= "DEFINE udf1 pigpen.PigPenFn('','(fn [x] [x x])');
 
 project0 = FOREACH relation0 GENERATE
     FLATTEN(udf1('a', a)) AS (b);\n\n"

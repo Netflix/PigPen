@@ -25,7 +25,7 @@ possible as it's used at runtime."
             [clojure.edn :as edn]
             [clojure.data.json :as json]
             [clojure.core.async :as a]
-            [pigpen.runtime :as rt]
+            [pigpen.runtime :as rt :refer [HybridToClojure NativeToClojure]]
             [pigpen.extensions.core-async :as ae]
             [taoensso.nippy :refer [freeze thaw]])
   (:import [pigpen PigPenException]
@@ -53,6 +53,12 @@ possible as it's used at runtime."
   (if vals
     (.newDefaultBag (BagFactory/getInstance) vals)
     (.newDefaultBag (BagFactory/getInstance))))
+
+(defn add-tuple
+  "Adds a tuple to a bag; returns the bag"
+  [^DataBag bag ^Tuple tuple]
+  (doto bag
+    (.add tuple)))
 
 (defn ^:private pig-freeze [value]
   (DataByteArray. (freeze value {:skip-header? true, :legacy-mode true})))
@@ -101,105 +107,40 @@ possible as it's used at runtime."
 
 ;; **********
 
-(defmethod rt/hybrid->clojure DataByteArray [^DataByteArray value]
-  (-> value (.get) thaw))
-
-(defmethod rt/hybrid->clojure Tuple [^Tuple value]
-  (->> value (.getAll) (mapv rt/hybrid->clojure)))
-
-(defmethod rt/hybrid->clojure DataBag [^DataBag value]
-  ;; This is flattened to help with dereferenced fields that result in a bag of a single tuple
-  (->> value (.iterator) iterator-seq (mapcat rt/hybrid->clojure)))
-
-(defmethod rt/hybrid->clojure Channel [value]
-  (->> value ae/safe-<!! (map rt/hybrid->clojure)))
-
-;; **********
-
-(defmethod rt/native->clojure DataByteArray [^DataByteArray value]
-  (.get value))
-
-(defmethod rt/native->clojure Tuple [^Tuple value]
-  (->> value (.getAll) (mapv rt/native->clojure)))
-
-(defmethod rt/native->clojure DataBag [^DataBag value]
-  (->> value (.iterator) iterator-seq (map rt/native->clojure)))
+(extend-protocol HybridToClojure
+  DataByteArray
+  (rt/hybrid->clojure [^DataByteArray value]
+    (-> value (.get) thaw))
+  Tuple
+  (rt/hybrid->clojure [^Tuple value]
+    (->> value (.getAll) (mapv rt/hybrid->clojure)))
+  DataBag
+  (rt/hybrid->clojure [^DataBag value]
+    ;; This is flattened to help with dereferenced fields that result in a bag of a single tuple
+    (->> value (.iterator) iterator-seq (mapcat rt/hybrid->clojure)))
+  Channel
+  (rt/hybrid->clojure [value]
+    (->> value ae/safe-<!! (map rt/hybrid->clojure))))
 
 ;; **********
 
-(defn freeze-vals [value]
-  {:pre [(map? value)]}
-  (reduce-kv (fn [m k v] (assoc m k (pig-freeze v))) {} value))
-
-(defmulti thaw-anything
-  "Attempts to thaw any child value. Returns it as '(freeze ...)"
-  type)
-
-(defmethod thaw-anything :default [value]
-  value)
-
-(defmethod thaw-anything IPersistentVector [value]
-  (mapv thaw-anything value))
-
-(defmethod thaw-anything List [value]
-  (map thaw-anything value))
-
-(prefer-method thaw-anything IPersistentVector List)
-
-(defmethod thaw-anything Map [value]
-  (->> value
-    (map (fn [[k v]] [(thaw-anything k) (thaw-anything v)]))
-    (into {})))
-
-(defmethod thaw-anything DataByteArray [^DataByteArray value]
-  `(~(symbol "freeze") ~(thaw (.get value))))
-
-(defmethod thaw-anything Tuple [^Tuple value]
-  (let [v (->> value (.getAll) (mapv thaw-anything))]
-    `(~(symbol "tuple") ~@v)))
-
-(defmethod thaw-anything DataBag [^DataBag value]
-  (let [v (->> value (.iterator) iterator-seq (map thaw-anything))]
-    `(~(symbol "bag") ~@v)))
-
-(defmulti thaw-values
-  "Attempts to thaw any child value. Returns only the value, strips all
-serialization info."
-  type)
-
-(defmethod thaw-values :default [value]
-  value)
-
-(defmethod thaw-values IPersistentVector [value]
-  (mapv thaw-values value))
-
-(defmethod thaw-values List [value]
-  (map thaw-values value))
-
-(prefer-method thaw-values IPersistentVector List)
-
-(defmethod thaw-values Map [value]
-  (->> value
-    (map (fn [[k v]] [(thaw-values k) (thaw-values v)]))
-    (into {})))
-
-(defmethod thaw-values DataByteArray [^DataByteArray value]
-  (thaw (.get value)))
-
-(defmethod thaw-values Tuple [^Tuple value]
-  (->> value (.getAll) (mapv thaw-values)))
-
-(defmethod thaw-values DataBag [^DataBag value]
-  (->> value (.iterator) iterator-seq (map thaw-values)))
+(extend-protocol NativeToClojure
+  DataByteArray
+  (rt/native->clojure [^DataByteArray value]
+    (.get value))
+  Tuple
+  (rt/native->clojure [^Tuple value]
+    (->> value (.getAll) (mapv rt/native->clojure)))
+  DataBag
+  (rt/native->clojure [^DataBag value]
+    (->> value (.iterator) iterator-seq (map rt/native->clojure))))
 
 ;; **********
 
 (defn udf-lookup [type]
   (case type
-    :scalar  "pigpen.PigPenFnDataByteArray"
-    :seq     "pigpen.PigPenFnDataBag"
-    :boolean "pigpen.PigPenFnBoolean"
-    :fold    "pigpen.PigPenFnAlgebraic"))
+    :seq  "pigpen.PigPenFn"
+    :fold "pigpen.PigPenFnAlgebraic"))
 
 (defn eval-udf
   [func ^Tuple t]
@@ -207,8 +148,7 @@ serialization info."
    is any initialization code. The second element is the function to be called.
    Any remaining args are passed to the function as a collection."
   (try
-    (let [args (.getAll t)]
-      (func args))
+    (func (bag) (.getAll t))
     ;; Errors (like AssertionError) hang the interop layer.
     ;; This allows any problem with user code to pass through.
     (catch Throwable z (throw (PigPenException. z)))))
@@ -246,7 +186,7 @@ containing the singe value of the result."
     ;; Make new lazy bags & create a result channel
     (let [[args* input-bags] (lazy-bag-args args)
           ;; Start result evaluation asynchronously, it will block on lazy bags
-          result (ae/safe-go (func args*))]
+          result (ae/safe-go (func (bag) args*))]
       [input-bags result])))
 
 (defn udf-accumulate
@@ -340,6 +280,11 @@ as the initial state for the next accumulation."
   (fn [[key value]]
     (apply tuple
       [key (pig-freeze value)])))
+
+(defn exec-transducer
+  "Returns a fn that executes the transducer xf by adding result tuples to a bag."
+  [xf]
+  (xf add-tuple))
 
 ;; TODO lots of duplication here
 (defn exec-initial

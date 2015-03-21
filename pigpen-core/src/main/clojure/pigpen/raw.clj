@@ -69,7 +69,6 @@ probably want bind$ instead of this.
 
 The parameter `udf` should be one of:
 
-  :scalar - returns a single value
   :seq    - returns zero or more values
   :fold   - apply a fold aggregation
 

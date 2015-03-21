@@ -276,13 +276,14 @@
                        :projections [{:type :projection
                                       :expr {:type :code
                                              :init (clojure.core/require (quote [pigpen.runtime]) (quote [clojure.edn]))
-                                             :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native))
-                                                                         (pigpen.runtime/map->bind clojure.edn/read-string)
-                                                                         (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
-                                                                         (pigpen.runtime/filter->bind (pigpen.runtime/with-ns pigpen.oven-test (constantly true)))
-                                                                         (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
-                                                                         (pigpen.runtime/map->bind clojure.core/pr-str)
-                                                                         (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :native))])
+                                             :func (clojure.core/comp
+                                                     (pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native))
+                                                     (pigpen.runtime/map->bind clojure.edn/read-string)
+                                                     (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.oven-test identity))
+                                                     (pigpen.runtime/filter->bind (pigpen.runtime/with-ns pigpen.oven-test (constantly true)))
+                                                     (pigpen.runtime/mapcat->bind (pigpen.runtime/with-ns pigpen.oven-test vector))
+                                                     (pigpen.runtime/map->bind clojure.core/pr-str)
+                                                     (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :native)))
                                              :udf :seq
                                              :args [load1/value]}
                                       :flatten true

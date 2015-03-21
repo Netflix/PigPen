@@ -86,8 +86,8 @@
 (defmulti eval-func (fn [udf f args] udf))
 
 (defmethod eval-func :seq
-  [_ f args]
-  (f args))
+  [_ xf args]
+  ((xf conj) [] args))
 
 (defmethod eval-func :fold
   [_ {:keys [pre combinef reducef post]} [values]]

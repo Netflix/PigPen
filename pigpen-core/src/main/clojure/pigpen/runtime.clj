@@ -43,8 +43,9 @@ single output) and returns a bind function that performs the same logic.
 "
   {:added "0.3.0"}
   [f]
-  (fn [args]
-    [[(apply f args)]])) ;; wrap twice - single value, single arg to next fn
+  (fn [rf]
+    (fn [result input]
+      (rf result [(apply f input)]))))
 
 (defn mapcat->bind
   "For use with pigpen.core.op/bind$
@@ -60,8 +61,9 @@ to many outputs) and returns a bind function that performs the same logic.
 "
   {:added "0.3.0"}
   [f]
-  (fn [args]
-    (map vector (apply f args)))) ;; wrap each value as arg to next fn
+  (fn [rf]
+    (fn [result input]
+      (reduce rf result (map vector (apply f input))))))
 
 (defn filter->bind
   "For use with pigpen.core.op/bind$
@@ -77,10 +79,11 @@ boolean output) and returns a bind function that performs the same logic.
 "
   {:added "0.3.0"}
   [f]
-  (fn [args]
-    (if-let [result (apply f args)]
-      [args] ;; wrap as arg to next fn
-      [])))
+  (fn [rf]
+    (fn [result input]
+      (if (apply f input)
+        (rf result input)
+        result))))
 
 (defn key-selector->bind
   "For use with pigpen.core.op/bind$
@@ -97,8 +100,9 @@ subsequent use in a sort, group, or join.
 "
   {:added "0.3.0"}
   [f]
-  (fn [args]
-    [[(apply f args) (first args)]])) ;; wrap twice - single value, two args to next fn
+  (fn [rf]
+    (fn [result input]
+      (rf result [(apply f input) (first input)]))))
 
 (defn keyword-field-selector->bind
   "For use with pigpen.core.op/bind$
@@ -116,9 +120,9 @@ should have a single field that is a map value.
 "
   {:added "0.3.0"}
   [fields]
-  (fn [args]
-    (let [values (first args)]
-      [(map values fields)])))
+  (fn [rf]
+    (fn [result [input]]
+      (rf result (map input fields)))))
 
 (defn indexed-field-selector->bind
   "For use with pigpen.core.op/bind$
@@ -134,16 +138,18 @@ should have a single field, which is sequential. Applies f to the remaining args
 "
   {:added "0.3.0"}
   [n f]
-  (fn [args]
-    (let [values (first args)]
-      [(concat
-         (take n values)
-         [(f (drop n values))])])))
+  (fn [rf]
+    (fn [result [input]]
+      (rf result (concat
+                   (take n input)
+                   [(f (drop n input))])))))
 
 (defn process->bind
   "Wraps the output of pre- and post-process with a vector."
   [f]
-  (comp vector f))
+  (fn [rf]
+    (fn [result input]
+      (rf result (f input)))))
 
 (defn args->map
   "Returns a fn that converts a list of args into a map of named parameter
@@ -177,33 +183,43 @@ should have a single field, which is sequential. Applies f to the remaining args
       (catch Throwable z
         (throw (RuntimeException. (str "Exception evaluating: " f) z))))))
 
-(defmulti hybrid->clojure
-  "Converts a hybrid data structure into 100% clojure. Platforms should add
-methods for any types they expect to see."
-  type)
+(defprotocol HybridToClojure
+  (hybrid->clojure
+    [value]
+    "Converts a hybrid data structure into 100% clojure. Platforms should add
+methods for any types they expect to see."))
 
-(defmethod hybrid->clojure :default
-  [value]
-  value)
+(extend-protocol HybridToClojure
+  nil
+  (hybrid->clojure [value]
+    value)
+  Object
+  (hybrid->clojure [value]
+    value)
+  java.util.Map
+  (hybrid->clojure [value]
+    (->> value
+      (map (fn [[k v]] [(hybrid->clojure k) (hybrid->clojure v)]))
+      (into {}))))
 
-(defmethod hybrid->clojure java.util.Map [value]
-  (->> value
-    (map (fn [[k v]] [(hybrid->clojure k) (hybrid->clojure v)]))
-    (into {})))
+(defprotocol NativeToClojure
+  (native->clojure
+    [value]
+    "Converts native data structures into 100% clojure. Platforms should add
+methods for any types they expect to see. No clojure should be seen here."))
 
-(defmulti native->clojure
-  "Converts native data structures into 100% clojure. Platforms should add
-methods for any types they expect to see. No clojure should be seen here."
-  type)
-
-(defmethod native->clojure :default
-  [value]
-  value)
-
-(defmethod native->clojure java.util.Map [value]
-  (->> value
-    (map (fn [[k v]] [(native->clojure k) (native->clojure v)]))
-    (into {})))
+(extend-protocol NativeToClojure
+  nil
+  (native->clojure [value]
+    value)
+  Object
+  (native->clojure [value]
+    value)
+  java.util.Map
+  (native->clojure [value]
+    (->> value
+      (map (fn [[k v]] [(native->clojure k) (native->clojure v)]))
+      (into {}))))
 
 (defmulti pre-process
   "Optionally deserializes incoming data. Should return a fn that takes a single
@@ -235,10 +251,3 @@ the fields to serialize. It will be one of:
     [platform serialization-type]))
 
 (defmethod post-process :default [_ _] identity)
-
-(defn exec
-  "Applies the composition of fs, flattening intermediate results. Each f must
-produce a seq-able output that is flattened as input to the next command."
-  [fs]
-  (fn [args]
-    (reduce (fn [vs f] (mapcat f vs)) [args] fs)))

@@ -34,7 +34,7 @@ REGISTER piggybank.jar;
 load1 = LOAD 'resources/example_data.avro'
     USING org.apache.pig.piggybank.storage.avro.AvroStorage('schema', '{\"type\":\"record\",\"name\":\"ExampleRecord\",\"namespace\":\"com.example\",\"fields\":[{\"name\":\"browserTimestamp\",\"type\":\"long\"}]}');
 
-DEFINE udf5 pigpen.PigPenFnDataBag('(clojure.core/require (quote [pigpen.runtime]) (quote [pigpen.avro.core]))','(pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native)) (pigpen.runtime/map->bind (comp pigpen.avro.core/dotted-keys->nested-map (pigpen.runtime/args->map pigpen.runtime/native->clojure))) (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :frozen))])');
+DEFINE udf5 pigpen.PigPenFn('(clojure.core/require (quote [pigpen.runtime]) (quote [pigpen.avro.core]))','(clojure.core/comp (pigpen.runtime/process->bind (pigpen.runtime/pre-process :pig :native)) (pigpen.runtime/map->bind (comp pigpen.avro.core/dotted-keys->nested-map (pigpen.runtime/args->map pigpen.runtime/native->clojure))) (pigpen.runtime/process->bind (pigpen.runtime/post-process :pig :frozen)))');
 
 project3_0 = FOREACH load1 GENERATE
     udf5('browserTimestamp', browserTimestamp) AS (value0);

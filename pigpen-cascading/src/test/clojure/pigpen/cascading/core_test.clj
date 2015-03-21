@@ -157,30 +157,20 @@
     (is (= '(2 4 6) (read-output output1)))
     (is (= '(3 6 9) (read-output output2)))))
 
-(deftest test-distinct
-  (write-input input1 [1 2 3])
-  (let [data (pigpen/load-clj input1)
-        cmd (->> data
-                 (pigpen/mapcat (fn [x] [x (* x 2)]))
-                 (pigpen/distinct)
-                 (pigpen/store-clj output1))]
-    (.complete (cascading/generate-flow cmd))
-    (is (= #{1 2 4 3 6} (into #{} (read-output output1))))))
-
 (deftest test-performance
   (let [in-fields (Fields. (into-array ["load1/value"]))
         out-fields (Fields. (into-array ["project1/value"]))
         context {:fields ['project1/value]
-                 :projections [{:type :projection
-                                :expr {:type :code
-                                       :init nil
-                                       :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process :cascading :frozen))
-                                                                   (pigpen.runtime/map->bind identity)
-                                                                   (pigpen.runtime/process->bind (pigpen.runtime/post-process :cascading :frozen))])
-                                       :udf :seq
-                                       :args ['load1/value]}
-                                :flatten true
-                                :alias ['project1/value]}]}
+                 :func {:type :projection
+                        :expr {:type :code
+                               :init nil
+                               :func (comp (pigpen.runtime/process->bind (pigpen.runtime/pre-process :cascading :frozen))
+                                           (pigpen.runtime/map->bind identity)
+                                           (pigpen.runtime/process->bind (pigpen.runtime/post-process :cascading :frozen)))
+                               :udf :seq
+                               :args ['load1/value]}
+                        :flatten true
+                        :alias ['project1/value]}}
         value (->> 0
                 runtime/cs-freeze
                 vector

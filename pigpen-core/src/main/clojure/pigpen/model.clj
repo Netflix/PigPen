@@ -42,7 +42,7 @@
   {:type (s/eq :code)
    :init s/Any
    :func s/Any
-   :udf (s/enum :scalar :seq :fold)
+   :udf (s/enum :seq :fold)
    :args [(s/either Field s/Str)]})
 
 (s/defschema Op*

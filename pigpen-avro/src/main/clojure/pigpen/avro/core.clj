@@ -17,7 +17,7 @@
 ;;
 
 (ns pigpen.avro.core
-  (:require [pigpen.runtime :as rt]
+  (:require [pigpen.runtime :as rt :refer [NativeToClojure]]
             [pigpen.raw :as raw])
   (:import [org.apache.avro
             Schema
@@ -32,20 +32,22 @@
 
 (set! *warn-on-reflection* true)
 
-(defmethod rt/native->clojure Utf8 [value]
-  (str value))
-
-(defmethod rt/native->clojure GenericData$Array [value]
-  (mapv rt/native->clojure value))
-
-(defmethod rt/native->clojure GenericData$Record [^GenericData$Record value]
-  (let [fields (->> value .getSchema .getFields (map (fn [^Schema$Field fd] (.name fd))))]
-    (zipmap (map keyword fields)
-            (map #(rt/native->clojure
-                    (.get value ^String %)) fields))))
-
-(defmethod rt/native->clojure GenericData$EnumSymbol [value]
-  (str value))
+(extend-protocol NativeToClojure
+  Utf8
+  (rt/native->clojure [value]
+    (str value))
+  GenericData$Array
+  (rt/native->clojure [value]
+    (mapv rt/native->clojure value))
+  GenericData$Record
+  (rt/native->clojure [^GenericData$Record value]
+    (let [fields (->> value .getSchema .getFields (map (fn [^Schema$Field fd] (.name fd))))]
+      (zipmap (map keyword fields)
+              (map #(rt/native->clojure
+                      (.get value ^String %)) fields))))
+  GenericData$EnumSymbol
+  (rt/native->clojure [value]
+    (str value)))
 
 (declare field-names)
 

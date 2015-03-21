@@ -20,7 +20,9 @@ package pigpen;
 
 import java.io.IOException;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 
 import clojure.lang.IFn;
@@ -31,20 +33,19 @@ import clojure.lang.Var;
 /**
  * Used to execute Clojure code from within a Pig UDF. Passes the tuple directly to pigpen.pig/eval-udf
  *
- * @param <T> The return type
- *
  * @author mbossenbroek
  *
  */
-public class PigPenFn<T> extends EvalFunc<T> {
+public class PigPenFn extends EvalFunc<DataBag> implements Accumulator<DataBag> {
 
-    protected static final IFn EVAL_STRING, EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
+    protected static final IFn EVAL_STRING, EXEC, EVAL, ACCUMULATE, GET_VALUE, CLEANUP;
 
     static {
         final Var require = RT.var("clojure.core", "require");
         require.invoke(Symbol.intern("pigpen.runtime"));
         require.invoke(Symbol.intern("pigpen.pig.runtime"));
         EVAL_STRING = RT.var("pigpen.runtime", "eval-string");
+        EXEC = RT.var("pigpen.pig.runtime", "exec-transducer");
         EVAL = RT.var("pigpen.pig.runtime", "eval-udf");
         ACCUMULATE = RT.var("pigpen.pig.runtime", "udf-accumulate");
         GET_VALUE = RT.var("pigpen.pig.runtime", "udf-get-value");
@@ -55,12 +56,28 @@ public class PigPenFn<T> extends EvalFunc<T> {
 
     public PigPenFn(String init, String func) {
         EVAL_STRING.invoke(init);
-        this.func = EVAL_STRING.invoke(func);
+        this.func = EXEC.invoke(EVAL_STRING.invoke(func));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public T exec(Tuple input) throws IOException {
-        return (T) EVAL.invoke(func, input);
+    public DataBag exec(Tuple input) throws IOException {
+        return (DataBag) EVAL.invoke(func, input);
+    }
+
+    private Object state = null;
+
+    @Override
+    public void accumulate(Tuple input) throws IOException {
+        state = ACCUMULATE.invoke(func, state, input);
+    }
+
+    @Override
+    public DataBag getValue() {
+        return (DataBag) GET_VALUE.invoke(state);
+    }
+
+    @Override
+    public void cleanup() {
+        state = CLEANUP.invoke(state);
     }
 }

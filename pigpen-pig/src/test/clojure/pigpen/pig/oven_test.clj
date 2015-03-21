@@ -146,10 +146,10 @@
            :projections [{:type :projection
                           :expr {:type :code
                                  :init (clojure.core/require (quote [pigpen.runtime]))
-                                 :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process nil :frozen))
-                                                             (fn [[i v]] [[(dec i) v]])
-                                                             (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.pig.oven-test vector))
-                                                             (pigpen.runtime/process->bind (pigpen.runtime/post-process nil :frozen))])
+                                 :func (clojure.core/comp (pigpen.runtime/process->bind (pigpen.runtime/pre-process nil :frozen))
+                                                          (pigpen.runtime/process->bind (fn [[i v]] [(dec i) v]))
+                                                          (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.pig.oven-test vector))
+                                                          (pigpen.runtime/process->bind (pigpen.runtime/post-process nil :frozen)))
                                  :udf :seq
                                  :args [rank2_0/$0 rank2_0/value]}
                           :flatten true
@@ -177,7 +177,9 @@
            :projections [{:type :projection
                           :expr {:type :code
                                  :init (clojure.core/require (quote [pigpen.runtime]))
-                                 :func (pigpen.runtime/exec [(pigpen.runtime/process->bind (pigpen.runtime/pre-process nil :frozen)) (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.pig.oven-test inc)) (pigpen.runtime/process->bind (pigpen.runtime/post-process nil :frozen))])
+                                 :func (clojure.core/comp (pigpen.runtime/process->bind (pigpen.runtime/pre-process nil :frozen))
+                                                          (pigpen.runtime/map->bind (pigpen.runtime/with-ns pigpen.pig.oven-test inc))
+                                                          (pigpen.runtime/process->bind (pigpen.runtime/post-process nil :frozen)))
                                  :udf :seq
                                  :args [return1/value]}
                           :flatten false

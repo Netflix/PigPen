@@ -73,8 +73,11 @@
             (update-in [:init] pr-str)
             (update-in [:func] pr-str))))
 
+(defn prepare-projection [p]
+  (update-in p [:expr] prepare-expr))
+
 (defn prepare-projections [ps]
-  (mapv #(update-in % [:expr] prepare-expr) ps))
+  (mapv prepare-projection ps))
 
 ;; can these always be used for both load and store?
 (defmulti get-tap :storage)
@@ -190,19 +193,74 @@
   [{:keys [id projections fields]} :- m/Project
    [{:keys [^Pipe pipe ancestor]}]
    _]
-  (let [context (pr-str `'{:ancestor ~(update-in ancestor [:opts] dissoc :tap)
-                           :projections ~(prepare-projections projections)
-                           :fields ~fields})]
-    (case (:type ancestor)
-      :reduce
-      (Every. pipe (ReduceBuffer. context (cfields fields)) Fields/RESULTS)
+  (case (:type ancestor)
+    :reduce
+    (let [context {:func   (prepare-projection (first projections))
+                   :fields fields}]
+      (Every. pipe (ReduceBuffer. (pr-str `'~context) (cfields fields)) Fields/RESULTS))
 
-      (:group :group-fold)
-      (Every. pipe (GroupBuffer. context (cfields fields)) Fields/RESULTS)
+    (:group :group-fold)
+    (let [;; the list of args required by this projection
+          args (-> projections
+                 first
+                 (get-in [:expr :args]))
 
-      ;else
+          ;; a list of which fields are required. This is to compute inner/outer groups
+          required (mapcat (fn [a j] (when (= j :required) [a]))
+                           (next args)
+                           (:join-types ancestor))
+
+          ;; folds add an extra layer of indirection to field names; this resolves it
+          rename-fields (some->> ancestor
+                          :fold
+                          :projections
+                          (map (fn [p]
+                                 [(-> p :alias first)
+                                  (or (-> p :expr :field)
+                                      (-> p :expr :args first))]))
+                          (into {}))
+
+          ;; This exists becasue we use this for both fold and non-fold co-groupings.
+          ;; For relations that have been folded already, there will only be one value,
+          ;; so we take the first. This identifies which relations have been folded.
+          folds (some->> ancestor
+                  :fold
+                  :projections
+                  (filter (comp #{:fold} :udf :expr))
+                  (map (comp first :alias))
+                  (map rename-fields)
+                  set)
+
+          context {:args          args
+                   :required      required
+                   :rename-fields rename-fields
+                   :folds         folds
+                   :func          (prepare-projection (first projections))
+                   :fields        fields}]
+
+      (Every. pipe (GroupBuffer. (pr-str `'~context) (cfields fields)) Fields/RESULTS))
+
+    ;else
+    (let [field-projections (filter (comp #{:field} :type :expr) projections)
+          funcs (filter (comp #{:code} :type :expr) projections)
+          context {:field-projections field-projections
+                   :func              (prepare-projection (first funcs))
+                   :fields            fields}]
+
+      (when (some :flatten field-projections)
+        (throw (ex-info "Cascading doesn't support flattened projection fields"
+                        {:fields fields})))
+
+      (when (next funcs)
+        (throw (ex-info "Cascading doesn't support multiple projection funcs"
+                        {:funcs funcs})))
+
+      (when-not (:flatten (first funcs))
+        (throw (ex-info "Cascading doesn't support scalar funcs"
+                        {:func (first funcs)})))
+
       (-> (Pipe. (str id) pipe)
-        (Each. (PigPenFunction. context (cfields fields)))))))
+        (Each. (PigPenFunction. (pr-str `'~context) (cfields fields)))))))
 
 (s/defmethod command->flowdef :distinct
   [{:keys [fields]} :- m/Distinct

@@ -140,8 +140,9 @@
                       id' (symbol id-str)]
                   [(assoc c :id id')
                    (->
-                     (raw/bind$* '(fn [[i v]]
-                                    [[(dec i) v]])
+                     (raw/bind$* '(pigpen.runtime/process->bind
+                                    (fn [[i v]]
+                                      [(dec i) v]))
                                  {} id')
                      (assoc :id id)
                      (assoc :args [(symbol id-str "$0") (symbol id-str "value")])
