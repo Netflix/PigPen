@@ -80,9 +80,11 @@ See pigpen.core and pigpen.pig
 
                       :else (str expr))
      (string? expr) (escape+quote expr)
-     (symbol? expr) (if-let [v (scope expr)]
-                      (expr->script scope v)
-                      (name expr))
+     (symbol? expr) (if (.startsWith (name expr) "?")
+                      (subs (name expr) 1)
+                      (if-let [v (scope expr)]
+                        (expr->script scope v)
+                        (throw (ex-info (str "Unable to resolve symbol " expr) {:expr expr :scope scope}))))
      ;; TODO Verify arities
      ;; TODO Add NOT
      (seq? expr) (case (first expr)

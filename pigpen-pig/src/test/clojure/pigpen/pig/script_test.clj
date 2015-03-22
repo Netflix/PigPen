@@ -34,9 +34,9 @@
   (is (= (#'pigpen.pig.script/expr->script "a'b\\c") "'a\\'b\\\\c'"))
   (is (= (#'pigpen.pig.script/expr->script 42) "42"))
   (is (= (#'pigpen.pig.script/expr->script 2147483648) "2147483648L"))
-  (is (= (#'pigpen.pig.script/expr->script 'foo) "foo"))
+  (is (= (#'pigpen.pig.script/expr->script '?foo) "foo"))
   (is (= (#'pigpen.pig.script/expr->script '(clojure.core/let [foo '2] foo)) "2"))
-  (is (= (#'pigpen.pig.script/expr->script '(clojure.core/let [foo '2] (and (= bar foo) (> baz 3)))) "((bar == 2) AND (baz > 3))")))
+  (is (= (#'pigpen.pig.script/expr->script '(clojure.core/let [foo '2] (and (= ?bar foo) (> ?baz 3)))) "((bar == 2) AND (baz > 3))")))
 
 ;; ********** Util **********
 
@@ -193,7 +193,7 @@ project0 = FOREACH relation0 GENERATE
                             :fields [filter0/value]
                             :field-type :native
                             :ancestors [relation0]
-                            :expr '(and (= foo 1) (> bar 2))}
+                            :expr '(and (= ?foo 1) (> ?bar 2))}
                           {}))))
 
 (deftest test-take
