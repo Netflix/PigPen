@@ -64,7 +64,7 @@ possible as it's used at runtime."
   (DataByteArray. (freeze value {:skip-header? true, :legacy-mode true})))
 
 (defn ^:private pig-freeze-with-nils [value]
-  (if value
+  (if-not (nil? value)
     (pig-freeze value)))
 
 ;; **********

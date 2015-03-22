@@ -41,7 +41,8 @@
   (BytesWritable. (freeze value {:skip-header? true, :legacy-mode true})))
 
 (defn ^:private cs-freeze-with-nils [value]
-  (if value (cs-freeze value)))
+  (if-not (nil? value)
+    (cs-freeze value)))
 
 (defmethod pigpen.runtime/post-process [:cascading :native]
   [_ _]
@@ -148,7 +149,7 @@ Called from pigpen.cascading.InduceSentinelNils"
   (let [entry (.getArguments function-call)
         output-collector (.getOutputCollector function-call)]
     (if (or (nil? index)
-            (.getObject entry 0))
+            (not (nil? (.getObject entry 0))))
       (.add output-collector entry)
       (.add output-collector
         (doto (Tuple.)

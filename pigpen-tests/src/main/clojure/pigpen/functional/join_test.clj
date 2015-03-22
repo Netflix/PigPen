@@ -36,6 +36,19 @@
     '#{[1 ({:a 1, :b 2} {:a 1, :b 3})]
        [2 ({:a 2, :b 4})]}))
 
+(t/deftest test-group-false
+  "make sure false & nil aren't conflated"
+  [harness]
+  (test-diff
+    (->>
+      (t/data harness [nil true false])
+      (pig-join/group-by identity)
+      (t/dump harness)
+      (set))
+    '#{[nil (nil)]
+       [true (true)]
+       [false (false)]}))
+
 (t/deftest test-into
   "normal into"
   [harness]

@@ -36,19 +36,22 @@
 ; that we see when grouping and joining values.
 
 (defn induce-sentinel-nil [value]
-  (or value ::nil))
+  (if (nil? value)
+    ::nil
+    value))
 
 (defn induce-sentinel-nil+ [value id]
   ;; TODO use a better sentinel value here
-  (or value (keyword (name id) "nil")))
+  (if (nil? value)
+    (keyword (name id) "nil")
+    value))
 
 (defn remove-sentinel-nil [value]
   (when-not (= value ::nil)
     value))
 
 (defn remove-sentinel-nil+ [value]
-  (if (and (keyword? value) (= "nil" (name value)))
-    nil
+  (when-not (and (keyword? value) (= "nil" (name value)))
     value))
 
 (defn pre-process [args]
