@@ -46,4 +46,38 @@ public abstract class PigPenPartitioner extends Partitioner<PigNullableWritable,
     public int getPartition(final PigNullableWritable key, final Writable value, final int numPartitions) {
         return (Integer) GET_PARTITION.invoke(type, func, key.getValueAsPigType(), numPartitions);
     }
+
+    // Hadoop doesn't allow for configuration of partitioners, so we make a lot of them
+    public static class PigPenPartitioner0 extends PigPenPartitioner {}
+    public static class PigPenPartitioner1 extends PigPenPartitioner {}
+    public static class PigPenPartitioner2 extends PigPenPartitioner {}
+    public static class PigPenPartitioner3 extends PigPenPartitioner {}
+    public static class PigPenPartitioner4 extends PigPenPartitioner {}
+    public static class PigPenPartitioner5 extends PigPenPartitioner {}
+    public static class PigPenPartitioner6 extends PigPenPartitioner {}
+    public static class PigPenPartitioner7 extends PigPenPartitioner {}
+    public static class PigPenPartitioner8 extends PigPenPartitioner {}
+    public static class PigPenPartitioner9 extends PigPenPartitioner {}
+    public static class PigPenPartitioner10 extends PigPenPartitioner {}
+    public static class PigPenPartitioner11 extends PigPenPartitioner {}
+    public static class PigPenPartitioner12 extends PigPenPartitioner {}
+    public static class PigPenPartitioner13 extends PigPenPartitioner {}
+    public static class PigPenPartitioner14 extends PigPenPartitioner {}
+    public static class PigPenPartitioner15 extends PigPenPartitioner {}
+    public static class PigPenPartitioner16 extends PigPenPartitioner {}
+    public static class PigPenPartitioner17 extends PigPenPartitioner {}
+    public static class PigPenPartitioner18 extends PigPenPartitioner {}
+    public static class PigPenPartitioner19 extends PigPenPartitioner {}
+    public static class PigPenPartitioner20 extends PigPenPartitioner {}
+    public static class PigPenPartitioner21 extends PigPenPartitioner {}
+    public static class PigPenPartitioner22 extends PigPenPartitioner {}
+    public static class PigPenPartitioner23 extends PigPenPartitioner {}
+    public static class PigPenPartitioner24 extends PigPenPartitioner {}
+    public static class PigPenPartitioner25 extends PigPenPartitioner {}
+    public static class PigPenPartitioner26 extends PigPenPartitioner {}
+    public static class PigPenPartitioner27 extends PigPenPartitioner {}
+    public static class PigPenPartitioner28 extends PigPenPartitioner {}
+    public static class PigPenPartitioner29 extends PigPenPartitioner {}
+    public static class PigPenPartitioner30 extends PigPenPartitioner {}
+    public static class PigPenPartitioner31 extends PigPenPartitioner {}
 }

@@ -105,15 +105,6 @@ See pigpen.core and pigpen.pig
 
      :else (throw (IllegalArgumentException. (str "Unknown expression:" (type expr) " " expr))))))
 
-;; Hadoop doesn't allow for configuration of partitioners, so we make a lot of them
-(def num-partitioners 32)
-
-(dotimes [n num-partitioners]
-  (eval
-    `(gen-class
-       :name ~(symbol (str "pigpen.PigPenPartitioner" n))
-       :extends pigpen.PigPenPartitioner)))
-
 ;; TODO add descriptive comment before each command
 (defmulti command->script
   "Converts an individual command into the equivalent Pig script"
@@ -342,7 +333,7 @@ See pigpen.core and pigpen.pig
                        "SET PigPenPartitioner" n "_init '';\n"
                        "SET PigPenPartitioner" n "_func " (escape+quote partition-by) ";\n\n"))
         pig-partition (when partition-by
-                        (str " PARTITION BY pigpen.PigPenPartitioner" n))
+                        (str " PARTITION BY pigpen.PigPenPartitioner.PigPenPartitioner" n))
         pig-parallel (when parallel (str " PARALLEL " parallel))]
     [pig-set (str pig-partition pig-parallel)]))
 

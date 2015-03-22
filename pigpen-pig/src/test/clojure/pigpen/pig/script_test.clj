@@ -329,7 +329,7 @@ project0 = FOREACH relation0 GENERATE
 SET PigPenPartitioner0_init '';
 SET PigPenPartitioner0_func '(fn [n key] (mod (hash key) n))';
 
-distinct0 = DISTINCT relation0 PARTITION BY pigpen.PigPenPartitioner0;\n\n"
+distinct0 = DISTINCT relation0 PARTITION BY pigpen.PigPenPartitioner.PigPenPartitioner0;\n\n"
              (command->script '{:type :distinct
                                 :id distinct0
                                 :fields [relation0/value]
@@ -344,7 +344,7 @@ distinct0 = DISTINCT relation0 PARTITION BY pigpen.PigPenPartitioner0;\n\n"
 SET PigPenPartitioner1_init '';
 SET PigPenPartitioner1_func '(fn [n key] (mod (hash key) n))';
 
-distinct0 = DISTINCT relation0 PARTITION BY pigpen.PigPenPartitioner1;\n\n"
+distinct0 = DISTINCT relation0 PARTITION BY pigpen.PigPenPartitioner.PigPenPartitioner1;\n\n"
              (command->script '{:type :distinct
                                 :id distinct0
                                 :fields [relation0/value]
