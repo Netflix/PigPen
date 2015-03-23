@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -40,16 +40,42 @@
 
 ;; TODO add options to use fold here
 
-(defn ^:private set-operation
-  "Common base for most set operations"
+(defmethod raw/ancestors->fields :set
+  [_ id ancestors]
+  (vec (cons (symbol (name id) "group") (mapcat :fields ancestors))))
+
+(defmethod raw/fields->keys :set
+  [_ fields]
+  (next fields))
+
+(defn set-op*
+  "Common base for most set operations. Takes a quoted function that should take
+the same number of args as there are relations passed to set-op*. Each of those
+args is a sequence of the same values from that relation, similar to a cogroup
+where the key-fn is identity. `f` should return a sequence which is then
+flattened.
+
+  Example:
+
+    (set-op*
+      (trap
+        (fn [& args] (mapv count args)))
+      data1
+      data2
+      ...
+      dataN)
+
+  See also: pigpen.core/intersection, pigpen.core/difference, pigpen.core.fn/trap
+"
+  {:arglists '([f opts? relations+])
+   :added "0.3.0"}
   [f opts-relations]
   (let [[opts relations] (split-opts-relations opts-relations)
-        keys       (for [r relations] ['value])
-        values     (for [r relations] [[(:id r)] 'value])
-        join-types (for [r relations] :optional)]
-    (-> relations
-      (raw/group$ keys join-types opts)
-      (raw/bind$ '[pigpen.set] `(pigpen.pig/mapcat->bind ~f) {:args values}))))
+        fields     (mapcat :fields relations)
+        join-types (repeat (count relations) :optional)]
+    (->> relations
+      (raw/group$ :set join-types opts)
+      (raw/bind$ '[pigpen.set] `(pigpen.runtime/mapcat->bind ~f) {:args fields}))))
 
 (defn pig-intersection
   "Utility method used by #'pigpen.core/intersection"
@@ -86,7 +112,7 @@ map of options.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
     :partition-by - A partition function to use. Should take the form:
       (fn [n key] (mod (hash key) n)) Where n is the number of partitions and
       key is the key to partition.
@@ -96,7 +122,7 @@ map of options.
   {:added "0.1.0"}
   ([relation] `(distinct {} ~relation))
   ([opts relation]
-    `(raw/distinct$ ~relation ~(code/trap-values #{:partition-by} opts))))
+    `(raw/distinct$ ~(code/trap-values #{:partition-by} opts) ~relation)))
 
 (defn union
   "Performs a union on all relations provided and returns the distinct results.
@@ -113,7 +139,7 @@ Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel n - the degree of parallelism to use
+    :parallel - the degree of parallelism to use (pig only)
 
   See also: pigpen.core/union-multiset, pigpen.core/distinct
 "
@@ -121,7 +147,10 @@ Optionally takes a map of options as the first parameter.
    :added "0.1.0"}
   [& opts-relations]
   (let [[opts relations] (split-opts-relations opts-relations)]
-    (raw/distinct$ (raw/union$ (filter identity relations) {}) opts)))
+    (->> relations
+      (filter identity)
+      (raw/concat$ {})
+      (raw/distinct$ opts))))
 
 (defn concat
   "Concatenates all relations provided. Does not guarantee any ordering of the
@@ -141,7 +170,9 @@ relations. Identical to pigpen.core/union-multiset.
   {:arglists '([relations+])
    :added "0.1.0"}
   [& relations]
-  (raw/union$ (filter identity relations) {}))
+  (->> relations
+    (filter identity)
+    (raw/concat$ {})))
 
 (defn union-multiset
   "Performs a union on all relations provided and returns all results.
@@ -161,7 +192,9 @@ Identical to pigpen.core/concat.
   {:arglists '([relations+])
    :added "0.1.0"}
   [& relations]
-  (raw/union$ (filter identity relations) {}))
+  (->> relations
+    (filter identity)
+    (raw/concat$ {})))
 
 (defn intersection
   "Performs an intersection on all relations provided and returns the distinct
@@ -178,14 +211,14 @@ results. Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/intersection-multiset, pigpen.core/difference
 "
   {:arglists '([opts? relations+])
    :added "0.1.0"}
   [& opts-relations]
-  (set-operation 'pigpen.set/pig-intersection opts-relations))
+  (set-op* 'pigpen.set/pig-intersection opts-relations))
 
 (defn intersection-multiset
   "Performs a multiset intersection on all relations provided and returns all
@@ -202,14 +235,14 @@ results. Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/intersection, pigpen.core/difference
 "
   {:arglists '([opts? relations+])
    :added "0.1.0"}
   [& opts-relations]
-  (set-operation 'pigpen.set/pig-intersection-multiset opts-relations))
+  (set-op* 'pigpen.set/pig-intersection-multiset opts-relations))
 
 (defn difference
   "Performs a set difference on all relations provided and returns the distinct
@@ -226,14 +259,14 @@ results. Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/difference-multiset, pigpen.core/intersection
 "
   {:arglists '([opts? relations+])
    :added "0.1.0"}
   [& opts-relations]
-  (set-operation 'pigpen.set/pig-difference opts-relations))
+  (set-op* 'pigpen.set/pig-difference opts-relations))
 
 (defn difference-multiset
   "Performs a multiset difference on all relations provided and returns all
@@ -250,11 +283,11 @@ results. Optionally takes a map of options as the first parameter.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/difference, pigpen.core/intersection
 "
   {:arglists '([opts? relations+])
    :added "0.1.0"}
   [& opts-relations]
-  (set-operation 'pigpen.set/pig-difference-multiset opts-relations))
+  (set-op* 'pigpen.set/pig-difference-multiset opts-relations))

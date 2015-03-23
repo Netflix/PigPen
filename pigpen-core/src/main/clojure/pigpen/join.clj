@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -23,14 +23,12 @@
 "
   (:refer-clojure :exclude [group-by into reduce])
   (:require [pigpen.extensions.core :refer [pp-str forcat]]
-            [pigpen.pig :as pig]
             [pigpen.raw :as raw]
-            [pigpen.code :as code])
-  (:import [org.apache.pig.data DataByteArray]))
+            [pigpen.code :as code]))
 
 (set! *warn-on-reflection* true)
 
-(defn ^:private select->generate
+(defn ^:private select->bind
   "Performs the key selection prior to a join. If join-nils is true, we leave
 nils as frozen nils so they appear as values. Otherwise we return a nil value as
 nil and let the join take its course. If sentinel-nil is true, nil keys are
@@ -38,14 +36,13 @@ coerced to ::nil so they can be differentiated from outer joins later."
   ;; TODO - If this is an inner join, we can filter nil keys before the join
   [{:keys [join-nils sentinel-nil]} {:keys [from key-selector on by]}]
   (let [key-selector (or key-selector on by 'identity)]
-    (-> from
-      (raw/bind$ (if sentinel-nil
-                   `(pigpen.pig/key-selector->bind (comp pig/sentinel-nil ~key-selector))
-                   `(pigpen.pig/key-selector->bind ~key-selector))
-                 {:field-type-out (if join-nils :frozen :frozen-with-nils)
-                  :implicit-schema true})
-      (raw/generate$ [(raw/projection-field$ 0 'key)
-                      (raw/projection-field$ 1 'value)] {}))))
+    (raw/bind$
+      (if sentinel-nil
+        `(pigpen.runtime/key-selector->bind (comp pigpen.runtime/sentinel-nil ~key-selector))
+        `(pigpen.runtime/key-selector->bind ~key-selector))
+      {:field-type (if join-nils :frozen :frozen-with-nils)
+       :alias ['key 'value]}
+      from)))
 
 ;; TODO verify these are vetted at compile time
 (defn fold-fn*
@@ -65,58 +62,135 @@ coerced to ::nil so they can be differentiated from outer joins later."
 
 (defn ^:private projection-fold [fold field alias]
   (if fold
-    (raw/projection-func$ alias (raw/code$ "Algebraic" [field] (raw/expr$ "" fold)))
+    (raw/projection-func$ alias false (raw/code$ :fold "" fold [field]))
     (raw/projection-field$ field alias)))
 
-(defn group*
-  "See pigpen.core/group-by, pigpen.core/cogroup"
-  [selects f opts]
-  (let [relations  (mapv (partial select->generate opts) selects)
-        keys       (for [r relations] ['key])
-        values     (cons 'group (for [r relations] [[(:id r)] 'value]))
-        folds      (mapv projection-fold (cons nil (map :fold selects)) values (map #(symbol (str "value" %)) (range)))
-        join-types (mapv #(get % :type :optional) selects)]
-    (code/assert-arity f (count values))
-    (-> relations
-      (raw/group$ keys join-types (dissoc opts :fold))
-      (raw/generate$ folds {})
-      (raw/bind$ `(pigpen.pig/map->bind ~f) {:args (mapv :alias folds)}))))
+(defn seq-groups
+  "Calls seq on the result of all co-groupings to enforce consistency across platforms"
+  [f]
+  (fn [key & groups]
+    (apply f key (map #(if (seq? %) (seq %) %) groups))))
 
-(defn group-all*
-  "See pigpen.core/into, pigpen.core/reduce"
-  [relation f opts]
-  (code/assert-arity f 2)
-  (let [keys       [raw/group-all$]
-        values     [[[(:id relation)] 'value]]
-        join-types [:optional]]
-    (-> [relation]
-      (raw/group$ keys join-types opts)
-      (raw/bind$ `(pigpen.pig/map->bind ~f) {:args values}))))
+(defmethod raw/ancestors->fields :group
+  [_ id ancestors]
+  (vec (cons (symbol (name id) "group") (mapcat :fields ancestors))))
+
+(defmethod raw/fields->keys :group
+  [_ fields]
+  (filterv (comp '#{key} symbol name) fields))
+
+(defn group*
+  "Similar to pigpen.core/cogroup, but is a function and takes a quoted function
+as an argument. Also takes select clauses as maps.
+
+  Example:
+
+    (group*
+      [{:from data1, :by (trap (fn [x] (* x x)))}
+       {:from data2, :by 'identity}]
+      (trap (fn [k l r] {:key k, :left l, :right r})))
+
+  See also: pigpen.core/group-by, pigpen.core/cogroup, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([selects f]
+    (group* selects f {}))
+  ([selects f opts]
+    (let [relations  (mapv (partial select->bind opts) selects)
+          join-types (mapv #(get % :type :optional) selects)
+          fields     (mapcat :fields relations)
+          {:keys [fields], :as c} (raw/group$ :group join-types (dissoc opts :fold) relations)
+          values     (filter (comp '#{group value} symbol name) fields)]
+      (code/assert-arity f (count values))
+      (if (some :fold selects)
+        (let [folds (mapv projection-fold
+                          (cons nil (map :fold selects))
+                          values
+                          (map #(vector (symbol (str "value" %))) (range)))]
+          (->> c
+            (raw/project$ folds {})
+            (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f)) {})))
+
+        ; no folds
+        (->> c
+          (raw/bind$ '[pigpen.join] `(pigpen.runtime/map->bind (seq-groups ~f))
+                     {:args values}))))))
+
+(defn reduce*
+  "Reduces all data into a single collection and applies f to that collection.
+The function `f` must be quoted prior to calling reduce*.
+
+  Example:
+
+    (reduce*
+      (trap (fn [xs] (count xs)))
+      data)
+
+  See also: pigpen.core/into, pigpen.core/reduce, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([f relation]
+    (reduce* f {} relation))
+  ([f opts relation]
+    (code/assert-arity f 1)
+    (->> relation
+      (raw/reduce$ opts)
+      (raw/bind$ `(pigpen.runtime/map->bind ~f) {}))))
 
 (defn fold*
-  "See pigpen.core/fold"
-  [relation fold opts]
-  (let [keys       [raw/group-all$]
-        values     [[[(:id relation)] 'value]]
-        join-types [:optional]]
-    (-> [relation]
-      (raw/group$ keys join-types opts)
-      (raw/generate$ [(projection-fold fold (first values) 'value)] {}))))
+  "Applies the fold function `fold` to the data. Similar to pigpen.core/fold,
+but is a function and `fold` must be quoted.
+
+  Example:
+
+    (fold* '(fold/count) data)
+
+  See also: pigpen.core/fold, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([fold relation]
+    (fold* fold {} relation))
+  ([fold opts relation]
+    (let [{:keys [fields], :as c} (raw/reduce$ opts relation)]
+      (->> c
+        (raw/project$ [(projection-fold fold (first fields) '[value])] {})))))
+
+(defmethod raw/ancestors->fields :join
+  [_ id ancestors]
+  (vec (mapcat :fields ancestors)))
+
+(defmethod raw/fields->keys :join
+  [_ fields]
+  (filterv (comp '#{key} symbol name) fields))
 
 (defn join*
-  "See pigpen.core/join"
-  [selects f {:keys [all-args] :as opts}]
-  (let [relations  (mapv (partial select->generate opts) selects)
-        keys       (for [r relations] ['key])
-        values     (forcat [r relations]
-                     (if all-args
-                       [[[(:id r) 'key]] [[(:id r) 'value]]]
-                       [[[(:id r) 'value]]]))
-        join-types (mapv #(get % :type :required) selects)]
-    (code/assert-arity f (count values))
-    (-> relations
-      (raw/join$ keys join-types opts)
-      (raw/bind$ `(pigpen.pig/map->bind ~f) {:args values}))))
+  "Similar to pigpen.core/join, but is a function and takes a quoted function
+as an argument. Also takes select clauses as maps.
+
+  Example:
+
+    (join*
+      [{:from data1, :by (trap (fn [x] (* x x)))}
+       {:from data2, :by 'identity}]
+      (trap (fn [l r] {:left l, :right r})))
+
+  See also: pigpen.core/join, pigpen.core.fn/trap
+"
+  {:arglists '([selects f] [selects f opts])
+   :added "0.3.0"}
+  ([selects f]
+    (join* selects f {}))
+  ([selects f {:keys [all-args] :as opts}]
+    (let [relations  (mapv (partial select->bind opts) selects)
+          join-types (mapv #(get % :type :required) selects)
+          fields     (mapcat :fields relations)
+          values     (if all-args
+                       fields
+                       (filter (comp '#{value} symbol name) fields))]
+      (code/assert-arity f (count values))
+      (->> relations
+        (raw/join$ :join join-types opts)
+        (raw/bind$ `(pigpen.runtime/map->bind ~f) {:args values})))))
 
 (defmacro group-by
   "Groups relation by the result of calling (key-selector item) for each item.
@@ -131,7 +205,7 @@ Optionally takes a map of options, including :parallel and :fold.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   See also: pigpen.core/cogroup
 
@@ -165,7 +239,9 @@ Optionally takes a map of options, including :parallel and :fold.
 "
   {:added "0.1.0"}
   [to relation]
-  `(group-all* ~relation (quote (partial clojure.core/into ~to)) {:description (str "into " ~to)}))
+  `(reduce* (quote (partial clojure.core/into ~to))
+            {:description (str "into " ~to)}
+             ~relation))
 
 ;; TODO If reduce returns a seq, should it be flattened for further processing?
 (defmacro reduce
@@ -193,13 +269,13 @@ for further processing.
 "
   {:added "0.1.0"}
   ([f relation]
-    `(group-all* ~relation
-                 (code/trap (partial clojure.core/reduce ~f))
-                 {:description ~(pp-str f)}))
+    `(reduce* (code/trap (partial clojure.core/reduce ~f))
+              {:description ~(pp-str f)}
+              ~relation))
   ([f val relation]
-    `(group-all* ~relation
-                 (code/trap (partial clojure.core/reduce ~f ~val))
-                 {:description ~(pp-str f)})))
+    `(reduce* (code/trap (partial clojure.core/reduce ~f ~val))
+              {:description ~(pp-str f)}
+              ~relation)))
 
 (defmacro fold
   "Computes a parallel reduce of the relation. This is done in multiple stages
@@ -228,14 +304,14 @@ pigpen.fold/fold-fn can also be used.
   {:added "0.2.0"}
   ([reducef relation]
     `(if (-> ~reducef :type #{:fold})
-       (fold* ~relation
-              (code/trap ~reducef)
-              {})
+       (fold* (code/trap ~reducef)
+              {}
+              ~relation)
        (fold ~reducef ~reducef ~relation)))
   ([combinef reducef relation]
-    `(fold* ~relation
-            (code/trap (fold-fn* identity ~combinef ~reducef identity))
-            {})))
+    `(fold* (code/trap (fold-fn* identity ~combinef ~reducef identity))
+            {}
+            ~relation)))
 
 (defmacro cogroup
   "Joins many relations together by a common key. Each relation specifies a
@@ -265,7 +341,7 @@ info on fold functions.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
     :join-nils - Whether nil keys from each relation should be treated as equal
 
   See also: pigpen.core/join, pigpen.core/group-by
@@ -308,7 +384,7 @@ options.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
     :join-nils - Whether nil keys from each relation should be treated as equal
 
   See also: pigpen.core/cogroup, pigpen.core/union
@@ -348,7 +424,7 @@ as a semi-join in relational databases.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   Note: keys must be distinct before this is used or you will get duplicate values.
   Note: Unlike filter, this joins relation with keys and can be potentially expensive.
@@ -362,7 +438,7 @@ as a semi-join in relational databases.
              {:from ~relation :key-selector (code/trap ~key-selector)}]
             '(fn [~'k ~'v] ~'v)
             (assoc ~opts :description ~(pp-str key-selector)
-                         :sentinel-nil true))))
+                   :sentinel-nil true))))
 
 (defmacro remove-by
   "Filters a relation by the keys in another relation. The key-selector function
@@ -387,7 +463,7 @@ referred to as an anti-join in relational databases.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
 
   Note: Unlike remove, this joins relation with keys and can be potentially expensive.
 
@@ -397,11 +473,11 @@ referred to as an anti-join in relational databases.
   ([key-selector keys relation] `(remove-by ~key-selector ~keys {} ~relation))
   ([key-selector keys opts relation]
     (let [f '(fn [[k _ _ v]] (when (nil? k) [v]))]
-      `(->
+      `(->>
          (join* [{:from ~keys :key-selector 'identity :type :optional}
                  {:from ~relation :key-selector (code/trap ~key-selector)}]
                 'vector
                 (assoc ~opts :description ~(pp-str key-selector)
-                             :all-args true
-                             :sentinel-nil true))
-         (raw/bind$ '(pig/mapcat->bind ~f) {})))))
+                       :all-args true
+                       :sentinel-nil true))
+         (raw/bind$ '(pigpen.runtime/mapcat->bind ~f) {})))))

@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "ExampleRecord",
+  "namespace": "com.example",
+  "fields": [
+    {
+      "name": "browserTimestamp",
+      "type": "long"
+    }
+  ]
+}

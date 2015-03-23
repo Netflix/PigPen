@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@
 ;;
 
 (ns pigpen.fold
-  "Contains fold operations for use with pig/fold, pig/group-by, and pig/cogroup.
+  "Fold operations for use with pig/fold, pig/group-by, and pig/cogroup.
 
 See https://github.com/Netflix/PigPen/wiki/Folding-Data
 "
   (:refer-clojure :exclude [vec map mapcat filter remove distinct keep take first last sort sort-by juxt count min min-key max max-key])
-  (:require [pigpen.join :refer [fold-fn*]]
+  (:require [clojure.set]
+            [pigpen.join :refer [fold-fn*]]
             [pigpen.extensions.core :refer [zipv]]))
 
 (defn fold-fn

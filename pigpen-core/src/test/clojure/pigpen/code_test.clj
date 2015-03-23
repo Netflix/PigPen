@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 ;;
 
 (ns pigpen.code-test
-  (:use clojure.test)
-  (:require [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
+  (:require [clojure.test :refer :all]
+            [pigpen.extensions.test :refer [test-diff pigsym-zero pigsym-inc]]
             [pigpen.code :as pig]))
 
 (deftest test-assert-arity
@@ -29,7 +29,7 @@
     (pig/assert-arity '+ 0)
     (pig/assert-arity '+ 3)
     (pig/assert-arity '+ 9))
-  
+
   (testing "fn"
     (let [f '(fn
                ([] nil)
@@ -41,13 +41,13 @@
       (pig/assert-arity f 3)
       (pig/assert-arity f 4)
       (pig/assert-arity f 5)))
-  
+
   (testing "inline"
     (let [f '#(vector %)]
       (is (thrown? java.lang.AssertionError (pig/assert-arity f 0)))
       (pig/assert-arity f 1)
       (is (thrown? java.lang.AssertionError (pig/assert-arity f 2))))
-    
+
     (let [f '#(vector %1 %2)]
       (is (thrown? java.lang.AssertionError (pig/assert-arity f 0)))
       (is (thrown? java.lang.AssertionError (pig/assert-arity f 1)))
@@ -59,23 +59,23 @@
       (pig/assert-arity f 0)
       (pig/assert-arity f 1)
       (pig/assert-arity f 2)))
-  
+
   (testing "bad fn"
     (is (thrown? clojure.lang.Compiler$CompilerException (pig/assert-arity 'f 0)))
     (is (thrown? java.lang.AssertionError (pig/assert-arity nil 2)))))
 
 (deftest test-build-requires
   (is (= (pig/build-requires [])
-         '(clojure.core/require (quote [pigpen.pig]))))
+         '(clojure.core/require (quote [pigpen.runtime]))))
   (is (= (pig/build-requires '[foo])
-         '(clojure.core/require (quote [pigpen.pig]))))
+         '(clojure.core/require (quote [pigpen.runtime]))))
   (is (= (pig/build-requires '[pigpen.code])
-         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code]))))
+         '(clojure.core/require (quote [pigpen.runtime]) (quote [pigpen.code]))))
   (is (= (pig/build-requires '[pigpen.code pigpen.code-test])
-         '(clojure.core/require (quote [pigpen.pig]) (quote [pigpen.code]) (quote [pigpen.code-test])))))
+         '(clojure.core/require (quote [pigpen.runtime]) (quote [pigpen.code]) (quote [pigpen.code-test])))))
 
 (defn test-fn [& args]
-  (apply + args))  
+  (apply + args))
 
 (deftest test-trap
   (let [^:local local 2
@@ -85,7 +85,7 @@
         expr (foo 1)
         expr-fn (eval expr)]
     (is (= expr
-           '(pigpen.pig/with-ns pigpen.code-test
+           '(pigpen.runtime/with-ns pigpen.code-test
               (clojure.core/let [y (quote 2)
                                  x (quote 1)]
                 (fn [z] (test-fn x y z))))))

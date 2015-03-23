@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -24,17 +24,37 @@
   (:refer-clojure :exclude [map mapcat map-indexed sort sort-by])
   (:require [pigpen.extensions.core :refer [pp-str]]
             [pigpen.raw :as raw]
-            [pigpen.code :as code])
-  (:import [org.apache.pig.data DataBag]))
+            [pigpen.code :as code]))
 
 (set! *warn-on-reflection* true)
 
 (defn map*
-  "See pigpen.core/map"
-  [f opts relation]
-  {:pre [(map? relation) f]}
-  (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/map->bind ~f) opts))
+  "Similar to pigpen.core/map, but is a function and takes a quoted function as
+an argument.
+
+  Examples:
+
+    (defn do-stuff [f data]
+      (map* f data))
+
+    (do-stuff 'inc)
+
+    (do-stuff
+      (pigpen.core.fn/trap
+        (fn [x] (* x x))))
+
+Note that the above example would not work with pigpen.core/map because f would
+be compiled before do-stuff is called.
+
+  See also: pigpen.core/map, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([f relation]
+    (map* f {} relation))
+  ([f opts relation]
+    {:pre [(map? relation) f]}
+    (code/assert-arity f (-> relation :fields count))
+    (raw/bind$ `(pigpen.runtime/map->bind ~f) opts relation)))
 
 (defmacro map
   "Returns a relation of f applied to every item in the source relation.
@@ -47,7 +67,7 @@ Function f should be a function of one argument.
 
   Note: Unlike clojure.core/map, pigpen.core/map takes only one relation. This
 is due to the fact that there is no defined order in pigpen. See pig/join,
-pig/cogroup, and pig/union for combining sets of data. 
+pig/cogroup, and pig/union for combining sets of data.
 
   See also: pigpen.core/mapcat, pigpen.core/map-indexed, pigpen.core/join,
             pigpen.core/cogroup, pigpen.core/union
@@ -57,11 +77,24 @@ pig/cogroup, and pig/union for combining sets of data.
   `(map* (code/trap ~f) {:description ~(pp-str f)} ~relation))
 
 (defn mapcat*
-  "See pigpen.core/mapcat"
-  [f opts relation]
-  {:pre [(map? relation) f]}
-  (code/assert-arity f (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/mapcat->bind ~f) opts))
+  "Similar to pigpen.core/mapcat, but is a function and takes a quoted function
+as an argument.
+
+  Examples:
+
+    (mapcat*
+      (trap (fn [x] [(dec x) x (inc x)]))
+      data)
+
+  See also: pigpen.core/mapcat, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([f relation]
+    (mapcat* f {} relation))
+  ([f opts relation]
+    {:pre [(map? relation) f]}
+    (code/assert-arity f (-> relation :fields count))
+    (raw/bind$ `(pigpen.runtime/mapcat->bind ~f) opts relation)))
 
 (defmacro mapcat
   "Returns the result of applying concat, or flattening, the result of applying
@@ -78,12 +111,26 @@ f to each item in relation. Thus f should return a collection.
   `(mapcat* (code/trap ~f) {:description ~(pp-str f)} ~relation))
 
 (defn map-indexed*
-  [f opts relation]
-  {:pre [(map? relation) f]}
-  (code/assert-arity f 2)
-  (-> relation
-    (raw/rank$ [] opts)
-    (raw/bind$ `(pigpen.pig/map->bind ~f) {:args ['$0 'value]})))
+  "Similar to pigpen.core/map-indexed, but is a function and takes a quoted
+function as an argument.
+
+  Examples:
+
+    (map-indexed*
+      (trap (fn [i x] (* i x)))
+      data)
+
+  See also: pigpen.core/map-indexed, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([f relation]
+    (map-indexed* f {} relation))
+  ([f opts relation]
+    {:pre [(map? relation) f]}
+    (code/assert-arity f 2)
+    (->> relation
+      (raw/rank$ opts)
+      (raw/bind$ `(pigpen.runtime/map->bind ~f) {}))))
 
 (defmacro map-indexed
   "Returns a relation of applying f to the the index and value of every item in
@@ -97,10 +144,15 @@ and the value. If you require sequential ids, use option {:dense true}.
 
   Options:
 
-    :dense - force sequential ids
+    :dense - force sequential ids (pig only)
 
   Note: If you require sorted data, use sort or sort-by immediately before
         this command.
+
+  Note: Pig will assign the same index to any equal values, regardless of how
+        many times they appear.
+
+  Note: The cascading implementation of map-indexed uses a single reducer
 
   See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core/map, pigpen.core/mapcat
 "
@@ -110,16 +162,30 @@ and the value. If you require sequential ids, use option {:dense true}.
     `(map-indexed* (code/trap ~f) (assoc ~opts :description ~(pp-str f)) ~relation)))
 
 (defn sort*
-  "See pigpen.core/sort, pigpen.core/sort-by"
-  [key-selector comp opts relation]
-  {:pre [(map? relation) (#{:asc :desc} comp)]}
-  (-> relation
-    (raw/bind$ `(pigpen.pig/key-selector->bind ~key-selector)
-               {:field-type-out :sort
-                :implicit-schema true})
-    (raw/generate$ [(raw/projection-field$ 0 'key)
-                    (raw/projection-field$ 1 'value)] {})
-    (raw/order$ ['key comp] opts)))
+    "Similar to pigpen.core/sort-by, but is a function and takes a quoted
+function as an argument.
+
+  Examples:
+
+    (sort*
+      (trap (fn [x] (* x x)))
+      :asc
+      data)
+
+  See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([comp relation]
+    (sort* 'identity comp {} relation))
+  ([key-selector comp relation]
+    (sort* key-selector comp {} relation))
+  ([key-selector comp opts relation]
+    {:pre [(map? relation) (#{:asc :desc} comp)]}
+    (->> relation
+      (raw/bind$ `(pigpen.runtime/key-selector->bind ~key-selector)
+                 {:field-type :native-key-frozen-val
+                  :alias ['key 'value]})
+      (raw/sort$ 'key comp opts))))
 
 (defmacro sort
   "Sorts the data with an optional comparator. Takes an optional map of options.
@@ -138,7 +204,9 @@ and the value. If you require sequential ids, use option {:dense true}.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
+
+  Note: The cascading implementation of sort uses a single reducer
 
   See also: pigpen.core/sort-by
 "
@@ -166,7 +234,9 @@ optional map of options.
 
   Options:
 
-    :parallel - The degree of parallelism to use
+    :parallel - The degree of parallelism to use (pig only)
+
+  Note: The cascading implementation of sort-by uses a single reducer
 
   See also: pigpen.core/sort
 "

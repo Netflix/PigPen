@@ -1,0 +1,7 @@
+dependencies {
+    compile project(':pigpen')
+    testCompile project(':pigpen-tests')
+
+    compile 'io.reactivex:rxjava:1.0.4'
+    compile 'io.reactivex:rxclojure:1.0.0'
+}

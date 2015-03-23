@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -29,11 +29,24 @@
 (set! *warn-on-reflection* true)
 
 (defn filter*
-  "See #'pigpen.core/filter"
-  [pred opts relation]
-  {:pre [(map? relation) pred]}
-  (code/assert-arity pred (-> relation :fields count))
-  (raw/bind$ relation `(pigpen.pig/filter->bind ~pred) opts))
+  "Similar to pigpen.core/filter, but is a function and takes a quoted function
+as an argument.
+
+  Examples:
+
+    (filter*
+      (trap (fn [x] (even? (* x x))))
+      data)
+
+  See also: pigpen.core/filter, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([pred relation]
+    (filter* pred {} relation))
+  ([pred opts relation]
+    {:pre [(map? relation) pred]}
+    (code/assert-arity pred (-> relation :fields count))
+    (raw/bind$ `(pigpen.runtime/filter->bind ~pred) opts relation)))
 
 (defmacro filter
   "Returns a relation that only contains the items for which (pred item)
@@ -79,7 +92,7 @@ returns true.
 "
   {:added "0.1.0"}
   [n relation]
-  (raw/limit$ relation n {}))
+  (raw/take$ n {} relation))
 
 (defn sample
   "Samples the input records by p percentage. This is non-deterministic;
@@ -96,4 +109,4 @@ between 0.0 and 1.0
 "
   {:added "0.1.0"}
   [p relation]
-  (raw/sample$ relation p {}))
+  (raw/sample$ p {} relation))

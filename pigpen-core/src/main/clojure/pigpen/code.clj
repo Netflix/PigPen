@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -19,13 +19,12 @@
 (ns pigpen.code
   "Contains functions that assist in handling user code in operations like map
 or reduce."
-  (:require [pigpen.pig :as pig]
+  (:require [pigpen.runtime :as rt]
             [pigpen.raw :as raw]
             [clojure.java.io :as io]
             [taoensso.nippy :as nippy]
             [taoensso.nippy.utils :as nippy-util])
-  (:import [org.apache.pig.data DataBag]
-           [java.lang.reflect Method]))
+  (:import [java.lang.reflect Method]))
 
 (set! *warn-on-reflection* true)
 
@@ -109,7 +108,7 @@ or reduce."
 (defn build-requires [nss]
   (->> nss
     (filter ns-exists)
-    (cons 'pigpen.pig)
+    (cons 'pigpen.runtime)
     (distinct)
     (map (fn [r] `'[~r]))
     (cons 'clojure.core/require)))
@@ -122,7 +121,7 @@ or reduce."
 
 (defn trap-ns [ns f]
   (if (ns-exists ns)
-    `(pig/with-ns ~ns ~f)
+    `(rt/with-ns ~ns ~f)
     f))
 
 (defn trap* [keys values ns f]
@@ -132,7 +131,27 @@ or reduce."
 
 (defmacro trap
   "Returns a form that, when evaluated, will reconsitiute f in namespace ns, in
-the presence of any local bindings"
+the presence of any local bindings. If `ns` is not specified, the current
+namespace, *ns*, is used.
+
+  Examples:
+
+    => (trap (fn [x] (* x x)))
+    (pigpen.runtime/with-ns pigpen-demo.core
+      (fn [x] (* x x)))
+
+    => (let [y (* 21 2)]
+         (trap
+           (fn [x] (+ x y))))
+    (pigpen.runtime/with-ns pigpen-demo.core
+      (clojure.core/let [y (quote 42)]
+        (fn [x] (+ x y))))
+
+  Note: `ns` must exist as a file that will be in the final deployed uberjar.
+        If you are in a temporary namespace in a REPL, it will not be included
+        in the rewritten version of the expression.
+"
+  {:added "0.3.0"}
   ([f] `(trap '~(ns-name *ns*) ~f))
   ([ns f]
     (let [keys# (vec (keys &env))]

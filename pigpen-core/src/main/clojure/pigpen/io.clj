@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -23,8 +23,7 @@
 "
   (:refer-clojure :exclude [load-string constantly])
   (:require [pigpen.raw :as raw]
-            [pigpen.code :as code]
-            [pigpen.pig :as pig]))
+            [pigpen.code :as code]))
 
 (set! *warn-on-reflection* true)
 
@@ -33,15 +32,29 @@
 unless debugging scripts."
   ([location] `(load-binary ~location [~'value]))
   ([location fields]
-    `(raw/load$ ~location '~fields raw/default-storage {})))
+    `(raw/load$ ~location :binary '~fields {})))
 
 (defn load-string*
-  "The base for load-string, load-clj, and load-json. The parameters requires
-and f specify a conversion function to apply to each input row."
-  [location requires f]
-  (->
-    (raw/load$ location ['value] raw/string-storage {:cast "chararray"})
-    (raw/bind$ requires `(pigpen.pig/map->bind ~f) {:field-type-in :native})))
+  "The base for load-string, load-clj, load-json, etc. The parameters `requires`
+and `f` specify a conversion function to apply to each input row. `f` must be
+quoted prior to calling load-string*.
+
+  Examples:
+
+    (oad-string*
+      \"input.txt\"
+      (trap (fn [x] (subs x 42)))
+      data)
+
+  See also: pigpen.core/load-string, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([location f]
+    (load-string* location [] f))
+  ([location requires f]
+    (->>
+      (raw/load$ location :string ['value] {})
+      (raw/bind$ requires `(pigpen.runtime/map->bind ~f) {:field-type-in :native}))))
 
 (defn load-string
   "Loads data from a file. Each line is returned as a string.
@@ -76,7 +89,7 @@ split by the specified regex delimiter. The default delimiter is #\"\\t\".
   "Loads data from a csv file. Each line is returned as a vector of strings,
 split according to RFC4180(*). The default separator is \\, and quote is \\\".
 
-*) new lines within cells are not supported due to line-based splitting of files.
+  Note: Newlines within cells are not supported due to line-based splitting of files.
 
   Example:
 
@@ -139,16 +152,30 @@ the specified delimiter. The default delimiter is \\t.
   "Stores data in the PigPen binary format. This is generally not used
 unless debugging scripts."
   [location relation]
-  (raw/store$ relation location raw/default-storage {}))
+  (raw/store$ location :binary {} relation))
 
 (defn store-string*
-  "The base for store-string, store-clj, and store-json. The parameters requires
-and f specify a conversion function to apply to each output row."
-  [location requires f relation]
-  (-> relation
-    (raw/bind$ requires `(pigpen.pig/map->bind ~f)
-               {:args (:fields relation), :field-type-out :native})
-    (raw/store$ location raw/default-storage {})))
+  "The base for store-string, store-clj, store-json, etc. The parameters
+`requires` and `f` specify a conversion function to apply to each input row.
+`f` must be quoted prior to calling store-string*.
+
+  Examples:
+
+    (store-string*
+      \"input.txt\"
+      (trap (fn [x] (with-out-str (clojure.pprint/pprint x))))
+      data)
+
+  See also: pigpen.core/store-string, pigpen.core.fn/trap
+"
+  {:added "0.3.0"}
+  ([location f relation]
+    (store-string* location [] f relation))
+  ([location requires f relation]
+    (->> relation
+      (raw/bind$ requires `(pigpen.runtime/map->bind ~f)
+                 {:args (:fields relation), :field-type :native})
+      (raw/store$ location :string {}))))
 
 (defn store-string
   "Stores the relation into location as a string. Each value is written as a
@@ -216,6 +243,23 @@ written as a single line. Options can be passed to write-str as a map.
                       `(fn [~'~'s] (clojure.data.json/write-str ~'~'s ~@~@opts'))
                       ~relation))))
 
+(defn store-many
+  "Combines multiple store commands into a single script. This is not required
+if you have a single output.
+
+  Example:
+
+    (pig/store-many
+      (pig/store-tsv \"foo.tsv\" foo)
+      (pig/store-clj \"bar.clj\" bar))
+
+  Note: When run locally, this will merge the results of any source relations.
+"
+  {:arglists '([outputs+])
+   :added "0.1.0"}
+  [& outputs]
+  (raw/store-many$ outputs))
+
 (defn return
   "Returns a constant set of data as a pigpen relation. This is useful for
 testing, but not supported in generated scripts. The parameter 'data' must be a
@@ -231,16 +275,9 @@ sequence. The values of 'data' can be any clojure type.
   {:added "0.1.0"}
   [data]
   (raw/return$
+    ['value]
     (for [d data]
-      (pig/freeze-vals {'value d}))
-    ['value]))
-
-(defn return-raw
-  "Returns a constant set of data for script debugging and testing.
-For internal use only."
-  [data]
-  {:pre [(first data)]}
-  (raw/return$ data (keys (first data))))
+      {'value d})))
 
 (defn constantly
   "Returns a function that takes any number of arguments and returns a constant

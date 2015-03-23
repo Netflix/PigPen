@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013 Netflix, Inc.
+;;  Copyright 2013-2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -48,5 +48,5 @@ Useful for unit tests."
 
 (defmacro debug [body]
   `(let [x# ~body]
-     (println "debug:" '~body " => " x#)
+     (prn ~''debug '~body ~''=> x#)
      x#))

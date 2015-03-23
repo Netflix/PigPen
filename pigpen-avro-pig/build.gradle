@@ -1,0 +1,7 @@
+dependencies {
+    compile project(':pigpen-avro')
+    compile project(':pigpen-pig')
+
+    provided 'org.apache.pig:pig:0.13.0'
+    provided 'org.apache.hadoop:hadoop-core:1.1.2'
+}

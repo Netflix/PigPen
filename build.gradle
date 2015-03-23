@@ -6,7 +6,7 @@ buildscript {
     dependencies {
         classpath 'com.netflix.nebula:gradle-extra-configurations-plugin:2.2.0'
         classpath 'com.netflix.nebula:nebula-clojure-plugin:2.2.0'
-    }    
+    }
 }
 
 plugins {
@@ -24,6 +24,7 @@ subprojects {
     repositories {
         jcenter()
         maven { url 'http://clojars.org/repo' }
+        maven { url 'http://conjars.org/repo' }
     }
 
     license {
@@ -35,9 +36,8 @@ subprojects {
     }
 
     tasks.uberjar.enabled=true
-    clojure.aotCompile = true
 
-   compileClojure {
+    compileClojure {
         jvmOptions {
             jvmArgs '-Djava.awt.headless=true'
         }

@@ -1,17 +1,8 @@
-apply plugin: 'java'
-
 dependencies {
 
     compile 'org.clojure:clojure:1.6.0'
     compile 'org.clojure:data.json:0.2.5'
     compile 'org.clojure:data.csv:0.1.2'
-    compile 'org.clojure:core.async:0.1.267.0-0d7780-alpha'
-    compile 'com.taoensso:nippy:2.6.3'
-    compile 'rhizome:rhizome:0.1.9'
-    compile 'io.reactivex:rxjava:1.0.0-rc.7'
-    compile 'io.reactivex:rxclojure:1.0.0-rc.1'
-
-    compile 'joda-time:joda-time:2.4' // pig needs this to run locally
-    provided 'org.apache.pig:pig:0.11.1'
-    provided 'org.apache.hadoop:hadoop-core:1.1.2'
+    compile 'com.taoensso:nippy:2.8.0'
+    compile 'prismatic:schema:0.3.3'
 }
