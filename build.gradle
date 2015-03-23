@@ -17,8 +17,9 @@ plugins {
 ext.githubProjectName = rootProject.name // Change if github project name is not the same as the root project's name
 
 subprojects {
+    apply plugin: 'nebula.netflixoss'
     apply plugin: 'nebula.provided-base'
-    apply plugin: 'clojure'
+    apply plugin: 'nebula-clojure'
     group = 'com.netflix.pigpen'
 
     repositories {
