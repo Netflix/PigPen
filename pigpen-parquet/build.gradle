@@ -1,9 +1,9 @@
 dependencies {
     compile project(':pigpen')
     compile project(':pigpen-hadoop')
-    testCompile project(':pigpen-tests')
 
     compile 'com.twitter:parquet-tools:1.5.0'
+
     testCompile project(path: ':pigpen', configuration: 'testOutput')
 }
 

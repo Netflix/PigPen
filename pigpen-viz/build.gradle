@@ -1,5 +1,5 @@
 dependencies {
-    compile project(':pigpen-core')
+    compile project(':pigpen')
 
     compile 'rhizome:rhizome:0.1.9'
 }

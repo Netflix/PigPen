@@ -1,7 +1,5 @@
 rootProject.name='pigpen-multi'
 include 'pigpen-core', \
-        'pigpen-tests', \
-        'pigpen-local', \
         'pigpen-rx', \
         'pigpen-pig', \
         'pigpen-cascading', \
@@ -11,4 +9,4 @@ include 'pigpen-core', \
         'pigpen-avro', \
         'pigpen-avro-pig', \
         'pigpen-viz'
-project(':pigpen-local').name = 'pigpen'
+project(':pigpen-core').name = 'pigpen'
