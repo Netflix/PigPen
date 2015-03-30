@@ -26,7 +26,7 @@
     (and (symbol? id)
          (namespace id)
          (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (namespace id))
-         (re-find #"^[a-zA-Z][a-zA-Z0-9_]*$" (name id)))))
+         (re-find #"^[a-zA-Z$][a-zA-Z0-9_]*$" (name id)))))
 
 (s/defschema Field
   (s/pred field? "field?"))
@@ -106,7 +106,8 @@
   {:type (s/eq :projection)
    :expr (s/either CodeExpr FieldExpr)
    :flatten s/Bool
-   :alias [Field]})
+   :alias [Field]
+   (s/optional-key :types) [s/Keyword]})
 
 (defop-one Project
   (merge Op
@@ -121,7 +122,8 @@
           :requires       [s/Symbol]
           :fields         [Field]
           :field-type-in  FieldType
-          :field-type     FieldType}))
+          :field-type     FieldType
+          :types          [s/Keyword]}))
 
 (defop-one Sort
   (merge Op

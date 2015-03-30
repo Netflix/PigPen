@@ -16,9 +16,9 @@
 ;;
 ;;
 
-(ns pigpen.pig.hadoop-test
+(ns pigpen.hadoop-test
   (:require [clojure.test :refer :all]
-            [pigpen.pig.hadoop :as hadoop])
+            [pigpen.hadoop :as hadoop])
   (:import [org.apache.hadoop.conf Configuration]
            [org.apache.hadoop.mapreduce Job JobContext TaskAttemptContext]
            [org.apache.hadoop.mapreduce.lib.input TextInputFormat]
@@ -53,7 +53,7 @@
 (deftest test-input-format->values
   (let [loc "build/functional/hadoop-test/test-input-format"
         _ (spit loc "foo\nbar\nbaz")
-        raw-values (hadoop/input-format->values (TextInputFormat.) {} loc)
+        raw-values (hadoop/input-format->values (TextInputFormat.) {} loc identity)
         values (map #(.toString %) raw-values)]
     (is (= values
            ["foo" "bar" "baz"]))))

@@ -152,7 +152,9 @@ the specified delimiter. The default delimiter is \\t.
   "Stores data in the PigPen binary format. This is generally not used
 unless debugging scripts."
   [location relation]
-  (raw/store$ location :binary {} relation))
+  (->> relation
+    (raw/project$ (map raw/projection-field$ (:fields relation)) {})
+    (raw/store$ location :binary {})))
 
 (defn store-string*
   "The base for store-string, store-clj, store-json, etc. The parameters

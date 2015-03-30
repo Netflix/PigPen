@@ -139,14 +139,18 @@
                 (let [id-str (str id "_0")
                       id' (symbol id-str)]
                   [(assoc c :id id')
-                   (->
-                     (raw/bind$* '(pigpen.runtime/process->bind
-                                    (fn [[i v]]
-                                      [(dec i) v]))
-                                 {} id')
-                     (assoc :id id)
-                     (assoc :args [(symbol id-str "$0") (symbol id-str "value")])
-                     (assoc :fields [(symbol (str id) "$0") (symbol (str id) "value")]))])
+                   {:type :bind
+                    :id id
+                    :ancestors [id']
+                    :fields [(symbol (str id) "$0") (symbol (str id) "value")]
+                    :field-type-in :frozen
+                    :field-type :frozen
+                    :func '(pigpen.runtime/process->bind
+                             (fn [[i v]]
+                               [(dec i) v]))
+                    :args [(symbol id-str "$0") (symbol id-str "value")]
+                    :requires []
+                    :types nil}])
                 [c])))))
 
 ;; **********
@@ -162,7 +166,8 @@
                                       (fn [i p]
                                         (-> p
                                           (assoc :flatten false)
-                                          (assoc :alias [(symbol (name id') (str "value" i))])))
+                                          (assoc :alias [(symbol (name id') (str "value" i))])
+                                          (dissoc :types)))
                                       projections)
                       projections-b (map-indexed
                                       (fn [i p]

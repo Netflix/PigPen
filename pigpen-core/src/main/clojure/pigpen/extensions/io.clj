@@ -29,8 +29,9 @@
          (list-files (File. ^String dir)))
     (when (.exists ^File dir)
       (if (.isDirectory ^File dir)
-        (flatten (map list-files (.listFiles ^File dir)))
-        [dir]))))
+        (mapcat list-files (.listFiles ^File dir))
+        (when-not (.startsWith (.getName ^File dir) ".")
+          [dir])))))
 
 (defn clean
   "Recursively delete files & folders from the path specified"

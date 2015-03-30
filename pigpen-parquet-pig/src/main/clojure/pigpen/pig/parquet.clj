@@ -17,11 +17,21 @@
 ;;
 
 (ns pigpen.pig.parquet
-  (:require [pigpen.pig.script]))
+  (:require [pigpen.pig.script])
+  (:import [parquet.pig PigSchemaConverter]))
 
 (defmethod pigpen.pig.script/storage->script [:load :parquet]
   [command]
-  (str "parquet.pig.ParquetLoader(" (get-in command [:opts :schema]) ")"))
+  (let [schema (->>
+                 (get-in command [:opts :schema])
+                 (.convert (PigSchemaConverter.))
+                 str)
+        ;; The schema converter wraps with {}
+        schema (subs schema 1 (dec (count schema)))
+        ;; In parquet, strings are stored as byte arrays
+        schema (clojure.string/replace schema "bytearray" "chararray")
+        ]
+  (str "parquet.pig.ParquetLoader('" schema "')")))
 
 (defmethod pigpen.pig.script/storage->script [:store :parquet]
   [_]

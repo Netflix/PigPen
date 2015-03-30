@@ -29,8 +29,6 @@
   (:import [java.io Closeable]
            [java.io Writer]))
 
-(require '[pigpen.extensions.test :refer [debug]])
-
 ; For local mode, we want to differentiate between nils in the data and nils as
 ; the lack of existence of data. We convert nil values into a sentinel nil value
 ; that we see when grouping and joining values.

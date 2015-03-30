@@ -18,5 +18,19 @@
 
 (ns pigpen.pig.parquet-test
   (:require [clojure.test :refer :all]
-            [pigpen.pig.parquet]))
+            [schema.test]
+            [pigpen.pig.test-harness :refer [pig-harness]]
+            [pigpen.functional-suite :refer [def-functional-tests]]
+            [pigpen.parquet.core-test]))
 
+(use-fixtures :once schema.test/validate-schemas)
+
+(def prefix "build/functional/pig-parquet/")
+
+(.mkdirs (java.io.File. prefix))
+
+(def-functional-tests "pig-parquet"
+  (pig-harness prefix)
+  #{}
+  [pigpen.parquet.core-test/test-load-parquet
+   pigpen.parquet.core-test/test-store-parquet])

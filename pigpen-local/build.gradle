@@ -2,3 +2,16 @@ dependencies {
     compile project(':pigpen-core')
     testCompile project(':pigpen-tests')
 }
+
+configurations {
+    testOutput.extendsFrom (testCompile)
+}
+
+task jarTest (type: Jar, dependsOn: testClasses) {
+    from sourceSets.test.clojure.srcDirs
+    classifier = 'test'
+}
+
+artifacts {
+    testOutput jarTest
+}

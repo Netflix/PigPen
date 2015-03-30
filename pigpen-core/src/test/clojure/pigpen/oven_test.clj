@@ -287,13 +287,13 @@
                                              :udf :seq
                                              :args [load1/value]}
                                       :flatten true
-                                      :alias [project1/value]}]
+                                      :alias [project1/value]
+                                      :types nil}]
                        :type :project
                        :id project1
                        :description "identity\n(constantly true)\nvector\n"
                        :field-type :native
-                       :opts {:type :project-opts
-                              :implicit-schema nil}})))))
+                       :opts {:type :project-opts}})))))
 
   (deftest test-optimize-binds
 

@@ -274,21 +274,6 @@ results, the cross product of those is returned.
       (assoc :projections (mapv (partial update-alias-ns id) projections)
              :fields (mapv (partial update-ns id) (mapcat :alias projections))))))
 
-(s/defn bind$* :- m/Bind
-  "Used to make a post-bake bind"
-  ([func opts relation] (bind$* [] func opts relation))
-  ([requires func opts relation]
-    (->
-      (command :bind (dissoc opts :args :requires :alias :field-type-in :field-type))
-      (dissoc :field-type)
-      (assoc :ancestors [relation]
-             :func func
-             :args (vec (get opts :args ['value]))
-             :requires (vec (concat requires (:requires opts)))
-             :fields [(get opts :alias 'value)]
-             :field-type-in (get opts :field-type-in :frozen)
-             :field-type (get opts :field-type :frozen)))))
-
 (s/defn bind$ :- m/Bind$
   "The way to apply user code to a relation. `func` should be a function that
 takes a collection of arguments, and returns a collection of result tuples.
@@ -332,7 +317,7 @@ normal map function of one arg to one result, and convert it to a bind function.
   {:added "0.3.0"}
   ([func opts relation] (bind$ [] func opts relation))
   ([requires func opts relation]
-    (let [opts' (dissoc opts :args :requires :alias :field-type-in :field-type)
+    (let [opts' (dissoc opts :args :requires :alias :types :field-type-in :field-type)
           {id :id, :as c} (command :bind relation opts')]
       (-> c
         (dissoc :field-type)
@@ -349,7 +334,8 @@ normal map function of one arg to one result, and convert it to a bind function.
                :requires (vec (concat requires (:requires opts)))
                :fields (mapv (partial update-ns+ id) (get opts :alias ['value]))
                :field-type-in (get opts :field-type-in :frozen)
-               :field-type (get opts :field-type :frozen))))))
+               :field-type (get opts :field-type :frozen)
+               :types (get opts :types))))))
 
 (s/defn sort$ :- m/Sort$
   "Sort the data in relation. The parameter `key` specifies the field that

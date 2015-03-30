@@ -16,14 +16,58 @@
 ;;
 ;;
 
-(ns pigpen.parquet.core)
+(ns pigpen.parquet.core
+  (:import [parquet.io.api RecordConsumer Binary]
+           [parquet.schema
+            MessageType Type
+            PrimitiveType
+            PrimitiveType$PrimitiveTypeName]))
 
-(defn schema->pig-schema
-  ([schema] (schema->pig-schema (keys schema) schema))
-  ([fields schema]
-    (->> fields
-      (map (fn [field]
-             (when-let [type (schema (keyword field))]
-               (str (name field) ":" (name type)))))
-      (filter identity)
-      (clojure.string/join ","))))
+(set! *warn-on-reflection* true)
+
+(defn schema->field-names [^MessageType schema]
+  (for [^Type field (.getFields schema)]
+    (symbol (.getName field))))
+
+(defn schema->field-types [^MessageType schema]
+  (for [^Type field (.getFields schema)]
+    (do
+      (when-not (.isPrimitive field)
+        (throw (ex-info "non-primitive types are not supported yet" {:field field})))
+      (condp = (.getPrimitiveTypeName ^PrimitiveType field)
+        PrimitiveType$PrimitiveTypeName/BINARY  :string
+        PrimitiveType$PrimitiveTypeName/BOOLEAN :boolean
+        PrimitiveType$PrimitiveTypeName/INT32   :int
+        PrimitiveType$PrimitiveTypeName/INT64   :long
+        PrimitiveType$PrimitiveTypeName/DOUBLE  :double
+        PrimitiveType$PrimitiveTypeName/FLOAT   :float))))
+
+(defn write
+  "Used with PigPenParquetWriteSupport"
+  [^RecordConsumer consumer
+   ^MessageType schema
+   record]
+  (.startMessage consumer)
+  (let [values (->> record
+                 (map (fn [[k v]] [(name k) v]))
+                 (into {}))
+        fields (.getFields schema)]
+    (doseq [[i ^Type field] (map-indexed vector fields)]
+      (let [field-name (-> field .getName)
+            value (get values field-name)]
+        (if (.isPrimitive field)
+          (do
+            (.startField consumer field-name i)
+            (condp = (.getPrimitiveTypeName ^PrimitiveType field)
+              PrimitiveType$PrimitiveTypeName/BINARY  (.addBinary consumer (Binary/fromString value))
+              PrimitiveType$PrimitiveTypeName/BOOLEAN (.addBoolean consumer value)
+              PrimitiveType$PrimitiveTypeName/INT32   (.addInteger consumer value)
+              PrimitiveType$PrimitiveTypeName/INT64   (.addLong consumer value)
+              PrimitiveType$PrimitiveTypeName/DOUBLE  (.addDouble consumer value)
+              PrimitiveType$PrimitiveTypeName/FLOAT   (.addFloat consumer value))
+            (.endField consumer field-name i))
+
+          ;else
+          (throw (ex-info "Unsupported field type" {:field field
+                                                    :index i}))))))
+  (.endMessage consumer))

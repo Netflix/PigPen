@@ -169,6 +169,7 @@
         :fields [bind0/value]
         :field-type-in :frozen
         :field-type :frozen
+        :types nil
         :opts {:type :bind-opts}})
 
     (test-diff
@@ -190,6 +191,7 @@
         :fields [bind0/val]
         :field-type-in :native
         :field-type :native
+        :types nil
         :opts {:type :bind-opts}})))
 
 (deftest test-sort$

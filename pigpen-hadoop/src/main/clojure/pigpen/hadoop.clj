@@ -16,7 +16,8 @@
 ;;
 ;;
 
-(ns pigpen.pig.hadoop
+(ns pigpen.hadoop
+  "Methods to help use hadoop stuff locally"
   (:require [pigpen.local :as local :refer [PigPenLocalLoader PigPenLocalStorage]]
             [pigpen.extensions.io :as io])
   (:import [java.io File]
@@ -60,7 +61,7 @@
 
 (defn input-format->values
   "Uses a Hadoop InputFormat to read values from a file."
-  [^InputFormat input-format config-values ^String location]
+  [^InputFormat input-format config-values ^String location f]
   (let [config (config config-values)
         ^Job job (job config)
         _ (FileInputFormat/setInputPaths job location)
@@ -76,15 +77,16 @@
           (->>
             (repeatedly #(when (.nextKeyValue record-reader)
                            (.getCurrentValue record-reader)))
-            (take-while identity)))))))
+            (take-while identity)
+            (map f)))))))
 
-(deftype InputFormatLoader [input-format config-values location]
+(deftype InputFormatLoader [input-format config-values location f]
   PigPenLocalLoader
   (locations [_]
     (local/load-list location))
   (init-reader [_ file] file)
   (read [_ file]
-    (input-format->values input-format config-values file))
+    (input-format->values input-format config-values file f))
   (close-reader [_ _] nil))
 
 (defn output-format->writer
@@ -119,7 +121,7 @@
     (.getOutputCommitter task-context)
     (.commitTask  task-context)))
 
-(deftype OutputFormatStorage [output-format config-values location data]
+(deftype OutputFormatStorage [output-format config-values location]
   PigPenLocalStorage
   (init-writer [_]
     (output-format->writer output-format config-values location))

@@ -2,6 +2,7 @@ apply plugin: 'java'
 
 dependencies {
     compile project(':pigpen')
+    compile project(':pigpen-hadoop')
     testCompile project(':pigpen-tests')
 
     compile 'joda-time:joda-time:2.4' // pig needs this to run locally
@@ -17,4 +18,17 @@ dependencies {
 
 test {
     jvmArgs += [ "-XX:MaxPermSize=512m" ]
+}
+
+configurations {
+    testOutput.extendsFrom (testCompile)
+}
+
+task jarTest (type: Jar, dependsOn: testClasses) {
+    from sourceSets.test.clojure.srcDirs
+    classifier = 'test'
+}
+
+artifacts {
+    testOutput jarTest
 }
