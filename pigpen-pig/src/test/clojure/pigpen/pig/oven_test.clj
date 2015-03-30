@@ -140,8 +140,8 @@
         '[{:type :return, :id return1, :fields [return1/value]}
           {:type :rank, :id rank2_0, :fields [rank2/index rank2/value], :ancestors [return1]}
           {:type :project
-           :id project5
-           :fields [project5/value]
+           :id project4
+           :fields [project4/value]
            :ancestors [rank2_0]
            :projections [{:type :projection
                           :expr {:type :code
@@ -153,7 +153,8 @@
                                  :udf :seq
                                  :args [rank2_0/$0 rank2_0/value]}
                           :flatten true
-                          :alias [project5/value]}]}]))))
+                          :alias [project4/value]
+                          :types nil}]}]))))
 
 (deftest test-split-project
   (with-redefs [pigpen.raw/pigsym (pigsym-inc)]
@@ -192,4 +193,5 @@
                           :expr {:type :field
                                  :field project3_0/value0}
                           :flatten true
-                          :alias [project3/value]}]}]))))
+                          :alias [project3/value]
+                          :types nil}]}]))))

@@ -66,7 +66,7 @@
 ;; ********** IO **********
 
 (deftest test-load
-  (is (= "load0 = LOAD 'foo'\n    USING PigStorage()\n    AS (a, b, c);\n\n"
+  (is (= "load0 = LOAD 'foo'\n    USING BinStorage();\n\n"
          (command->script '{:type :load
                             :id load0
                             :location "foo"

@@ -18,17 +18,30 @@
 
 (ns pigpen.local.parquet
   (:require [pigpen.local]
-            [pigpen.parquet.core :as pq]
-            [pigpen.pig.local])
-  (:import [parquet.pig ParquetLoader ParquetStorer]
-           [pigpen.pig.local LoadFuncLoader StoreFuncStorage]))
+            [pigpen.hadoop]
+            [pigpen.parquet.core :as pq])
+  (:import [parquet.tools.read SimpleRecord SimpleRecord$NameValue]
+           [pigpen.hadoop InputFormatLoader OutputFormatStorage]
+           [parquet.hadoop ParquetInputFormat ParquetOutputFormat]))
 
 (defmethod pigpen.local/load :parquet
   [{:keys [location fields storage]}]
-  (let [schema (first (:args storage))]
-    (LoadFuncLoader. (ParquetLoader. schema) {} location fields)))
+  (let [field-names (into {} (map (juxt name identity) fields))]
+    (InputFormatLoader.
+      (ParquetInputFormat.)
+      {ParquetInputFormat/READ_SUPPORT_CLASS "parquet.tools.read.SimpleReadSupport"}
+      location
+      (fn [^SimpleRecord value]
+        (->> value
+          (.getValues)
+          (map (fn [^SimpleRecord$NameValue nv]
+                 [(field-names (.getName nv)) (.getValue nv)]))
+          (into {}))))))
 
 (defmethod pigpen.local/store :parquet
-  [{:keys [location args opts]}]
-  (let [schema (pq/schema->pig-schema (:schema opts))]
-    (StoreFuncStorage. (ParquetStorer.) schema location args)))
+  [{:keys [location opts]}]
+  (OutputFormatStorage.
+    (ParquetOutputFormat.)
+    {ParquetOutputFormat/WRITE_SUPPORT_CLASS "pigpen.parquet.PigPenParquetWriteSupport"
+     "schema" (str (:schema opts))}
+    location))

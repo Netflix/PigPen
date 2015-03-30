@@ -18,5 +18,16 @@
 
 (ns pigpen.local.parquet-test
   (:require [clojure.test :refer :all]
-            [pigpen.local.parquet]))
+            [pigpen.local.test-harness :refer [local-harness]]
+            [pigpen.functional-suite :refer [def-functional-tests]]
+            [pigpen.parquet.core-test]))
 
+(def prefix "build/functional/local-parquet/")
+
+(.mkdirs (java.io.File. prefix))
+
+(def-functional-tests "local-parquet"
+  (local-harness prefix)
+  #{}
+  [pigpen.parquet.core-test/test-load-parquet
+   pigpen.parquet.core-test/test-store-parquet])

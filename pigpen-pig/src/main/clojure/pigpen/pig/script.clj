@@ -57,6 +57,16 @@ See pigpen.core and pigpen.pig
 
                         (name field)))))
 
+(defn ^:private type->pig-type [type]
+  (case type
+    :int     "int"
+    :long    "long"
+    :float   "float"
+    :double  "double"
+    :string  "chararray"
+    :boolean "boolean"
+    :binary  "bytearray"))
+
 (def ^:private clj->op
  {"and" " AND "
   "or" " OR "
@@ -150,7 +160,7 @@ See pigpen.core and pigpen.pig
   (let [pig-fields (->> fields
                      (map format-field)
                      (join ", "))]
-    (str "PigStorage()\n    AS (" pig-fields ")")))
+    (str "BinStorage()")))
 
 (defmethod storage->script [:load :string]
   [{:keys [fields]}]
@@ -162,7 +172,7 @@ See pigpen.core and pigpen.pig
 
 (defmethod storage->script [:store :binary]
   [_]
-  (str "PigStorage()"))
+  (str "BinStorage()"))
 
 (defmethod storage->script [:store :string]
   [_]
@@ -188,17 +198,19 @@ See pigpen.core and pigpen.pig
 ;; ********** Map **********
 
 (s/defmethod command->script :projection
-  [{:keys [expr flatten alias implicit-schema]} :- (assoc m/Projection
-                                                          (s/optional-key :implicit-schema) (s/maybe s/Bool)
-                                                          (s/optional-key :context) s/Keyword)
+  [{:keys [expr flatten alias types] :as p} :- m/Projection
    state]
   (let [[pig-define pig-code] (command->script expr state)
         pig-code (if flatten
                    (str "FLATTEN(" pig-code ")")
                    pig-code)
-        pig-alias (str "(" (join ", " (map name alias)) ")")
-        pig-schema (when-not implicit-schema
-                     (str " AS " pig-alias))]
+        pig-schema (as-> alias %
+                     (map (fn [a t] (str (name a)
+                                         (when t (str ":" (type->pig-type t)))))
+                          %
+                          (concat types (repeat nil)))
+                     (join ", " %)
+                     (str " AS (" % ")"))]
     [pig-define (str pig-code pig-schema)]))
 
 (s/defmethod command->script :project
@@ -207,7 +219,6 @@ See pigpen.core and pigpen.pig
   (let [relation-id (escape-id (first ancestors))
         pig-id (escape-id id)
         pig-projections (->> projections
-                          (map #(assoc % :implicit-schema (:implicit-schema opts)))
                           (mapv #(command->script % (assoc state :last-command (first ancestors)))))
         pig-defines (->> pig-projections (map first) (join))
         pig-projections (->> pig-projections (map second) (join ",\n    "))]

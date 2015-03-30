@@ -1,6 +1,6 @@
 ;;
 ;;
-;;  Copyright 2013-2015 Netflix, Inc.
+;;  Copyright 2015 Netflix, Inc.
 ;;
 ;;     Licensed under the Apache License, Version 2.0 (the "License");
 ;;     you may not use this file except in compliance with the License.
@@ -16,17 +16,22 @@
 ;;
 ;;
 
-(ns pigpen.local.functional-test
-  (:require [clojure.test :refer :all]
-            [schema.test]
-            [pigpen.local.test-harness :refer [local-harness]]
-            [pigpen.functional-suite :refer [def-functional-tests]]))
+(ns pigpen.local.test-harness
+  (:require [pigpen.functional-test :as t :refer [TestHarness]]
+            [pigpen.core :as pig]))
 
-(use-fixtures :once schema.test/validate-schemas)
-
-(def prefix "build/functional/local/")
-
-(.mkdirs (java.io.File. prefix))
-
-(def-functional-tests "local"
-  (local-harness prefix))
+(defn local-harness [prefix]
+  (reify TestHarness
+    (data [this data]
+      (pig/return data))
+    (dump [this command]
+      (pig/dump command))
+    (file [this]
+      (str prefix (gensym)))
+    (read [this file]
+      (clojure.string/split-lines
+        (slurp file)))
+    (write [this lines]
+      (let [file (t/file this)]
+        (spit file (clojure.string/join "\n" lines))
+        file))))

@@ -20,7 +20,7 @@
   (:require [clojure.test :refer :all]
             [pigpen.pig.runtime :refer [cast-bytes tuple]]
             [pigpen.pig.local :as pig-local]
-            [pigpen.pig.hadoop :as hadoop])
+            [pigpen.hadoop :as hadoop])
   (:import [org.apache.pig.builtin PigStorage]))
 
 (.mkdirs (java.io.File. "build/functional/pig-test"))

@@ -5,6 +5,7 @@ include 'pigpen-core', \
         'pigpen-rx', \
         'pigpen-pig', \
         'pigpen-cascading', \
+        'pigpen-hadoop', \
         'pigpen-parquet', \
         'pigpen-parquet-pig', \
         'pigpen-avro', \

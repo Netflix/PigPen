@@ -1,0 +1,5 @@
+dependencies {
+    compile project(':pigpen')
+
+    provided 'org.apache.hadoop:hadoop-core:1.1.2'
+}

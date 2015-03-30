@@ -166,12 +166,11 @@ number of optimizations and transforms to the graph.
    available"
   [location command]
   (when-let [field-type (or (:field-type command) (:field-type command))]
-    (when-not (get-in command [:opts :implicit-schema])
-      (->> command
-        (raw/bind$ [] `(pigpen.runtime/map->bind pigpen.runtime/debug)
-                   {:args (:fields command), :field-type-in field-type, :field-type :native})
-        ;; TODO Fix the location of store commands to match projects instead of binds
-        (raw/store$ (str location (:id command)) :string {})))))
+    (->> command
+      (raw/bind$ [] `(pigpen.runtime/map->bind pigpen.runtime/debug)
+                 {:args (:fields command), :field-type-in field-type, :field-type :native})
+      ;; TODO Fix the location of store commands to match projects instead of binds
+      (raw/store$ (str location (:id command)) :string {}))))
 
 ;; TODO add a debug-lite version
 (defn ^:private debug
@@ -213,7 +212,7 @@ number of optimizations and transforms to the graph.
         first-field-type (-> commands first :field-type-in)
         last-field       (-> commands last :fields)
         last-field-type  (-> commands last :field-type)
-        implicit-schema  (some (comp :implicit-schema :opts) commands)
+        last-types       (-> commands last :types)
 
         requires (code/build-requires (mapcat :requires commands))
 
@@ -232,10 +231,9 @@ number of optimizations and transforms to the graph.
         description (->> commands (map :description) (clojure.string/join))]
 
     (raw/project$*
-      [projection]
+      [(assoc projection :types last-types)]
       {:field-type last-field-type
-       :description description
-       :implicit-schema implicit-schema}
+       :description description}
       first-relation)))
 
 (defn ^:private optimize-binds
