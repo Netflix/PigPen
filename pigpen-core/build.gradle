@@ -6,3 +6,16 @@ dependencies {
     compile 'com.taoensso:nippy:2.8.0'
     compile 'prismatic:schema:0.3.3'
 }
+
+configurations {
+    testOutput.extendsFrom (testCompile)
+}
+
+task jarTest (type: Jar, dependsOn: testClasses) {
+    from sourceSets.test.clojure.srcDirs
+    classifier = 'test'
+}
+
+artifacts {
+    testOutput jarTest
+}

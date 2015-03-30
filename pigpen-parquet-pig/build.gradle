@@ -1,7 +1,6 @@
 dependencies {
     compile project(':pigpen-parquet')
     compile project(':pigpen-pig')
-    testCompile project(':pigpen-tests')
 
     compile 'com.twitter:parquet-pig:1.5.0'
 
@@ -10,6 +9,7 @@ dependencies {
     provided 'org.antlr:antlr:3.5.2'
     provided 'log4j:log4j:1.2.17'
 
-    testCompile project(path: ':pigpen-parquet', configuration: 'testOutput')
+    testCompile project(path: ':pigpen', configuration: 'testOutput')
     testCompile project(path: ':pigpen-pig', configuration: 'testOutput')
+    testCompile project(path: ':pigpen-parquet', configuration: 'testOutput')
 }
