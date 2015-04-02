@@ -132,6 +132,12 @@
 
 ;; ********** Filter **********
 
+(s/defmethod graph->observable :filter
+  [[data] {:keys [id expr]} :- m/Filter]
+  (->> data
+    (rx/map (local/update-field-ids id))
+    (rx/filter (local/filter-expr->fn id expr))))
+
 (s/defmethod graph->observable :take
   [[data] {:keys [id n]} :- m/Take]
   (->> data

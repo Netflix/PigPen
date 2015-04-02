@@ -310,6 +310,29 @@ sequence. This command is very useful for unit tests.
 
 ;; ********** Filter **********
 
+(defn filter-expr->fn [id expr]
+  (let [keys  (atom #{})
+        ;; find all symbols starting with ? and create a destructuring form
+        _ (clojure.walk/postwalk
+            (fn [x]
+              (when (and (symbol? x)
+                         (.startsWith (str x) "?"))
+                (swap! keys conj x)
+                x))
+            expr)
+        keys' (->> @keys
+                (map (fn [x] `[~x '~(symbol (name id) (subs (name x) 1))]))
+                (into {}))]
+    (eval
+      `(fn [~keys']
+         ~expr))))
+
+(s/defmethod graph->local :filter
+  [[data] {:keys [id expr]} :- m/Filter]
+  (->> data
+    (map (update-field-ids id))
+    (filter (filter-expr->fn id expr))))
+
 (s/defmethod graph->local :take
   [[data] {:keys [id n]} :- m/Take]
   (->> data
