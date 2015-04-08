@@ -137,6 +137,9 @@ possible as it's used at runtime."
 
 ;; **********
 
+(def eval-string
+  (memoize rt/eval-string))
+
 (defn udf-lookup [type]
   (case type
     :seq  "pigpen.PigPenFn"

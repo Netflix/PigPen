@@ -42,9 +42,8 @@ public class PigPenFn extends EvalFunc<DataBag> implements Accumulator<DataBag> 
 
     static {
         final Var require = RT.var("clojure.core", "require");
-        require.invoke(Symbol.intern("pigpen.runtime"));
         require.invoke(Symbol.intern("pigpen.pig.runtime"));
-        EVAL_STRING = RT.var("pigpen.runtime", "eval-string");
+        EVAL_STRING = RT.var("pigpen.pig.runtime", "eval-string");
         EXEC = RT.var("pigpen.pig.runtime", "exec-transducer");
         EVAL = RT.var("pigpen.pig.runtime", "eval-udf");
         ACCUMULATE = RT.var("pigpen.pig.runtime", "udf-accumulate");
