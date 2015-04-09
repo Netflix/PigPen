@@ -108,8 +108,8 @@ into the channel.
   [& body]
   `(a/go
      (try
-       (if-let [result (do ~@body)]
-         result
+       (if-let [result# (do ~@body)]
+         result#
          ::nil)
      (catch Throwable z# (ChannelException. z#)))))
 

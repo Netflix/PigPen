@@ -5,7 +5,7 @@ dependencies {
     compile project(':pigpen-hadoop')
 
     compile 'joda-time:joda-time:2.4' // pig needs this to run locally
-    compile 'org.clojure:core.async:0.1.267.0-0d7780-alpha'
+    compile 'org.clojure:core.async:0.1.346.0-17112a-alpha'
 
     provided 'org.apache.pig:pig:0.13.0'
     provided 'org.apache.hadoop:hadoop-core:1.1.2'
