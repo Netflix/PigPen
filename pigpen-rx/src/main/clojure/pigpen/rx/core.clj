@@ -51,23 +51,23 @@
     post
     vector))
 
-(defmulti graph->observable (fn [data command] (:type command)))
+(defmulti graph->observable (fn [state data command] (:type command)))
 
-(defn graph->observable+ [data {:keys [id ancestors] :as command}]
+(defn graph->observable+ [state data {:keys [id ancestors] :as command}]
   ;(prn 'id id)
   (let [ancestor-data (mapv (comp multicast->observable data) ancestors)
-        result (graph->observable ancestor-data command)]
+        result (graph->observable state ancestor-data command)]
     ;(prn 'result result)
     (assoc data id (multicast result))))
 
 ;; ********** IO **********
 
 (s/defmethod graph->observable :return
-  [_ {:keys [data]} :- m/Return]
+  [_ _ {:keys [data]} :- m/Return]
   (rx/seq->o data))
 
 (s/defmethod graph->observable :load
-  [_ {:keys [location], :as command} :- m/Load]
+  [_ _ {:keys [location], :as command} :- m/Load]
   (let [local-loader (local/load command)
         ^Observable o (->>
                         (rx/observable*
@@ -92,7 +92,7 @@
       (.observeOn (Schedulers/io)))))
 
 (s/defmethod graph->observable :store
-  [[data] {:keys [location], :as command} :- m/Store]
+  [_ [data] {:keys [location], :as command} :- m/Store]
   (let [local-storage (local/store command)
         writer (delay
                  (println "Start writing to " location)
@@ -108,23 +108,23 @@
 ;; ********** Map **********
 
 (s/defmethod graph->observable :project
-  [[data] {:keys [projections]} :- m/Project]
+  [state [data] {:keys [projections]} :- m/Project]
   (rx/flatmap
     (fn [values]
       (->> projections
-        (map (partial local/graph->local values))
+        (map (partial local/graph->local state values))
         (local/cross-product)
         (rx/seq->o)))
     data))
 
 (s/defmethod graph->observable :rank
-  [[data] {:keys [id]} :- m/Rank]
+  [_ [data] {:keys [id]} :- m/Rank]
   (->> data
     (rx/map-indexed (fn [i v] (assoc v 'index i)))
     (rx/map (local/update-field-ids id))))
 
 (s/defmethod graph->observable :sort
-  [[data] {:keys [id key comp]} :- m/Sort]
+  [_ [data] {:keys [id key comp]} :- m/Sort]
   (->> data
     (rx/sort-by key (local/pigpen-comparator comp))
     (rx/map #(dissoc % key))
@@ -133,19 +133,19 @@
 ;; ********** Filter **********
 
 (s/defmethod graph->observable :filter
-  [[data] {:keys [id expr]} :- m/Filter]
+  [_ [data] {:keys [id expr]} :- m/Filter]
   (->> data
     (rx/map (local/update-field-ids id))
     (rx/filter (local/filter-expr->fn id expr))))
 
 (s/defmethod graph->observable :take
-  [[data] {:keys [id n]} :- m/Take]
+  [_ [data] {:keys [id n]} :- m/Take]
   (->> data
     (rx/take n)
     (rx/map (local/update-field-ids id))))
 
 (s/defmethod graph->observable :sample
-  [[data] {:keys [id p]} :- m/Sample]
+  [_ [data] {:keys [id p]} :- m/Sample]
   (->> data
     (rx/filter (fn [_] (< (rand) p)))
     (rx/map (local/update-field-ids id))))
@@ -153,7 +153,7 @@
 ;; ********** Join **********
 
 (s/defmethod graph->observable :reduce
-  [[data] {:keys [fields arg]} :- m/Reduce]
+  [_ [data] {:keys [fields arg]} :- m/Reduce]
   (->> data
     (rx/map arg)
     (rx/into [])
@@ -163,7 +163,7 @@
                    (rx/empty))))))
 
 (s/defmethod graph->observable :group
-  [data {:keys [ancestors keys join-types fields]} :- m/Group]
+  [_ data {:keys [ancestors keys join-types fields]} :- m/Group]
   (let [[group-field & data-fields] fields
         join-types (zipmap keys join-types)]
     (->>
@@ -205,7 +205,7 @@
                                     (not (contains? value k))))))))))))
 
 (s/defmethod graph->observable :join
-  [data {:keys [ancestors keys join-types fields]} :- m/Join]
+  [_ data {:keys [ancestors keys join-types fields]} :- m/Join]
   (let [seed-value (local/join-seed-value ancestors join-types)]
     (->>
       ;; map
@@ -237,13 +237,13 @@
 ;; ********** Set **********
 
 (s/defmethod graph->observable :distinct
-  [[data] {:keys [id]} :- m/Distinct]
+  [_ [data] {:keys [id]} :- m/Distinct]
   (->> data
     (rx/distinct)
     (rx/map (local/update-field-ids id))))
 
 (s/defmethod graph->observable :concat
-  [data {:keys [id]} :- m/Concat]
+  [_ data {:keys [id]} :- m/Concat]
   (->> data
     (apply rx/merge)
     (rx/map (local/update-field-ids id))))
@@ -251,9 +251,9 @@
 ;; ********** Script **********
 
 (s/defmethod graph->observable :noop
-  [[data] {:keys [id]} :- m/NoOp]
+  [_ [data] {:keys [id]} :- m/NoOp]
   (rx/map (local/update-field-ids id) data))
 
 (s/defmethod graph->observable :store-many
-  [data _]
+  [_ data _]
   (apply rx/merge (vec data)))
