@@ -29,7 +29,7 @@
 (defn option$
   "A Pig option. Takes the name and a value. Not used locally."
   [option value]
-  {:pre [(string? option)]}
+  {:pre [((some-fn string? keyword? symbol?) option)]}
   ^:pig {:type :option
          :option option
          :value value})

@@ -148,8 +148,8 @@ See pigpen.core and pigpen.pig
 (defmethod command->script :option
   [{:keys [option value]}
    state]
-  {:pre [(string? option) value]}
-  (str "SET " option " " value ";\n\n"))
+  {:pre [option value]}
+  (str "SET " (name option) " " value ";\n\n"))
 
 ;; ********** IO **********
 

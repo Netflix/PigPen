@@ -19,7 +19,8 @@
 (ns pigpen.pig
   "Functions to convert a PigPen query into a Pig script.
 "
-  (:require [pigpen.pig.oven :as oven]
+  (:require [pigpen.raw :as raw]
+            [pigpen.pig.oven :as oven]
             [pigpen.pig.script :as script]))
 
 (set! *warn-on-reflection* true)
@@ -83,3 +84,16 @@ combine them. Optionally takes a map of options.
   ([location query] (write-script location {} query))
   ([location opts query]
     (spit location (generate-script opts query))))
+
+(defn set-options
+  "Used to set options in a pig script. `opts` is a map of string/keyword/symbol
+to anything. str is called on values.
+
+  Example:
+
+    (set-options {:pig.maxCombinedSplitSize 1000000} relation)
+
+  Note: Pig options are global and apply to the entire script.
+"
+  [opts relation]
+  (raw/noop$ {:pig-options opts} relation))
