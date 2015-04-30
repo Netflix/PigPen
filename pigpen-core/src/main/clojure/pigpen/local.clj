@@ -140,7 +140,7 @@
   ;(prn 'id id)
   (let [ancestor-data (mapv data ancestors)
         ;_ (prn 'ancestor-data ancestor-data)
-        result (graph->local state ancestor-data command)]
+        result (vec (graph->local state ancestor-data command))]
     #_(when (first result)
        (assert (= (set (keys (first result))) (set fields))
                (str "Field difference. Expecting " fields " Actual " (keys (first result)))))
@@ -185,7 +185,7 @@ sequence. This command is very useful for unit tests.
       (->> graph
         (reduce (partial graph->local+ state) {})
         (last-command)
-        (map (comp val first))))))
+        (map (comp remove-sentinel-nil val first))))))
 
 ;; ********** IO **********
 
