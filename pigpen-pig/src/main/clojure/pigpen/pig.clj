@@ -96,4 +96,4 @@ to anything. str is called on values.
   Note: Pig options are global and apply to the entire script.
 "
   [opts relation]
-  (raw/noop$ {:pig-options opts} relation))
+  (update-in relation [:opts :pig-options] merge opts))
