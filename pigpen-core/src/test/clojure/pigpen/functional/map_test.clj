@@ -137,3 +137,23 @@
       (pig-join/fold (->> (fold/filter identity) (fold/count)))
       (t/dump harness))
     [2]))
+
+(t/deftest test-map-nil
+  "nils should stay nil"
+  [harness]
+  (test-diff
+    (->>
+      (t/data harness [1 2])
+      (pig-map/map (constantly nil))
+      (t/dump harness))
+    [nil nil]))
+
+(t/deftest test-mapcat-nil
+  "nils should stay nil"
+  [harness]
+  (test-diff
+    (->>
+      (t/data harness [1 2])
+      (pig-map/mapcat #(repeat % nil))
+      (t/dump harness))
+    [nil nil nil]))

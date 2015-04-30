@@ -24,7 +24,7 @@ uses rx-java to deliver a slightly more performance for large local datasets.
   (:require [pigpen.rx.core :as rx]
             [pigpen.rx.extensions :refer [multicast->observable]]
             [rx.lang.clojure.blocking :as rx-blocking]
-            [pigpen.local]
+            [pigpen.local :as local]
             [pigpen.oven :as oven]))
 
 (defn dump
@@ -62,4 +62,4 @@ sequence. This command is very useful for unit tests.
       (last-command)
       (multicast->observable)
       (rx-blocking/into [])
-      (map (comp val first)))))
+      (map (comp local/remove-sentinel-nil val first)))))
