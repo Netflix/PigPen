@@ -18,7 +18,7 @@
 
 (ns pigpen.parquet
   "Functions for reading and writing parquet data and for creating parquet
-schemas.
+schemas. Start with `load-parquet` and `store-parquet`.
 
   See: http://parquet.incubator.apache.org/
 

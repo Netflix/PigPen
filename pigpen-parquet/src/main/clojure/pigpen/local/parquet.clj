@@ -25,7 +25,7 @@
            [parquet.hadoop ParquetInputFormat ParquetOutputFormat]))
 
 (defmethod pigpen.local/load :parquet
-  [{:keys [location fields storage]}]
+  [{:keys [location fields]}]
   (let [field-names (into {} (map (juxt name identity) fields))]
     (InputFormatLoader.
       (ParquetInputFormat.)

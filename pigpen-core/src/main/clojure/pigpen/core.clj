@@ -17,7 +17,9 @@
 ;;
 
 (ns pigpen.core
-  "The core PigPen operations.
+  "The core PigPen operations. These are the primary functions that you use to
+build a PigPen query.
+
 "
   (:refer-clojure :exclude [load-string constantly map mapcat map-indexed sort sort-by filter remove distinct concat take group-by into reduce])
   (:require [pigpen.raw :as raw]

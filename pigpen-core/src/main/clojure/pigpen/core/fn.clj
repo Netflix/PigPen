@@ -22,7 +22,11 @@
   Function versions of the core pigpen macros. These are useful if you want to
 generate more dynamic scripts, where functions are passed as arguments. This
 also means that the functions passed must either be quoted manually or with
-pigpen.core.fn/trap. See pigpen.core.fn/map* for example."
+pigpen.core.fn/trap. See pigpen.core.fn/map* for example.
+
+  Note: You most likely don't want this namespace. Unless you are doing advanced
+things, stick to pigpen.core
+"
   (:require [pigpen.code]
             [pigpen.io]
             [pigpen.map]

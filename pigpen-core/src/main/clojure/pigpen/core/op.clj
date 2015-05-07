@@ -23,7 +23,11 @@
 implement. All higher level operators are defined in terms of these operators.
 These should be used to build custom PigPen operators. In these examples, fields
 refers to the fields that the underlying platform is aware of. Usually this is a
-single user field that represents arbitrary Clojure data."
+single user field that represents arbitrary Clojure data.
+
+  Note: You most likely don't want this namespace. Unless you are doing advanced
+things, stick to pigpen.core
+"
   (:require [pigpen.raw]
             [pigpen.runtime]))
 

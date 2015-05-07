@@ -1,6 +1,6 @@
 ![](logo.png)
 
-PigPen is map-reduce for Clojure, or distributed Clojure. It compiles to [Apache Pig](http://pig.apache.org/), but you don't need to know much about Pig to use it.
+PigPen is map-reduce for Clojure, or distributed Clojure. It compiles to [Apache Pig](http://pig.apache.org/) or [Cascading](http://www.cascading.org/) but you don't need to know much about either of them to use it.
 
 # Getting Started, Tutorials & Documentation
 
@@ -11,8 +11,9 @@ Getting started with Clojure and PigPen is really easy.
   * The [full API](http://netflix.github.io/PigPen/pigpen.core.html) lists all of the operators with example usage
   * [PigPen for Clojure users](https://github.com/Netflix/PigPen/wiki/Getting_Started_for_Clojure_Users) is great for Clojure users new to map-reduce
   * [PigPen for Pig users](https://github.com/Netflix/PigPen/wiki/Getting_Started_for_Pig_Users) is great for Pig users new to Clojure
+  * [PigPen for Cascading users](https://github.com/Netflix/PigPen/wiki/Getting_Started_for_Cascading_Users) is great for Cascading users new to Clojure
 
-_Note: If you are not familiar at all with [Clojure](http://clojure.org/), I strongly recommend that you try a tutorial [here](http://tryclj.com/), [here](http://java.ociweb.com/mark/clojure/article.html), or [here](http://learn-clojure.com/) to understand some of the [basics](http://clojure.org/cheatsheet)._
+_Note: It is strongly recommended to familiarize yourself with Clojure before using PigPen._
 
 _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand edit. While entirely possible, the resulting scripts are not intended for human consumption._
 
@@ -27,57 +28,81 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 With Leiningen:
 
 ``` clj
-[com.netflix.pigpen/pigpen "0.2.13"]
+;; core library
+[com.netflix.pigpen/pigpen "0.3.0-rc.7"]
+
+;; pig support
+[com.netflix.pigpen/pigpen-pig "0.3.0-rc.7"]
+
+;; cascading support
+[com.netflix.pigpen/pigpen-cascading "0.3.0-rc.7"]
+
+;; rx support
+[com.netflix.pigpen/pigpen-rx "0.3.0-rc.7"]
 ```
 
-With Gradle:
-
-``` groovy
-compile "com.netflix.pigpen:pigpen:0.2.13"
-```
-
-With Maven:
-
-``` xml
-<dependency>
-  <groupId>com.netflix.pigpen</groupId>
-  <artifactId>pigpen</artifactId>
-  <version>0.2.13</version>
-</dependency>
-```
+The platform libraries all reference the core library, so you only need to reference the platform specific one that you require and the core library should be included transitively.
 
 _Note: PigPen requires Clojure 1.5.1 or greater_
 
 ## Parquet
 
-To use the parquet loader (alpha), add this to your dependencies:
+To use the parquet loader, add this to your dependencies:
 
 ``` clj
-[com.netflix.pigpen/pigpen-parquet "0.2.13"]
+[com.netflix.pigpen/pigpen-parquet-pig "0.3.0-rc.7"]
 ```
 
-And because of the weird way Pig handles dependencies, you'll also need to add antlr and log4j for local mode to work properly:
+And check out the [`pigpen.parquet`](http://netflix.github.io/PigPen/pigpen.parquet.html) namespace for usage.
 
-``` clj
-:dependencies [[org.clojure/clojure "1.6.0"]
-               [com.netflix.pigpen/pigpen "0.2.13"]
-               [com.netflix.pigpen/pigpen-parquet "0.2.13"]]
-:profiles {:dev {:dependencies [[org.apache.pig/pig "0.11.1"]
-                                [org.apache.hadoop/hadoop-core "1.1.2"]
-                                [org.antlr/antlr "3.5.2"]
-                                [log4j/log4j "1.2.17"]]}}
-```
+_Note: Avro is currently only supported by Pig_
 
 ## Avro
 
 To use the avro loader (alpha), add this to your dependencies:
 
 ``` clj
-[com.netflix.pigpen/pigpen-avro "0.2.13"]
+[com.netflix.pigpen/pigpen-avro-pig "0.3.0-rc.7"]
 ```
+
+And check out the [`pigpen.avro`](http://netflix.github.io/PigPen/pigpen.avro.html) namespace for usage.
+
+_Note: Avro is currently only supported by Pig_
 
 # Release Notes
 
+  * 0.3.0-rc-7 - 4/29/15
+    * Fixed bug in local mode where nils weren't handled consistently
+  * 0.3.0-rc.6 - 4/14/15
+    * Add local mode code eval memoization to avoid thrashing permgen
+    * Added [`pigpen.pig/set-options`](http://netflix.github.io/PigPen/pigpen.pig.html#var-set-options) command to explicitly set pig options in a script. This was previously available (though undocumented) by setting `{:pig-options {...}}` in any options block, but is now official.
+  * 0.3.0-rc.5 - 4/9/15
+    * Update core.async version
+  * 0.3.0-rc.4 - 4/8/15
+    * Memoize code evaluation when run in the cluster
+  * 0.3.0-rc.3 - 4/2/15
+    * Bugfixes
+  * 0.3.0-rc.2 - 3/30/15
+    * Parquet refactor. Local parquet loading no longer depends on Pig. Parquet schemas are now defined using Parquet classes.
+  * 0.3.0-rc.1 - 3/23/15
+    * Added Cascading support
+      * [`pigpen.cascading/generate-flow`](http://netflix.github.io/PigPen/pigpen.cascading.html#var-generate-flow) - Generate a cascading flow from a pigpen query
+      * [`pigpen.cascading/load-tap`](http://netflix.github.io/PigPen/pigpen.cascading.html#var-load-tap) - Load data from an existing cascading tap
+      * [`pigpen.cascading/store-tap`](http://netflix.github.io/PigPen/pigpen.cascading.html#var-store-tap) - Store data using an existing cascading tap
+    * Added [`pigpen.core/keys-fn`](http://netflix.github.io/PigPen/pigpen.core.html#var-keys-fn), a new convenience macro to support named anonymous functions. Like keys destructuring, but less verbose.
+    * New function based operators to build more dynamic scripts. These are function versions of all the core pigpen macros, but you have to handle quoting user code manually. These were previously available, but not officially supported. Now they're alpha, but supported and documented. See [`pigpen.core.fn`](http://netflix.github.io/PigPen/pigpen.core.fn.html)
+    * New lower-level operators to build custom storage and commands. These were previously available, but not officially supported. Now they're alpha, but supported and documented. See [`pigpen.core.op`](http://netflix.github.io/PigPen/pigpen.core.op.html)
+    * __*** Breaking Changes ***__
+      * `pigpen.core/script` is now [`pigpen.core/store-many`](http://netflix.github.io/PigPen/pigpen.core.html#var-store-many)
+      * `pigpen.core/generate-script` is now [`pigpen.pig/generate-script`](http://netflix.github.io/PigPen/pigpen.pig.html#var-generate-script)
+      * `pigpen.core/write-script` is now [`pigpen.pig/write-script`](http://netflix.github.io/PigPen/pigpen.pig.html#var-write-script)
+      * `pigpen.core/show` is now [`pigpen.viz/show`](http://netflix.github.io/PigPen/pigpen.viz.html#var-show) (requires dependency `[com.netflix.pigpen/pigpen-viz "..."]`)
+      * `pig/dump` has changed. The old version was based on rx-java, and still exists as [`pigpen.rx/dump`](http://netflix.github.io/PigPen/pigpen.rx.html#var-dump). The replacement for [`pigpen.core/dump`](http://netflix.github.io/PigPen/pigpen.core.html#var-dump) is now entirely Clojure based. The Clojure version is better for unit tests and small data. All stages are evaluated eagerly, so the stack traces are simpler to read. The rx version is lazy, including the load-* commands. This means that you can load a large file, take a few rows, and process them without loading the entire file into memory. The downside is confusing stack traces and extra dependencies. See [here](https://github.com/Netflix/PigPen/wiki/Local_Evaluation) for more details.
+      * The interface for building custom loaders and storage has changed. See [here](https://github.com/Netflix/PigPen/wiki/Custom_Loaders) for more details. Please email pigpen-support@googlegroups.com with any questions.
+  * 0.2.15 - 2/20/15
+    * Include sources in jars
+  * 0.2.14 - 2/18/15
+    * Avro updates
   * 0.2.13 - 1/19/15
     * Added `load-avro` in the pigpen-avro project: http://avro.apache.org/
     * Fixed the nRepl configuration; use `gradlew nRepl` to start an nRepl
