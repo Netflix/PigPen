@@ -4,8 +4,8 @@ dependencies {
     compile project(':pigpen')
 
     // Should these be provided?
-    compile 'cascading:cascading-core:2.5.1'
-    compile 'cascading:cascading-hadoop:2.5.1'
+    compile 'cascading:cascading-core:2.7.0'
+    compile 'cascading:cascading-hadoop:2.7.0'
     compile 'org.apache.hadoop:hadoop-core:1.1.2'
     compile 'org.slf4j:slf4j-log4j12:1.6.1'
 
