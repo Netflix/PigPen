@@ -24,6 +24,7 @@
            (cascading.pipe.assembly Unique Rename AggregateBy)
            (cascading.pipe.joiner BufferJoin MixedJoin)
            (cascading.scheme.hadoop TextLine)
+           (cascading.property AppProps)
            (cascading.tap Tap)
            (cascading.tap.hadoop Hfs)
            (cascading.tuple Fields)
@@ -37,6 +38,13 @@
             [pigpen.extensions.core :refer [zip]]))
 
 (set! *warn-on-reflection* true)
+
+(AppProps/addApplicationFramework nil
+  (str "PigPen:"
+       (or (some-> PigPenFunction
+             (.getPackage)
+             (.getImplementationVersion))
+           "unknown")))
 
 (defn cfields
   ^Fields [fields]
