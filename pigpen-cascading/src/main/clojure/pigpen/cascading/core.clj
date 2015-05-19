@@ -40,7 +40,11 @@
 (set! *warn-on-reflection* true)
 
 (AppProps/addApplicationFramework nil
-  (str "PigPen:0.3.1" ))
+  (str "PigPen:"
+       (or (some-> PigPenFunction
+             (.getPackage)
+             (.getImplementationVersion))
+           "unknown")))
 
 (defn cfields
   ^Fields [fields]
