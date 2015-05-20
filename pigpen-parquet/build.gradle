@@ -2,7 +2,9 @@ dependencies {
     compile project(':pigpen')
     compile project(':pigpen-hadoop')
 
-    compile 'com.twitter:parquet-tools:1.5.0'
+    compile 'org.apache.parquet:parquet-tools:1.7.0'
+    provided 'org.apache.hadoop:hadoop-common:2.6.0'
+    provided 'org.apache.hadoop:hadoop-mapreduce-client-core:2.6.0'
 
     testCompile project(path: ':pigpen', configuration: 'testOutput')
 }

@@ -18,7 +18,7 @@
 
 (ns pigpen.pig.parquet
   (:require [pigpen.pig.script])
-  (:import [parquet.pig PigSchemaConverter]))
+  (:import [org.apache.parquet.pig PigSchemaConverter]))
 
 (defmethod pigpen.pig.script/storage->script [:load :parquet]
   [command]

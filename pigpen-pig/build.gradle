@@ -8,7 +8,8 @@ dependencies {
     compile 'org.clojure:core.async:0.1.346.0-17112a-alpha'
 
     provided 'org.apache.pig:pig:0.13.0'
-    provided 'org.apache.hadoop:hadoop-core:1.1.2'
+    provided 'org.apache.hadoop:hadoop-common:2.6.0'
+    provided 'org.apache.hadoop:hadoop-mapreduce-client-core:2.6.0'
 
     testCompile project(path: ':pigpen', configuration: 'testOutput')
     testCompile 'org.apache.pig:pigunit:0.13.0'

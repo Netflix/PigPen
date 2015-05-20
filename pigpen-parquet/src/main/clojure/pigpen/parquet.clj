@@ -31,7 +31,7 @@ schemas. Start with `load-parquet` and `store-parquet`.
   (:refer-clojure :exclude [float double boolean byte-array])
   (:require [pigpen.raw :as raw]
             [pigpen.parquet.core :as pq])
-  (:import [parquet.schema
+  (:import [org.apache.parquet.schema
             MessageType GroupType
             PrimitiveType PrimitiveType$PrimitiveTypeName
             Type Type$Repetition]))

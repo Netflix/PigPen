@@ -48,16 +48,18 @@
 (defn job-context
   "Create a Hadoop JobContext"
   [^Job job]
-  (JobContext.
-    (.getConfiguration job)
-    (JobID. "jt" 0)))
+  (reify JobContext
+    (getConfiguration [_]
+      (.getConfiguration job))
+    (getJobID [_]
+      (JobID. "jt" 0))))
 
 (defn task-context
   "Create a Hadoop TaskAttemptContext"
   [^Job job]
-  (TaskAttemptContext.
-    (.getConfiguration job)
-    (TaskAttemptID. "jt" 0 true 1 0)))
+  (reify TaskAttemptContext
+    (getTaskAttemptID [_]
+      (TaskAttemptID. "jt" 0 true 1 0))))
 
 (defn input-format->values
   "Uses a Hadoop InputFormat to read values from a file."

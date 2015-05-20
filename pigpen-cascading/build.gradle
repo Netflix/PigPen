@@ -3,10 +3,10 @@ apply plugin: 'java'
 dependencies {
     compile project(':pigpen')
 
-    // Should these be provided?
-    compile 'cascading:cascading-core:2.7.0'
-    compile 'cascading:cascading-hadoop:2.7.0'
-    compile 'org.apache.hadoop:hadoop-core:1.1.2'
+    provided 'cascading:cascading-core:2.7.0'
+    provided 'cascading:cascading-hadoop2-mr1:2.7.0'
+    provided 'org.apache.hadoop:hadoop-common:2.6.0'
+    provided 'org.apache.hadoop:hadoop-mapreduce-client-core:2.6.0'
     compile 'org.slf4j:slf4j-log4j12:1.6.1'
 
     testCompile 'criterium:criterium:0.4.3'
