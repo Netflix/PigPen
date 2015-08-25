@@ -89,11 +89,6 @@ possible as it's used at runtime."
   [b]
   (clojure.string/join (mapv #(format "%02X" %) b)))
 
-(defn bytes->json
-  "Convert bytes into a string & then parses json"
-  [b]
-  (if b (json/read-json (String. (bytes b)))))
-
 (defn cast-bytes
   "Converts a byte array into the specified type. Similar to a cast in pig."
   [type value]
