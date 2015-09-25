@@ -38,7 +38,7 @@
     (-> value (OperationUtil/getBytes) thaw)))
 
 (defn cs-freeze [value]
-  (BytesWritable. (freeze value {:skip-header? true, :legacy-mode true})))
+  (BytesWritable. (freeze value)))
 
 (defn ^:private cs-freeze-with-nils [value]
   (if-not (nil? value)
