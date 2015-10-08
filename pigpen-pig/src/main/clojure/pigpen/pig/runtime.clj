@@ -105,9 +105,11 @@ possible as it's used at runtime."
 (extend-protocol HybridToClojure
   DataByteArray
   (rt/hybrid->clojure [^DataByteArray value]
-    (-> value (.get) (thaw {:compressor nil
-                            :encryptor  nil
-                            :v1-compatibility? false})))
+    (-> value
+      (.get)
+      (thaw {:compressor nil
+             :encryptor  nil
+             :v1-compatibility? false})))
   Tuple
   (rt/hybrid->clojure [^Tuple value]
     (->> value (.getAll) (mapv rt/hybrid->clojure)))
