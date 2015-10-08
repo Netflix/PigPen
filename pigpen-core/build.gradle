@@ -3,7 +3,7 @@ dependencies {
     compile 'org.clojure:clojure:1.6.0'
     compile 'org.clojure:data.json:0.2.5'
     compile 'org.clojure:data.csv:0.1.2'
-    compile 'com.taoensso:nippy:2.9.1'
+    compile 'com.taoensso:nippy:2.10.0'
     compile 'prismatic:schema:0.3.3'
 }
 

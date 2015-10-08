@@ -35,10 +35,14 @@
 (extend-protocol HybridToClojure
   BytesWritable
   (rt/hybrid->clojure [value]
-    (-> value (OperationUtil/getBytes) thaw)))
+    (-> value
+      (OperationUtil/getBytes)
+      (thaw {:compressor nil
+             :encryptor  nil
+             :v1-compatibility? false}))))
 
 (defn cs-freeze [value]
-  (BytesWritable. (freeze value)))
+  (BytesWritable. (freeze value {:compressor nil, :skip-header? true})))
 
 (defn ^:private cs-freeze-with-nils [value]
   (if-not (nil? value)

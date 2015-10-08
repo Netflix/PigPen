@@ -61,7 +61,7 @@ possible as it's used at runtime."
     (.add tuple)))
 
 (defn ^:private pig-freeze [value]
-  (DataByteArray. (freeze value)))
+  (DataByteArray. (freeze value {:compressor nil, :skip-header? true})))
 
 (defn ^:private pig-freeze-with-nils [value]
   (if-not (nil? value)
@@ -105,7 +105,11 @@ possible as it's used at runtime."
 (extend-protocol HybridToClojure
   DataByteArray
   (rt/hybrid->clojure [^DataByteArray value]
-    (-> value (.get) thaw))
+    (-> value
+      (.get)
+      (thaw {:compressor nil
+             :encryptor  nil
+             :v1-compatibility? false})))
   Tuple
   (rt/hybrid->clojure [^Tuple value]
     (->> value (.getAll) (mapv rt/hybrid->clojure)))
