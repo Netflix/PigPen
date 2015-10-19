@@ -29,16 +29,16 @@ With Leiningen:
 
 ``` clj
 ;; core library
-[com.netflix.pigpen/pigpen "0.3.0"]
+[com.netflix.pigpen/pigpen "0.3.1"]
 
 ;; pig support
-[com.netflix.pigpen/pigpen-pig "0.3.0"]
+[com.netflix.pigpen/pigpen-pig "0.3.1"]
 
 ;; cascading support
-[com.netflix.pigpen/pigpen-cascading "0.3.0"]
+[com.netflix.pigpen/pigpen-cascading "0.3.1"]
 
 ;; rx support
-[com.netflix.pigpen/pigpen-rx "0.3.0"]
+[com.netflix.pigpen/pigpen-rx "0.3.1"]
 ```
 
 The platform libraries all reference the core library, so you only need to reference the platform specific one that you require and the core library should be included transitively.
@@ -50,7 +50,7 @@ _Note: PigPen requires Clojure 1.5.1 or greater_
 To use the parquet loader, add this to your dependencies:
 
 ``` clj
-[com.netflix.pigpen/pigpen-parquet-pig "0.3.0"]
+[com.netflix.pigpen/pigpen-parquet-pig "0.3.1"]
 ```
 
 And check out the [`pigpen.parquet`](http://netflix.github.io/PigPen/pigpen.parquet.html) namespace for usage.
@@ -62,7 +62,7 @@ _Note: Avro is currently only supported by Pig_
 To use the avro loader (alpha), add this to your dependencies:
 
 ``` clj
-[com.netflix.pigpen/pigpen-avro-pig "0.3.0"]
+[com.netflix.pigpen/pigpen-avro-pig "0.3.1"]
 ```
 
 And check out the [`pigpen.avro`](http://netflix.github.io/PigPen/pigpen.avro.html) namespace for usage.
@@ -71,6 +71,10 @@ _Note: Avro is currently only supported by Pig_
 
 # Release Notes
 
+  * 0.3.1 - 10/19/15
+    * Update cascading version to 2.7.0
+    * Report correct pigpen version to concurrent
+    * Update nippy to 2.10.0 & tune performance
   * 0.3.0 - 5/18/15
     * No changes
   * 0.3.0-rc-7 - 4/29/15
