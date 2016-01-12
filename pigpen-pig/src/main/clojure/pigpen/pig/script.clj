@@ -206,7 +206,8 @@ See pigpen.core and pigpen.pig
                    pig-code)
         pig-schema (as-> alias %
                      (map (fn [a t] (str (name a)
-                                         (when t (str ":" (type->pig-type t)))))
+                                         (when (keyword? t) (str ":" (type->pig-type t)))
+                                         (when (string? t) (str ":" t))))
                           %
                           (concat types (repeat nil)))
                      (join ", " %)
