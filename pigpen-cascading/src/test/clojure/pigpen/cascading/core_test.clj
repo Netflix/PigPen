@@ -194,4 +194,4 @@
         udf (PigPenFunction. nil out-fields)
         results (criterium/benchmark (.operate udf nil call) {})]
     (criterium/report-result results)
-    (is (< (first (:mean results)) 1.6E-5))))
+    (is (< (first (:mean results)) 1.8E-5))))
