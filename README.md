@@ -71,6 +71,8 @@ _Note: Avro is currently only supported by Pig_
 
 # Release Notes
 
+  * 0.3.2 - 1/12/16
+    * Allow more types in generated pig scripts
   * 0.3.1 - 10/19/15
     * Update cascading version to 2.7.0
     * Report correct pigpen version to concurrent
