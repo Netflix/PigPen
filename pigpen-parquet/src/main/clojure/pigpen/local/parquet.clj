@@ -24,6 +24,27 @@
            [pigpen.hadoop InputFormatLoader OutputFormatStorage]
            [parquet.hadoop ParquetInputFormat ParquetOutputFormat]))
 
+(defn convert-simple-record
+  [^SimpleRecord value]
+  (let [values (.getValues value)]
+    (if (= (.getName (first values)) "bag")
+      (->> values
+        (map (fn [^SimpleRecord$NameValue nv]
+               (->> nv
+                 (.getValue)
+                 (.getValues)
+                 first
+                 (.getValue)
+                 convert-simple-record))))
+      (->> values
+        (map (fn [^SimpleRecord$NameValue nv]
+               (let [name (.getName nv)
+                     value (.getValue nv)]
+                 (if (instance? SimpleRecord value)
+                   [name (convert-simple-record value)]
+                   [name value]))))
+        (into {})))))
+
 (defmethod pigpen.local/load :parquet
   [{:keys [location fields]}]
   (let [field-names (into {} (map (juxt name identity) fields))]
@@ -35,7 +56,12 @@
         (->> value
           (.getValues)
           (map (fn [^SimpleRecord$NameValue nv]
-                 [(field-names (.getName nv)) (.getValue nv)]))
+                 (let [value (.getValue nv)]
+                   (if (instance? SimpleRecord value)
+                     [(.getName nv) (convert-simple-record value)]
+                     [(.getName nv) value]))))
+          (map (fn [[n v]]
+                 [(field-names n) v]))
           (into {}))))))
 
 (defmethod pigpen.local/store :parquet
