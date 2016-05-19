@@ -17,8 +17,8 @@
 ;;
 
 (ns pigpen.parquet.core
-  (:import [parquet.io.api RecordConsumer Binary]
-           [parquet.schema
+  (:import [org.apache.parquet.io.api RecordConsumer Binary]
+           [org.apache.parquet.schema
             MessageType Type
             PrimitiveType
             PrimitiveType$PrimitiveTypeName]))

@@ -20,9 +20,9 @@
   (:require [pigpen.local]
             [pigpen.hadoop]
             [pigpen.parquet.core :as pq])
-  (:import [parquet.tools.read SimpleRecord SimpleRecord$NameValue]
+  (:import [org.apache.parquet.tools.read SimpleRecord SimpleRecord$NameValue]
            [pigpen.hadoop InputFormatLoader OutputFormatStorage]
-           [parquet.hadoop ParquetInputFormat ParquetOutputFormat]))
+           [org.apache.parquet.hadoop ParquetInputFormat ParquetOutputFormat]))
 
 (defmethod pigpen.local/load :parquet
   [{:keys [location fields]}]

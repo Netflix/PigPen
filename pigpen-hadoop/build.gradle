@@ -1,5 +1,6 @@
 dependencies {
     compile project(':pigpen')
 
-    provided 'org.apache.hadoop:hadoop-core:1.1.2'
+    provided 'org.apache.hadoop:hadoop-common:2.6.0'
+    provided 'org.apache.hadoop:hadoop-mapreduce-client-core:2.6.0'
 }
