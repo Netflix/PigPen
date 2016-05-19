@@ -386,7 +386,9 @@ See pigpen.core and pigpen.pig
 (defn commands->script
   "Transforms a sequence of commands into a Pig script"
   [commands]
-  (let [state {:partitioner (atom -1)}]
-    (apply str
-      (for [command commands]
-        (command->script command state)))))
+  (binding [*print-length* false
+            *print-level* false]
+    (let [state {:partitioner (atom -1)}]
+      (apply str
+        (for [command commands]
+          (command->script command state))))))
