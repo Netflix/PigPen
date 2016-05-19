@@ -122,6 +122,9 @@ should have a single field that is a map value.
   [fields]
   (fn [rf]
     (fn [result [input]]
+      (when-not (map? input)
+        (throw (ex-info "Expected map with keyword keys."
+                        {:input input})))
       (rf result (map input fields)))))
 
 (defn indexed-field-selector->bind
