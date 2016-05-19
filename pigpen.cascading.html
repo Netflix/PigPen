@@ -8,12 +8,12 @@ Optionally takes a Cascading FlowConnector (defaults to HadoopFlowConnector)
 
   Example:
 
-    (generate-flow (pig/store-clj "output.clj" foo))</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-cascading/src/main/clojure/pigpen/cascading.clj#L30">view source</a></div></div><div class="public anchor" id="var-load-tap"><h3>load-tap</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(load-tap tap)</code><code>(load-tap tap f)</code></div><div class="doc"><pre class="plaintext">A thin wrapper around a tap. By default a vector of the tap's source fields
+    (generate-flow (pig/store-clj "output.clj" foo))</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-cascading/src/main/clojure/pigpen/cascading.clj#L30">view source</a></div></div><div class="public anchor" id="var-load-tap"><h3>load-tap</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(load-tap tap)</code><code>(load-tap tap f)</code></div><div class="doc"><pre class="plaintext">A thin wrapper around a tap. By default a vector of the tap's source fields
 is created and returned as a single field. A custom function can be provided to
 map the tap's source fields onto a single value.
 
   Example:
 
     (load-tap tap)
-    (load-tap tap (partial zipmap [:a :b :c]))</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-cascading/src/main/clojure/pigpen/cascading.clj#L50">view source</a></div></div><div class="public anchor" id="var-store-tap"><h3>store-tap</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(store-tap tap relation)</code></div><div class="doc"><pre class="plaintext">A thin wrapper around a sink tap. The tap must accept a single sink field
-which is the value to store.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-cascading/src/main/clojure/pigpen/cascading.clj#L73">view source</a></div></div></div></body></html>
+    (load-tap tap (partial zipmap [:a :b :c]))</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-cascading/src/main/clojure/pigpen/cascading.clj#L50">view source</a></div></div><div class="public anchor" id="var-store-tap"><h3>store-tap</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(store-tap tap relation)</code></div><div class="doc"><pre class="plaintext">A thin wrapper around a sink tap. The tap must accept a single sink field
+which is the value to store.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-cascading/src/main/clojure/pigpen/cascading.clj#L73">view source</a></div></div></div></body></html>

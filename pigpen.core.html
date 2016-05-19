@@ -31,7 +31,7 @@ info on fold functions.
     :parallel - The degree of parallelism to use (pig only)
     :join-nils - Whether nil keys from each relation should be treated as equal
 
-  See also: pigpen.core/join, pigpen.core/group-by</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L316">view source</a></div></div><div class="public anchor" id="var-concat"><h3>concat</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(concat relations+)</code></div><div class="doc"><pre class="plaintext">Concatenates all relations provided. Does not guarantee any ordering of the
+  See also: pigpen.core/join, pigpen.core/group-by</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L316">view source</a></div></div><div class="public anchor" id="var-concat"><h3>concat</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(concat relations+)</code></div><div class="doc"><pre class="plaintext">Concatenates all relations provided. Does not guarantee any ordering of the
 relations. Identical to pigpen.core/union-multiset.
 
   Example:
@@ -43,7 +43,7 @@ relations. Identical to pigpen.core/union-multiset.
 
     =&gt; [1 1 1 1 2 2 2 2 2 2 3 3 3 3 3 3 3 4 5]
 
-  See also: pigpen.core/union, pigpen.core/distinct, pigpen.core/union-multiset</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L155">view source</a></div></div><div class="public anchor" id="var-constantly"><h3>constantly</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(constantly data)</code></div><div class="doc"><pre class="plaintext">Returns a function that takes any number of arguments and returns a constant
+  See also: pigpen.core/union, pigpen.core/distinct, pigpen.core/union-multiset</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L155">view source</a></div></div><div class="public anchor" id="var-constantly"><h3>constantly</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(constantly data)</code></div><div class="doc"><pre class="plaintext">Returns a function that takes any number of arguments and returns a constant
 set of data as if it had been loaded by pigpen. This is useful for testing,
 but not supported in generated scripts. The parameter 'data' must be a sequence.
 The values of 'data' can be any clojure type.
@@ -53,7 +53,7 @@ The values of 'data' can be any clojure type.
     (pig/constantly [1 2 3])
     (pig/constantly [{:a 123} {:b 456}])
 
-  See also: pigpen.core/return</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L284">view source</a></div></div><div class="public anchor" id="var-difference"><h3>difference</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(difference opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs a set difference on all relations provided and returns the distinct
+  See also: pigpen.core/return</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L284">view source</a></div></div><div class="public anchor" id="var-difference"><h3>difference</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(difference opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs a set difference on all relations provided and returns the distinct
 results. Optionally takes a map of options as the first parameter.
 
   Example:
@@ -69,7 +69,7 @@ results. Optionally takes a map of options as the first parameter.
 
     :parallel - The degree of parallelism to use (pig only)
 
-  See also: pigpen.core/difference-multiset, pigpen.core/intersection</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L247">view source</a></div></div><div class="public anchor" id="var-difference-multiset"><h3>difference-multiset</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(difference-multiset opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs a multiset difference on all relations provided and returns all
+  See also: pigpen.core/difference-multiset, pigpen.core/intersection</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L247">view source</a></div></div><div class="public anchor" id="var-difference-multiset"><h3>difference-multiset</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(difference-multiset opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs a multiset difference on all relations provided and returns all
 results. Optionally takes a map of options as the first parameter.
 
   Example:
@@ -85,7 +85,7 @@ results. Optionally takes a map of options as the first parameter.
 
     :parallel - The degree of parallelism to use (pig only)
 
-  See also: pigpen.core/difference, pigpen.core/intersection</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L271">view source</a></div></div><div class="public anchor" id="var-distinct"><h3>distinct</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(distinct relation)</code><code>(distinct opts relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation with the distinct values of relation. Optionally takes a
+  See also: pigpen.core/difference, pigpen.core/intersection</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L271">view source</a></div></div><div class="public anchor" id="var-distinct"><h3>distinct</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(distinct relation)</code><code>(distinct opts relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation with the distinct values of relation. Optionally takes a
 map of options.
 
   Example:
@@ -100,7 +100,7 @@ map of options.
       (fn [n key] (mod (hash key) n)) Where n is the number of partitions and
       key is the key to partition.
 
-  See also: pigpen.core/union, pigpen.core/union-multiset, pigpen.core/filter</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L104">view source</a></div></div><div class="public anchor" id="var-dump"><h3>dump</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(dump query)</code><code>(dump opts query)</code></div><div class="doc"><pre class="plaintext">Executes a script locally and returns the resulting values as a clojure
+  See also: pigpen.core/union, pigpen.core/union-multiset, pigpen.core/filter</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L104">view source</a></div></div><div class="public anchor" id="var-dump"><h3>dump</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(dump query)</code><code>(dump opts query)</code></div><div class="doc"><pre class="plaintext">Executes a script locally and returns the resulting values as a clojure
 sequence. This command is very useful for unit tests.
 
   Example:
@@ -125,7 +125,7 @@ sequence. This command is very useful for unit tests.
         pig/store-many commands merge their results
 
   Note: The original rx pigpen.core/dump command is now pigpen.rx/dump. This
-        implementation uses lazy seqs instead.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/local.clj#L151">view source</a></div></div><div class="public anchor" id="var-filter"><h3>filter</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(filter pred relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation that only contains the items for which (pred item)
+        implementation uses lazy seqs instead.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/local.clj#L151">view source</a></div></div><div class="public anchor" id="var-filter"><h3>filter</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(filter pred relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation that only contains the items for which (pred item)
 returns true.
 
   Example:
@@ -134,7 +134,7 @@ returns true.
     (pig/filter (fn [x] (even? (* x x))) foo)
 
   See also: pigpen.core/remove, pigpen.core/take, pigpen.core/sample,
-            pigpen.core/distinct, pigpen.core/filter-by</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L51">view source</a></div></div><div class="public anchor" id="var-filter-by"><h3>filter-by</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(filter-by key-selector keys relation)</code><code>(filter-by key-selector keys opts relation)</code></div><div class="doc"><pre class="plaintext">Filters a relation by the keys in another relation. The key-selector function
+            pigpen.core/distinct, pigpen.core/filter-by</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L51">view source</a></div></div><div class="public anchor" id="var-filter-by"><h3>filter-by</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(filter-by key-selector keys relation)</code><code>(filter-by key-selector keys opts relation)</code></div><div class="doc"><pre class="plaintext">Filters a relation by the keys in another relation. The key-selector function
 is applied to each element of relation. If the resulting key is present in keys,
 the value is kept. Otherwise it is dropped. nils are dropped or preserved based
 on whether there is a nil value present in keys. This operation is referred to
@@ -162,7 +162,7 @@ as a semi-join in relational databases.
   Note: keys must be distinct before this is used or you will get duplicate values.
   Note: Unlike filter, this joins relation with keys and can be potentially expensive.
 
-  See also: pigpen.core/filter, pigpen.core/remove-by, pigpen.core/intersection</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L403">view source</a></div></div><div class="public anchor" id="var-fold"><h3>fold</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.0</h4><div class="usage"><code>(fold reducef relation)</code><code>(fold combinef reducef relation)</code></div><div class="doc"><pre class="plaintext">Computes a parallel reduce of the relation. This is done in multiple stages
+  See also: pigpen.core/filter, pigpen.core/remove-by, pigpen.core/intersection</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L403">view source</a></div></div><div class="public anchor" id="var-fold"><h3>fold</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.0</h4><div class="usage"><code>(fold reducef relation)</code><code>(fold combinef reducef relation)</code></div><div class="doc"><pre class="plaintext">Computes a parallel reduce of the relation. This is done in multiple stages
 using reducef and combinef. First, combinef is called with no args to produce a
 seed value. Then, reducef reduces portions of the data using that seed value.
 Finally, combinef is used to reduce each of the intermediate values. If combinef
@@ -183,7 +183,7 @@ pigpen.fold/fold-fn can also be used.
 		     (pig/return [])
 		     (pig/fold (fold/count))
 		     (pig/dump))
-		[]</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L280">view source</a></div></div><div class="public anchor" id="var-group-by"><h3>group-by</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(group-by key-selector relation)</code><code>(group-by key-selector opts relation)</code></div><div class="doc"><pre class="plaintext">Groups relation by the result of calling (key-selector item) for each item.
+		[]</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L280">view source</a></div></div><div class="public anchor" id="var-group-by"><h3>group-by</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(group-by key-selector relation)</code><code>(group-by key-selector opts relation)</code></div><div class="doc"><pre class="plaintext">Groups relation by the result of calling (key-selector item) for each item.
 This produces a sequence of map entry values, similar to using seq with a
 map. Each value will be a lazy sequence of the values that match key.
 Optionally takes a map of options, including :parallel and :fold.
@@ -199,7 +199,7 @@ Optionally takes a map of options, including :parallel and :fold.
 
   See also: pigpen.core/cogroup
 
-  See pigpen.fold for more info on :fold options.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L195">view source</a></div></div><div class="public anchor" id="var-intersection"><h3>intersection</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(intersection opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs an intersection on all relations provided and returns the distinct
+  See pigpen.fold for more info on :fold options.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L195">view source</a></div></div><div class="public anchor" id="var-intersection"><h3>intersection</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(intersection opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs an intersection on all relations provided and returns the distinct
 results. Optionally takes a map of options as the first parameter.
 
   Example:
@@ -215,7 +215,7 @@ results. Optionally takes a map of options as the first parameter.
 
     :parallel - The degree of parallelism to use (pig only)
 
-  See also: pigpen.core/intersection-multiset, pigpen.core/difference</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L199">view source</a></div></div><div class="public anchor" id="var-intersection-multiset"><h3>intersection-multiset</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(intersection-multiset opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs a multiset intersection on all relations provided and returns all
+  See also: pigpen.core/intersection-multiset, pigpen.core/difference</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L199">view source</a></div></div><div class="public anchor" id="var-intersection-multiset"><h3>intersection-multiset</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(intersection-multiset opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs a multiset intersection on all relations provided and returns all
 results. Optionally takes a map of options as the first parameter.
 
   Example:
@@ -231,7 +231,7 @@ results. Optionally takes a map of options as the first parameter.
 
     :parallel - The degree of parallelism to use (pig only)
 
-  See also: pigpen.core/intersection, pigpen.core/difference</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L223">view source</a></div></div><div class="public anchor" id="var-into"><h3>into</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(into to relation)</code></div><div class="doc"><pre class="plaintext">Returns a new relation with all values from relation conjoined onto to.
+  See also: pigpen.core/intersection, pigpen.core/difference</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L223">view source</a></div></div><div class="public anchor" id="var-into"><h3>into</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(into to relation)</code></div><div class="doc"><pre class="plaintext">Returns a new relation with all values from relation conjoined onto to.
 
 Note: This operation uses a single reducer and won't work for large datasets.
 
@@ -243,7 +243,7 @@ Note: Reducing an empty sequence will always return an empty sequence:
      (pig/return [])
      (pig/into {})
      (pig/dump))
-[]</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L225">view source</a></div></div><div class="public anchor" id="var-join"><h3>join</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(join selects f)</code><code>(join selects f opts)</code></div><div class="doc"><pre class="plaintext">Joins many relations together by a common key. Each relation specifies a
+[]</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L225">view source</a></div></div><div class="public anchor" id="var-join"><h3>join</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(join selects f)</code><code>(join selects f opts)</code></div><div class="doc"><pre class="plaintext">Joins many relations together by a common key. Each relation specifies a
 key-selector function on which to join. A function is applied to each join
 key and each pair of values from each relation that match that join key.
 Optionally takes a map of options.
@@ -272,7 +272,7 @@ options.
     :parallel - The degree of parallelism to use (pig only)
     :join-nils - Whether nil keys from each relation should be treated as equal
 
-  See also: pigpen.core/cogroup, pigpen.core/union</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L360">view source</a></div></div><div class="public anchor" id="var-keys-fn"><h3>keys-fn</h3><h4 class="type">macro</h4><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(keys-fn &amp; body)</code></div><div class="doc"><pre class="plaintext">Creates a named anonymous function. Useful as a terse substitute for keys
+  See also: pigpen.core/cogroup, pigpen.core/union</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L360">view source</a></div></div><div class="public anchor" id="var-keys-fn"><h3>keys-fn</h3><h4 class="type">macro</h4><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(keys-fn &amp; body)</code></div><div class="doc"><pre class="plaintext">Creates a named anonymous function. Useful as a terse substitute for keys
 destructuring.
 
 Similar to an anonymous function, which uses positional names for arg:
@@ -295,7 +295,7 @@ To compare, this is the same function using keys destructuring:
 
 When using a large number of destructured variables, this can make a noticeable
 difference in code size and readability. This macro simply re-writes the first
-form into the second.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/extensions/core.clj#L108">view source</a></div></div><div class="public anchor" id="var-load-clj"><h3>load-clj</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(load-clj location)</code></div><div class="doc"><pre class="plaintext">Loads clojure data from a file. Each line should contain one value and will
+form into the second.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/extensions/core.clj#L108">view source</a></div></div><div class="public anchor" id="var-load-clj"><h3>load-clj</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(load-clj location)</code></div><div class="doc"><pre class="plaintext">Loads clojure data from a file. Each line should contain one value and will
 be parsed using clojure.edn/read-string into a value.
 
   Example:
@@ -304,7 +304,7 @@ be parsed using clojure.edn/read-string into a value.
 
   See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-json
 
-  See: <a href="https://github.com/edn-format/edn">https://github.com/edn-format/edn</a></pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L106">view source</a></div></div><div class="public anchor" id="var-load-csv"><h3>load-csv</h3><h4 class="added">added in 0.2.12</h4><div class="usage"><code>(load-csv location)</code><code>(load-csv location separator quotor)</code></div><div class="doc"><pre class="plaintext">Loads data from a csv file. Each line is returned as a vector of strings,
+  See: <a href="https://github.com/edn-format/edn">https://github.com/edn-format/edn</a></pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L106">view source</a></div></div><div class="public anchor" id="var-load-csv"><h3>load-csv</h3><h4 class="added">added in 0.2.12</h4><div class="usage"><code>(load-csv location)</code><code>(load-csv location separator quotor)</code></div><div class="doc"><pre class="plaintext">Loads data from a csv file. Each line is returned as a vector of strings,
 split according to RFC4180(*). The default separator is \, and quote is \".
 
   Note: Newlines within cells are not supported due to line-based splitting of files.
@@ -314,7 +314,7 @@ split according to RFC4180(*). The default separator is \, and quote is \".
     (pig/load-csv "input.csv")
     (pig/load-tsv "input.csv" \, \")
 
-  See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-clj, pigpen.core/load-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L88">view source</a></div></div><div class="public anchor" id="var-load-json"><h3>load-json</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(load-json location)</code><code>(load-json location opts)</code></div><div class="doc"><pre class="plaintext">Loads json data from a file. Each line should contain one value and will be
+  See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-clj, pigpen.core/load-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L88">view source</a></div></div><div class="public anchor" id="var-load-json"><h3>load-json</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(load-json location)</code><code>(load-json location opts)</code></div><div class="doc"><pre class="plaintext">Loads json data from a file. Each line should contain one value and will be
 parsed using clojure.data.json/read-str into a value. Options can be passed to
 read-str as a map. The default options used are {:key-fn keyword}.
 
@@ -322,16 +322,16 @@ read-str as a map. The default options used are {:key-fn keyword}.
 
     (pig/load-json "input.json")
 
-  See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-clj</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L122">view source</a></div></div><div class="public anchor" id="var-load-lazy"><h3>load-lazy</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(load-lazy location)</code><code>(load-lazy location delimiter)</code></div><div class="doc"><pre class="plaintext">Loads data from a tsv file. Each line is returned as a lazy seq, split by
+  See also: pigpen.core/load-string, pigpen.core/load-tsv, pigpen.core/load-clj</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L122">view source</a></div></div><div class="public anchor" id="var-load-lazy"><h3>load-lazy</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(load-lazy location)</code><code>(load-lazy location delimiter)</code></div><div class="doc"><pre class="plaintext">Loads data from a tsv file. Each line is returned as a lazy seq, split by
 the specified delimiter. The default delimiter is \t.
 
-  See also: pigpen.core/load-tsv</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L140">view source</a></div></div><div class="public anchor" id="var-load-string"><h3>load-string</h3><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(load-string location)</code></div><div class="doc"><pre class="plaintext">Loads data from a file. Each line is returned as a string.
+  See also: pigpen.core/load-tsv</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L140">view source</a></div></div><div class="public anchor" id="var-load-string"><h3>load-string</h3><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(load-string location)</code></div><div class="doc"><pre class="plaintext">Loads data from a file. Each line is returned as a string.
 
 Example:
 
   (pig/load-string "input.txt")
 
-See also: pigpen.core/load-tsv, pigpen.core/load-clj, pigpen.core/load-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L59">view source</a></div></div><div class="public anchor" id="var-load-tsv"><h3>load-tsv</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(load-tsv location)</code><code>(load-tsv location delimiter)</code></div><div class="doc"><pre class="plaintext">Loads data from a tsv file. Each line is returned as a vector of strings,
+See also: pigpen.core/load-tsv, pigpen.core/load-clj, pigpen.core/load-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L59">view source</a></div></div><div class="public anchor" id="var-load-tsv"><h3>load-tsv</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(load-tsv location)</code><code>(load-tsv location delimiter)</code></div><div class="doc"><pre class="plaintext">Loads data from a tsv file. Each line is returned as a vector of strings,
 split by the specified regex delimiter. The default delimiter is #"\t".
 
   Example:
@@ -339,7 +339,7 @@ split by the specified regex delimiter. The default delimiter is #"\t".
     (pig/load-tsv "input.tsv")
     (pig/load-tsv "input.csv" #",")
 
-  See also: pigpen.core/load-string, pigpen.core/load-clj, pigpen.core/load-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L72">view source</a></div></div><div class="public anchor" id="var-map"><h3>map</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(map f relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation of f applied to every item in the source relation.
+  See also: pigpen.core/load-string, pigpen.core/load-clj, pigpen.core/load-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L72">view source</a></div></div><div class="public anchor" id="var-map"><h3>map</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(map f relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation of f applied to every item in the source relation.
 Function f should be a function of one argument.
 
   Example:
@@ -352,7 +352,7 @@ is due to the fact that there is no defined order in pigpen. See pig/join,
 pig/cogroup, and pig/union for combining sets of data.
 
   See also: pigpen.core/mapcat, pigpen.core/map-indexed, pigpen.core/join,
-            pigpen.core/cogroup, pigpen.core/union</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L59">view source</a></div></div><div class="public anchor" id="var-map-indexed"><h3>map-indexed</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(map-indexed f relation)</code><code>(map-indexed f opts relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation of applying f to the the index and value of every item in
+            pigpen.core/cogroup, pigpen.core/union</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L59">view source</a></div></div><div class="public anchor" id="var-map-indexed"><h3>map-indexed</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(map-indexed f relation)</code><code>(map-indexed f opts relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation of applying f to the the index and value of every item in
 the source relation. Function f should be a function of two arguments: the index
 and the value. If you require sequential ids, use option {:dense true}.
 
@@ -373,14 +373,14 @@ and the value. If you require sequential ids, use option {:dense true}.
 
   Note: The cascading implementation of map-indexed uses a single reducer
 
-  See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core/map, pigpen.core/mapcat</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L135">view source</a></div></div><div class="public anchor" id="var-mapcat"><h3>mapcat</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(mapcat f relation)</code></div><div class="doc"><pre class="plaintext">Returns the result of applying concat, or flattening, the result of applying
+  See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core/map, pigpen.core/mapcat</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L135">view source</a></div></div><div class="public anchor" id="var-mapcat"><h3>mapcat</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(mapcat f relation)</code></div><div class="doc"><pre class="plaintext">Returns the result of applying concat, or flattening, the result of applying
 f to each item in relation. Thus f should return a collection.
 
   Example:
 
     (pig/mapcat (fn [x] [(dec x) x (inc x)]) foo)
 
-  See also: pigpen.core/map, pigpen.core/map-indexed</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L99">view source</a></div></div><div class="public anchor" id="var-reduce"><h3>reduce</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(reduce f relation)</code><code>(reduce f val relation)</code></div><div class="doc"><pre class="plaintext">Reduce all items in relation into a single value. Follows semantics of
+  See also: pigpen.core/map, pigpen.core/map-indexed</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L99">view source</a></div></div><div class="public anchor" id="var-reduce"><h3>reduce</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(reduce f relation)</code><code>(reduce f val relation)</code></div><div class="doc"><pre class="plaintext">Reduce all items in relation into a single value. Follows semantics of
 clojure.core/reduce. If a sequence is returned, it is kept as a single value
 for further processing.
 
@@ -400,7 +400,7 @@ for further processing.
 		     (pig/return [])
 		     (pig/reduce +)
 		     (pig/dump))
-		[]</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L247">view source</a></div></div><div class="public anchor" id="var-remove"><h3>remove</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(remove pred relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation without items for which (pred item) returns true.
+		[]</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L247">view source</a></div></div><div class="public anchor" id="var-remove"><h3>remove</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(remove pred relation)</code></div><div class="doc"><pre class="plaintext">Returns a relation without items for which (pred item) returns true.
 
 Example:
 
@@ -408,7 +408,7 @@ Example:
   (pig/remove (fn [x] (even? (* x x))) foo)
 
 See also: pigpen.core/filter, pigpen.core/take, pigpen.core/sample,
-          pigpen.core/distinct, pigpen.core/remove-by</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L67">view source</a></div></div><div class="public anchor" id="var-remove-by"><h3>remove-by</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(remove-by key-selector keys relation)</code><code>(remove-by key-selector keys opts relation)</code></div><div class="doc"><pre class="plaintext">Filters a relation by the keys in another relation. The key-selector function
+          pigpen.core/distinct, pigpen.core/remove-by</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L67">view source</a></div></div><div class="public anchor" id="var-remove-by"><h3>remove-by</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(remove-by key-selector keys relation)</code><code>(remove-by key-selector keys opts relation)</code></div><div class="doc"><pre class="plaintext">Filters a relation by the keys in another relation. The key-selector function
 is applied to each element of relation. If the resulting key is _not_ present in
 keys, the value is kept. Otherwise it is dropped. nils are dropped or preserved
 based on whether there is a nil value present in keys. This operation is
@@ -434,7 +434,7 @@ referred to as an anti-join in relational databases.
 
   Note: Unlike remove, this joins relation with keys and can be potentially expensive.
 
-  See also: pigpen.core/remove, pigpen.core/filter-by, pigpen.core/difference</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L443">view source</a></div></div><div class="public anchor" id="var-return"><h3>return</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(return data)</code></div><div class="doc"><pre class="plaintext">Returns a constant set of data as a pigpen relation. This is useful for
+  See also: pigpen.core/remove, pigpen.core/filter-by, pigpen.core/difference</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L443">view source</a></div></div><div class="public anchor" id="var-return"><h3>return</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(return data)</code></div><div class="doc"><pre class="plaintext">Returns a constant set of data as a pigpen relation. This is useful for
 testing, but not supported in generated scripts. The parameter 'data' must be a
 sequence. The values of 'data' can be any clojure type.
 
@@ -443,7 +443,7 @@ sequence. The values of 'data' can be any clojure type.
     (pig/constantly [1 2 3])
     (pig/constantly [{:a 123} {:b 456}])
 
-  See also: pigpen.core/constantly</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L265">view source</a></div></div><div class="public anchor" id="var-sample"><h3>sample</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(sample p relation)</code></div><div class="doc"><pre class="plaintext">Samples the input records by p percentage. This is non-deterministic;
+  See also: pigpen.core/constantly</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L265">view source</a></div></div><div class="public anchor" id="var-sample"><h3>sample</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(sample p relation)</code></div><div class="doc"><pre class="plaintext">Samples the input records by p percentage. This is non-deterministic;
 different values may selected on subsequent runs. p should be a value
 between 0.0 and 1.0
 
@@ -453,7 +453,7 @@ between 0.0 and 1.0
 
   Note: This is potentially an expensive operation when run locally.
 
-  See also: pigpen.core/filter, pigpen.core/take</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L97">view source</a></div></div><div class="public anchor" id="var-sort"><h3>sort</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(sort relation)</code><code>(sort comp relation)</code><code>(sort comp opts relation)</code></div><div class="doc"><pre class="plaintext">Sorts the data with an optional comparator. Takes an optional map of options.
+  See also: pigpen.core/filter, pigpen.core/take</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L97">view source</a></div></div><div class="public anchor" id="var-sort"><h3>sort</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(sort relation)</code><code>(sort comp relation)</code><code>(sort comp opts relation)</code></div><div class="doc"><pre class="plaintext">Sorts the data with an optional comparator. Takes an optional map of options.
 
 Example:
 
@@ -473,7 +473,7 @@ Options:
 
 Note: The cascading implementation of sort uses a single reducer
 
-See also: pigpen.core/sort-by</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L190">view source</a></div></div><div class="public anchor" id="var-sort-by"><h3>sort-by</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(sort-by key-fn relation)</code><code>(sort-by key-fn comp relation)</code><code>(sort-by key-fn comp opts relation)</code></div><div class="doc"><pre class="plaintext">Sorts the data by the specified key-fn with an optional comparator. Takes an
+See also: pigpen.core/sort-by</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L190">view source</a></div></div><div class="public anchor" id="var-sort-by"><h3>sort-by</h3><h4 class="type">macro</h4><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(sort-by key-fn relation)</code><code>(sort-by key-fn comp relation)</code><code>(sort-by key-fn comp opts relation)</code></div><div class="doc"><pre class="plaintext">Sorts the data by the specified key-fn with an optional comparator. Takes an
 optional map of options.
 
   Example:
@@ -494,7 +494,7 @@ optional map of options.
 
   Note: The cascading implementation of sort-by uses a single reducer
 
-  See also: pigpen.core/sort</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L219">view source</a></div></div><div class="public anchor" id="var-store-clj"><h3>store-clj</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(store-clj location relation)</code></div><div class="doc"><pre class="plaintext">Stores the relation into location using edn (clojure format). Each value is
+  See also: pigpen.core/sort</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L219">view source</a></div></div><div class="public anchor" id="var-store-clj"><h3>store-clj</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(store-clj location relation)</code></div><div class="doc"><pre class="plaintext">Stores the relation into location using edn (clojure format). Each value is
 written as a single line.
 
   Example:
@@ -503,14 +503,14 @@ written as a single line.
 
   See also: pigpen.core/store-string, pigpen.core/store-tsv, pigpen.core/store-json
 
-  See: <a href="https://github.com/edn-format/edn">https://github.com/edn-format/edn</a></pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L214">view source</a></div></div><div class="public anchor" id="var-store-json"><h3>store-json</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(store-json location relation)</code><code>(store-json location opts relation)</code></div><div class="doc"><pre class="plaintext">Stores the relation into location using clojure.data.json. Each value is
+  See: <a href="https://github.com/edn-format/edn">https://github.com/edn-format/edn</a></pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L214">view source</a></div></div><div class="public anchor" id="var-store-json"><h3>store-json</h3><h4 class="type">macro</h4><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(store-json location relation)</code><code>(store-json location opts relation)</code></div><div class="doc"><pre class="plaintext">Stores the relation into location using clojure.data.json. Each value is
 written as a single line. Options can be passed to write-str as a map.
 
   Example:
 
     (pig/store-json "output.json" foo)
 
-  See also: pigpen.core/store-string, pigpen.core/store-tsv, pigpen.core/store-clj</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L230">view source</a></div></div><div class="public anchor" id="var-store-many"><h3>store-many</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(store-many outputs+)</code></div><div class="doc"><pre class="plaintext">Combines multiple store commands into a single script. This is not required
+  See also: pigpen.core/store-string, pigpen.core/store-tsv, pigpen.core/store-clj</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L230">view source</a></div></div><div class="public anchor" id="var-store-many"><h3>store-many</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(store-many outputs+)</code></div><div class="doc"><pre class="plaintext">Combines multiple store commands into a single script. This is not required
 if you have a single output.
 
   Example:
@@ -519,14 +519,14 @@ if you have a single output.
       (pig/store-tsv "foo.tsv" foo)
       (pig/store-clj "bar.clj" bar))
 
-  Note: When run locally, this will merge the results of any source relations.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L248">view source</a></div></div><div class="public anchor" id="var-store-string"><h3>store-string</h3><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(store-string location relation)</code></div><div class="doc"><pre class="plaintext">Stores the relation into location as a string. Each value is written as a
+  Note: When run locally, this will merge the results of any source relations.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L248">view source</a></div></div><div class="public anchor" id="var-store-string"><h3>store-string</h3><h4 class="added">added in 0.2.3</h4><div class="usage"><code>(store-string location relation)</code></div><div class="doc"><pre class="plaintext">Stores the relation into location as a string. Each value is written as a
 single line.
 
   Example:
 
     (pig/store-string "output.txt" foo)
 
-  See also: pigpen.core/store-tsv, pigpen.core/store-clj, pigpen.core/store-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L182">view source</a></div></div><div class="public anchor" id="var-store-tsv"><h3>store-tsv</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(store-tsv location relation)</code><code>(store-tsv location delimiter relation)</code></div><div class="doc"><pre class="plaintext">Stores the relation into location as a tab-delimited file. Thus, each input
+  See also: pigpen.core/store-tsv, pigpen.core/store-clj, pigpen.core/store-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L182">view source</a></div></div><div class="public anchor" id="var-store-tsv"><h3>store-tsv</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(store-tsv location relation)</code><code>(store-tsv location delimiter relation)</code></div><div class="doc"><pre class="plaintext">Stores the relation into location as a tab-delimited file. Thus, each input
 value must be sequential. Complex values are stored as edn (clojure format).
 Single string values are not quoted. You may optionally pass a different delimiter.
 
@@ -535,7 +535,7 @@ Single string values are not quoted. You may optionally pass a different delimit
     (pig/store-tsv "output.tsv" foo)
     (pig/store-tsv "output.csv" "," foo)
 
-  See also: pigpen.core/store-string, pigpen.core/store-clj, pigpen.core/store-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L196">view source</a></div></div><div class="public anchor" id="var-take"><h3>take</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(take n relation)</code></div><div class="doc"><pre class="plaintext">Limits the number of records to n items.
+  See also: pigpen.core/store-string, pigpen.core/store-clj, pigpen.core/store-json</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L196">view source</a></div></div><div class="public anchor" id="var-take"><h3>take</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(take n relation)</code></div><div class="doc"><pre class="plaintext">Limits the number of records to n items.
 
 Example:
 
@@ -543,7 +543,7 @@ Example:
 
 Note: This is potentially an expensive operation when run on the server.
 
-See also: pigpen.core/filter, pigpen.core/sample</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L82">view source</a></div></div><div class="public anchor" id="var-union"><h3>union</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(union opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs a union on all relations provided and returns the distinct results.
+See also: pigpen.core/filter, pigpen.core/sample</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L82">view source</a></div></div><div class="public anchor" id="var-union"><h3>union</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(union opts? relations+)</code></div><div class="doc"><pre class="plaintext">Performs a union on all relations provided and returns the distinct results.
 Optionally takes a map of options as the first parameter.
 
   Example:
@@ -559,7 +559,7 @@ Optionally takes a map of options as the first parameter.
 
     :parallel - the degree of parallelism to use (pig only)
 
-  See also: pigpen.core/union-multiset, pigpen.core/distinct</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L127">view source</a></div></div><div class="public anchor" id="var-union-multiset"><h3>union-multiset</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(union-multiset relations+)</code></div><div class="doc"><pre class="plaintext">Performs a union on all relations provided and returns all results.
+  See also: pigpen.core/union-multiset, pigpen.core/distinct</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L127">view source</a></div></div><div class="public anchor" id="var-union-multiset"><h3>union-multiset</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(union-multiset relations+)</code></div><div class="doc"><pre class="plaintext">Performs a union on all relations provided and returns all results.
 Identical to pigpen.core/concat.
 
   Example:
@@ -571,4 +571,4 @@ Identical to pigpen.core/concat.
 
     =&gt; [1 1 1 1 2 2 2 2 2 2 3 3 3 3 3 3 3 4 5]
 
-  See also: pigpen.core/union, pigpen.core/distinct, pigpen.core/concat</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L177">view source</a></div></div></div></body></html>
+  See also: pigpen.core/union, pigpen.core/distinct, pigpen.core/concat</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L177">view source</a></div></div></div></body></html>

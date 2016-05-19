@@ -22,14 +22,14 @@ combine them. Optionally takes a map of options.
     :pigpen-jar-location - The location where your uberjar resides.
                            Defaults to 'pigpen.jar'.
 
-  See also: pigpen.pig/write-script, pigpen.core/store-many</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-pig/src/main/clojure/pigpen/pig.clj#L28">view source</a></div></div><div class="public anchor" id="var-set-options"><h3>set-options</h3><div class="usage"><code>(set-options opts relation)</code></div><div class="doc"><pre class="plaintext">Used to set options in a pig script. `opts` is a map of string/keyword/symbol
+  See also: pigpen.pig/write-script, pigpen.core/store-many</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-pig/src/main/clojure/pigpen/pig.clj#L28">view source</a></div></div><div class="public anchor" id="var-set-options"><h3>set-options</h3><div class="usage"><code>(set-options opts relation)</code></div><div class="doc"><pre class="plaintext">Used to set options in a pig script. `opts` is a map of string/keyword/symbol
 to anything. str is called on values.
 
   Example:
 
     (set-options {:pig.maxCombinedSplitSize 1000000} relation)
 
-  Note: Pig options are global and apply to the entire script.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-pig/src/main/clojure/pigpen/pig.clj#L88">view source</a></div></div><div class="public anchor" id="var-write-script"><h3>write-script</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(write-script location query)</code><code>(write-script location opts query)</code></div><div class="doc"><pre class="plaintext">Generates a Pig script from the relation specified and writes it to location.
+  Note: Pig options are global and apply to the entire script.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-pig/src/main/clojure/pigpen/pig.clj#L88">view source</a></div></div><div class="public anchor" id="var-write-script"><h3>write-script</h3><h4 class="added">added in 0.1.0</h4><div class="usage"><code>(write-script location query)</code><code>(write-script location opts query)</code></div><div class="doc"><pre class="plaintext">Generates a Pig script from the relation specified and writes it to location.
 You can pass any relation to this and it will generate a Pig script - it doesn't
 have to be an output. However, if there are no store commands, the script won't
 do much. If you have more than one store command, use pigpen.core/store-many to
@@ -50,4 +50,4 @@ combine them. Optionally takes a map of options.
     :pigpen-jar-location - The location where your uberjar resides.
                            Defaults to 'pigpen.jar'.
 
-  See also: pigpen.pig/generate-script, pigpen.core/store-many</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-pig/src/main/clojure/pigpen/pig.clj#L59">view source</a></div></div></div></body></html>
+  See also: pigpen.pig/generate-script, pigpen.core/store-many</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-pig/src/main/clojure/pigpen/pig.clj#L59">view source</a></div></div></div></body></html>

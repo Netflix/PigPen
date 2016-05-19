@@ -17,14 +17,14 @@ as an argument.
       (trap (fn [x] (even? (* x x))))
       data)
 
-  See also: pigpen.core/filter, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L31">view source</a></div></div><div class="public anchor" id="var-fold*"><h3>fold*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(fold* fold relation)</code><code>(fold* fold opts relation)</code></div><div class="doc"><pre class="plaintext">Applies the fold function `fold` to the data. Similar to pigpen.core/fold,
+  See also: pigpen.core/filter, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/filter.clj#L31">view source</a></div></div><div class="public anchor" id="var-fold*"><h3>fold*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(fold* fold relation)</code><code>(fold* fold opts relation)</code></div><div class="doc"><pre class="plaintext">Applies the fold function `fold` to the data. Similar to pigpen.core/fold,
 but is a function and `fold` must be quoted.
 
   Example:
 
     (fold* '(fold/count) data)
 
-  See also: pigpen.core/fold, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L140">view source</a></div></div><div class="public anchor" id="var-group*"><h3>group*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(group* selects f)</code><code>(group* selects f opts)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/cogroup, but is a function and takes a quoted function
+  See also: pigpen.core/fold, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L140">view source</a></div></div><div class="public anchor" id="var-group*"><h3>group*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(group* selects f)</code><code>(group* selects f opts)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/cogroup, but is a function and takes a quoted function
 as an argument. Also takes select clauses as maps.
 
   Example:
@@ -34,7 +34,7 @@ as an argument. Also takes select clauses as maps.
        {:from data2, :by 'identity}]
       (trap (fn [k l r] {:key k, :left l, :right r})))
 
-  See also: pigpen.core/group-by, pigpen.core/cogroup, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L82">view source</a></div></div><div class="public anchor" id="var-join*"><h3>join*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(join* selects f)</code><code>(join* selects f opts)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/join, but is a function and takes a quoted function
+  See also: pigpen.core/group-by, pigpen.core/cogroup, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L82">view source</a></div></div><div class="public anchor" id="var-join*"><h3>join*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(join* selects f)</code><code>(join* selects f opts)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/join, but is a function and takes a quoted function
 as an argument. Also takes select clauses as maps.
 
   Example:
@@ -44,7 +44,7 @@ as an argument. Also takes select clauses as maps.
        {:from data2, :by 'identity}]
       (trap (fn [l r] {:left l, :right r})))
 
-  See also: pigpen.core/join, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L166">view source</a></div></div><div class="public anchor" id="var-load-string*"><h3>load-string*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(load-string* location f)</code><code>(load-string* location requires f)</code></div><div class="doc"><pre class="plaintext">The base for load-string, load-clj, load-json, etc. The parameters `requires`
+  See also: pigpen.core/join, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L166">view source</a></div></div><div class="public anchor" id="var-load-string*"><h3>load-string*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(load-string* location f)</code><code>(load-string* location requires f)</code></div><div class="doc"><pre class="plaintext">The base for load-string, load-clj, load-json, etc. The parameters `requires`
 and `f` specify a conversion function to apply to each input row. `f` must be
 quoted prior to calling load-string*.
 
@@ -55,7 +55,7 @@ quoted prior to calling load-string*.
       (trap (fn [x] (subs x 42)))
       data)
 
-  See also: pigpen.core/load-string, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L37">view source</a></div></div><div class="public anchor" id="var-map*"><h3>map*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(map* f relation)</code><code>(map* f opts relation)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/map, but is a function and takes a quoted function as
+  See also: pigpen.core/load-string, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L37">view source</a></div></div><div class="public anchor" id="var-map*"><h3>map*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(map* f relation)</code><code>(map* f opts relation)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/map, but is a function and takes a quoted function as
 an argument.
 
   Examples:
@@ -72,7 +72,7 @@ an argument.
 Note that the above example would not work with pigpen.core/map because f would
 be compiled before do-stuff is called.
 
-  See also: pigpen.core/map, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L31">view source</a></div></div><div class="public anchor" id="var-map-indexed*"><h3>map-indexed*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(map-indexed* f relation)</code><code>(map-indexed* f opts relation)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/map-indexed, but is a function and takes a quoted
+  See also: pigpen.core/map, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L31">view source</a></div></div><div class="public anchor" id="var-map-indexed*"><h3>map-indexed*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(map-indexed* f relation)</code><code>(map-indexed* f opts relation)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/map-indexed, but is a function and takes a quoted
 function as an argument.
 
   Examples:
@@ -81,7 +81,7 @@ function as an argument.
       (trap (fn [i x] (* i x)))
       data)
 
-  See also: pigpen.core/map-indexed, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L113">view source</a></div></div><div class="public anchor" id="var-mapcat*"><h3>mapcat*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(mapcat* f relation)</code><code>(mapcat* f opts relation)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/mapcat, but is a function and takes a quoted function
+  See also: pigpen.core/map-indexed, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L113">view source</a></div></div><div class="public anchor" id="var-mapcat*"><h3>mapcat*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(mapcat* f relation)</code><code>(mapcat* f opts relation)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/mapcat, but is a function and takes a quoted function
 as an argument.
 
   Examples:
@@ -90,7 +90,7 @@ as an argument.
       (trap (fn [x] [(dec x) x (inc x)]))
       data)
 
-  See also: pigpen.core/mapcat, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L79">view source</a></div></div><div class="public anchor" id="var-reduce*"><h3>reduce*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(reduce* f relation)</code><code>(reduce* f opts relation)</code></div><div class="doc"><pre class="plaintext">Reduces all data into a single collection and applies f to that collection.
+  See also: pigpen.core/mapcat, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L79">view source</a></div></div><div class="public anchor" id="var-reduce*"><h3>reduce*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(reduce* f relation)</code><code>(reduce* f opts relation)</code></div><div class="doc"><pre class="plaintext">Reduces all data into a single collection and applies f to that collection.
 The function `f` must be quoted prior to calling reduce*.
 
   Example:
@@ -99,7 +99,7 @@ The function `f` must be quoted prior to calling reduce*.
       (trap (fn [xs] (count xs)))
       data)
 
-  See also: pigpen.core/into, pigpen.core/reduce, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L119">view source</a></div></div><div class="public anchor" id="var-set-op*"><h3>set-op*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(set-op* f opts? relations+)</code></div><div class="doc"><pre class="plaintext">Common base for most set operations. Takes a quoted function that should take
+  See also: pigpen.core/into, pigpen.core/reduce, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/join.clj#L119">view source</a></div></div><div class="public anchor" id="var-set-op*"><h3>set-op*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(set-op* f opts? relations+)</code></div><div class="doc"><pre class="plaintext">Common base for most set operations. Takes a quoted function that should take
 the same number of args as there are relations passed to set-op*. Each of those
 args is a sequence of the same values from that relation, similar to a cogroup
 where the key-fn is identity. `f` should return a sequence which is then
@@ -115,7 +115,7 @@ flattened.
       ...
       dataN)
 
-  See also: pigpen.core/intersection, pigpen.core/difference, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L51">view source</a></div></div><div class="public anchor" id="var-sort*"><h3>sort*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(sort* comp relation)</code><code>(sort* key-selector comp relation)</code><code>(sort* key-selector comp opts relation)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/sort-by, but is a function and takes a quoted
+  See also: pigpen.core/intersection, pigpen.core/difference, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/set.clj#L51">view source</a></div></div><div class="public anchor" id="var-sort*"><h3>sort*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(sort* comp relation)</code><code>(sort* key-selector comp relation)</code><code>(sort* key-selector comp opts relation)</code></div><div class="doc"><pre class="plaintext">Similar to pigpen.core/sort-by, but is a function and takes a quoted
 function as an argument.
 
   Examples:
@@ -125,7 +125,7 @@ function as an argument.
       :asc
       data)
 
-  See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L164">view source</a></div></div><div class="public anchor" id="var-store-string*"><h3>store-string*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(store-string* location f relation)</code><code>(store-string* location requires f relation)</code></div><div class="doc"><pre class="plaintext">The base for store-string, store-clj, store-json, etc. The parameters
+  See also: pigpen.core/sort, pigpen.core/sort-by, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/map.clj#L164">view source</a></div></div><div class="public anchor" id="var-store-string*"><h3>store-string*</h3><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(store-string* location f relation)</code><code>(store-string* location requires f relation)</code></div><div class="doc"><pre class="plaintext">The base for store-string, store-clj, store-json, etc. The parameters
 `requires` and `f` specify a conversion function to apply to each input row.
 `f` must be quoted prior to calling store-string*.
 
@@ -136,7 +136,7 @@ function as an argument.
       (trap (fn [x] (with-out-str (clojure.pprint/pprint x))))
       data)
 
-  See also: pigpen.core/store-string, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L159">view source</a></div></div><div class="public anchor" id="var-trap"><h3>trap</h3><h4 class="type">macro</h4><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(trap f)</code><code>(trap ns f)</code></div><div class="doc"><pre class="plaintext">Returns a form that, when evaluated, will reconsitiute f in namespace ns, in
+  See also: pigpen.core/store-string, pigpen.core.fn/trap</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/io.clj#L159">view source</a></div></div><div class="public anchor" id="var-trap"><h3>trap</h3><h4 class="type">macro</h4><h4 class="added">added in 0.3.0</h4><div class="usage"><code>(trap f)</code><code>(trap ns f)</code></div><div class="doc"><pre class="plaintext">Returns a form that, when evaluated, will reconsitiute f in namespace ns, in
 the presence of any local bindings. If `ns` is not specified, the current
 namespace, *ns*, is used.
 
@@ -155,4 +155,4 @@ namespace, *ns*, is used.
 
   Note: `ns` must exist as a file that will be in the final deployed uberjar.
         If you are in a temporary namespace in a REPL, it will not be included
-        in the rewritten version of the expression.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/0.3.3/pigpen-core/src/main/clojure/pigpen/code.clj#L132">view source</a></div></div></div></body></html>
+        in the rewritten version of the expression.</pre></div><div class="src-link"><a href="https://github.com/Netflix/PigPen/blob/v0.3.3/pigpen-core/src/main/clojure/pigpen/code.clj#L132">view source</a></div></div></div></body></html>
