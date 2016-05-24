@@ -108,7 +108,7 @@ the parquet column names. The parameter `schema` is a parquet schema.
 
   Example:
 
-    (load-parquet \"input.pq\" (message (int64 \"value\")))
+    (load-parquet \"input.pq\" (message \"schema-name\" (int64 \"value\")))
 
   See also: pigpen.parquet/message for schema details
 
@@ -130,7 +130,7 @@ map with keywords matching the parquet columns to be stored. The parameter
 
   Example:
 
-    (store-parquet \"output.pq\" (message (int64 \"value\")) foo)
+    (store-parquet \"output.pq\" (message \"schema-name\" (int64 \"value\")) foo)
 
   See also: pigpen.parquet/message for schema details
 

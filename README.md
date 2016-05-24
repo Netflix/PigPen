@@ -53,9 +53,52 @@ To use the parquet loader, add this to your dependencies:
 [com.netflix.pigpen/pigpen-parquet-pig "0.3.3"]
 ```
 
+Here an example of how to write parquet data.
+
+``` clj
+(require '[pigpen.core :as pig])
+(require '[pigpen.parquet :as pqt])
+
+;;
+;; assuming that `data` is in tuples
+;;
+;; [["John" "Smith" 28]
+;;  ["Jane" "Doe"   21]]
+
+(defn save-to-parquet
+  [output-file data]
+  (->> data
+       ;; turning tuples into a map
+       (pig/map (partial zipmap [:firstname :lastname :age]))
+       ;; then storing to Parquet files
+       (pqt/store-parquet
+        output-file
+        (pqt/message "test-schema"
+                     ;; the field names here MUST match the map's keys
+                     (pqt/binary "firstname")
+                     (pqt/binary "lastname")
+                     (pqt/int64  "age")))))
+```
+
+
+And how to load the records back:
+
+``` clj
+(defn load-from-parquet
+  [input-file]
+  ;; the output will be a sequence of maps
+  (pqt/load-parquet
+   input-file
+   (pqt/message "test-schema"
+                (pqt/binary "firstname")
+                (pqt/binary "lastname")
+                (pqt/int64  "age"))))
+```
+
+
 And check out the [`pigpen.parquet`](http://netflix.github.io/PigPen/pigpen.parquet.html) namespace for usage.
 
-_Note: Avro is currently only supported by Pig_
+_Note: Parquet is currently only supported by Pig_
 
 ## Avro
 
