@@ -373,7 +373,7 @@ Optionally takes a map of options.
 In this example, foo and bar are other pig queries and :a and :b are the
 key-selector functions for foo and bar, respectively. These can be any
 functions - not just keywords. There can be more than two select clauses.
-By default, a matching key value from eatch source relation is required,
+By default, a matching key value from each source relation is required,
 meaning that they must exist in all source relations to be part of the output.
 To specify a relation as optional, add 'optional' to the select clause. The
 third argument is a function used to consolidate matching key values. For each
