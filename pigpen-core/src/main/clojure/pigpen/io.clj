@@ -41,7 +41,7 @@ quoted prior to calling load-string*.
 
   Examples:
 
-    (oad-string*
+    (load-string*
       \"input.txt\"
       (trap (fn [x] (subs x 42)))
       data)
