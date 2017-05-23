@@ -20,6 +20,7 @@ _Note: PigPen is **not** a Clojure wrapper for writing Pig scripts you can hand 
 # Questions & Complaints
 
   * pigpen-support@googlegroups.com
+  * Group discussion archives can be accessed [here](https://groups.google.com/forum/#!forum/pigpen-support)
 
 # Artifacts
 
